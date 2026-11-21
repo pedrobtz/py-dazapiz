@@ -102,7 +102,19 @@ def test_prod_workload_identity_then_managed_identity(built, monkeypatch):
     built.clear()
     cred = credential("prod")
     assert isinstance(cred, azure.identity.ManagedIdentityCredential)
-    assert built == [("ManagedIdentityCredential", (), {})]
+    assert built == [("ManagedIdentityCredential", (), {"client_id": "wid"})]
+
+
+@pytest.mark.parametrize("mode", ["prod", "managed_identity"])
+@pytest.mark.parametrize(("value", "client_id"), [(None, None), ("", None), ("uami", "uami")])
+def test_managed_identity_client_id_from_azure_client_id(
+    built, monkeypatch, mode, value, client_id
+):
+    # User-assigned when $AZURE_CLIENT_ID is set, as DefaultAzureCredential does (D10, D25).
+    if value is not None:
+        monkeypatch.setenv("AZURE_CLIENT_ID", value)
+    assert isinstance(credential(mode), azure.identity.ManagedIdentityCredential)
+    assert built == [("ManagedIdentityCredential", (), {"client_id": client_id})]
 
 
 @pytest.mark.parametrize("mode", ["prod", "client_secret", None])
@@ -186,7 +198,8 @@ def test_single_names_case_insensitive(built, monkeypatch, mode, expected):
     monkeypatch.setenv("AZURE_TENANT_ID", "wtid")
     cred = credential(mode)
     assert type(cred).__name__ == expected
-    assert built == [(expected, (), {})]
+    kwargs = {"client_id": "wid"} if expected == "ManagedIdentityCredential" else {}
+    assert built == [(expected, (), kwargs)]
 
 
 @pytest.mark.parametrize(

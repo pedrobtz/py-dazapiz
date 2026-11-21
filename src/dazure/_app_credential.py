@@ -60,7 +60,8 @@ def app_credential(
 
     - `"prod"`: `azure.identity.ClientSecretCredential` from the named
       variables when they are set, else `WorkloadIdentityCredential()` when
-      `$AZURE_FEDERATED_TOKEN_FILE` is set, else `ManagedIdentityCredential()`.
+      `$AZURE_FEDERATED_TOKEN_FILE` is set, else `ManagedIdentityCredential()`
+      with `client_id=$AZURE_CLIENT_ID` (user-assigned) when that is set.
     - `"dev"`: `ChainedTokenCredential(AzureCliCredential(),
       dazure.DeviceCodeCredential())`, the device code only in an interactive
       session (a TTY or a notebook kernel).
@@ -107,7 +108,7 @@ def app_credential(
         elif _env("AZURE_FEDERATED_TOKEN_FILE"):
             credential = WorkloadIdentityCredential()
         else:
-            credential = ManagedIdentityCredential()
+            credential = _managed_identity()
     elif chosen == "dev":
         credential = _dev()
     elif chosen == "client_secret":
@@ -115,7 +116,7 @@ def app_credential(
     elif chosen == "workload_identity":
         credential = WorkloadIdentityCredential()
     elif chosen == "managed_identity":
-        credential = ManagedIdentityCredential()
+        credential = _managed_identity()
     elif chosen == "azure_cli":
         credential = AzureCliCredential()
     else:
@@ -153,6 +154,12 @@ def _check_service_principal(
     if tenant is None:
         raise ValueError(f"{id_name} and {secret_name} are set but {tenant_name} is not.")
     return True
+
+
+def _managed_identity() -> TokenCredential:
+    # As DefaultAzureCredential passes managed_identity_client_id: the standard
+    # variable names a user-assigned identity (D10); unset or empty is system-assigned.
+    return ManagedIdentityCredential(client_id=_env("AZURE_CLIENT_ID"))
 
 
 def _dev() -> TokenCredential:

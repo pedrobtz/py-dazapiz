@@ -266,7 +266,8 @@ The mode is the `mode` argument (or class attribute), else
      three are set;
   2. `WorkloadIdentityCredential()`, when `AZURE_FEDERATED_TOKEN_FILE`
      is set;
-  3. `ManagedIdentityCredential()`.
+  3. `ManagedIdentityCredential()`, with `client_id=$AZURE_CLIENT_ID`
+     when that is set (2026-11-21, below).
 
   Workload and managed identity read the standard `AZURE_*` variables
   through `azure-identity` itself (maintainer): the named variables are
@@ -375,11 +376,13 @@ Details settled in Stage 5 (2026-11-21):
 - The log line is `ℹ Credential: <class>, mode <mode> (<source>).`, the
   source `from mode`, `from AZURE_TOKEN_CREDENTIALS` or `automatic`; a
   chain lists its members' classes.
-- `ManagedIdentityCredential()` is built with no arguments, as written
-  above, so it is the system-assigned identity: unlike
-  `DefaultAzureCredential`, it does not read `$AZURE_CLIENT_ID` for a
-  user-assigned one (checked in azure-identity 1.27.0,
-  `_credentials/managed_identity.py`).
+- `ManagedIdentityCredential` (in `prod` and as `managed_identity`) gets
+  `client_id=$AZURE_CLIENT_ID` when that is set, else none (system-assigned;
+  empty is unset, D25), as `DefaultAzureCredential` passes
+  `managed_identity_client_id`. azure-identity 1.27.0's class does not
+  read the variable itself (`_credentials/managed_identity.py`); this
+  follows D10's "the standard `AZURE_*` variables" (coordinator,
+  2026-11-21).
 - Retried connection failures are `httpx.ConnectError` and
   `httpx.ConnectTimeout`, where the request cannot have reached the
   server (D40). After the last attempt the `httpx` exception is raised
@@ -1246,6 +1249,9 @@ The author's calls, open until the package repository records them:
 4. Should `set_credential_secret()` offer a refresh helper (a context
    manager that re-registers the secret before expiry) for long DuckDB
    sessions?
+5. Should `ApiClient`'s verbose log truncate long JSON bodies as `azr`'s
+   `format_json_body()` does (10 items, 12 elements, head and tail)?
+   Bodies are logged whole for now (D43, 2026-11-21).
 
 ## 12. Sources and verification
 
