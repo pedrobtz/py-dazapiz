@@ -42,7 +42,7 @@ package, a branch on the operating system. Azure itself is never in CI
 | 1 | [Refresh tokens](#stage-1--refresh-tokens) | full | [#4](https://github.com/pedrobtz/py-dazure/issues/4) | [#16](https://github.com/pedrobtz/py-dazure/pull/16) | 2026-11-21 |
 | 2 | [Spark config](#stage-2--spark-config) | quick | [#5](https://github.com/pedrobtz/py-dazure/issues/5) | [#17](https://github.com/pedrobtz/py-dazure/pull/17) | 2026-11-21 |
 | 3 | [Interactive credentials](#stage-3--interactive-credentials) | full | [#6](https://github.com/pedrobtz/py-dazure/issues/6) | [#18](https://github.com/pedrobtz/py-dazure/pull/18) | 2026-11-21 |
-| 4 | [az CLI helpers](#stage-4--az-cli-helpers) | full | [#7](https://github.com/pedrobtz/py-dazure/issues/7) | | |
+| 4 | [az CLI helpers](#stage-4--az-cli-helpers) | full | [#7](https://github.com/pedrobtz/py-dazure/issues/7) | | 2026-11-21 |
 | 5 | [REST client](#stage-5--rest-client) | quick | [#8](https://github.com/pedrobtz/py-dazure/issues/8) | | |
 | 6 | [DuckDB](#stage-6--duckdb) | quick | [#9](https://github.com/pedrobtz/py-dazure/issues/9) | | |
 | 7 | [Manual checklist](#stage-7--manual-checklist) | quick | [#10](https://github.com/pedrobtz/py-dazure/issues/10) | | |
@@ -248,7 +248,9 @@ PATHEXT), so the Windows leg must run them.`
 - `tests/fake_az/`: a Python script, launched by a shell stub on POSIX
   and an `az.cmd` on Windows, that records its arguments and plays back
   recorded outputs, including a device-code login that streams its
-  prompt on stderr before finishing.
+  prompt on stderr before finishing. The `fake_az` fixture in
+  `tests/conftest.py` puts it first on `PATH`, and
+  `tests/test_fake_az.py` tests the fake itself (2026-11-21).
 
 **Tests.**
 

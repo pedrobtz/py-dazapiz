@@ -28,6 +28,16 @@
   under the name `"dazure"` (`allow_unencrypted_storage=True` falls back
   to a plain file), and add `get_refresh_token()`, which signs in if
   needed and returns the refresh token from that cache.
+- `az_account_show()`, `az_is_login()`, `az_login()` and `az_logout()` run
+  the `az` found on `PATH`, with `--only-show-errors` and a 10-second
+  timeout (none for `az_login()`). `az_login()` reuses an existing login
+  (into `tenant_id`, if given) unless `force=True`; otherwise it runs
+  `az login --use-device-code`, prints the device code and URL as `az`
+  streams them, copies the code to the clipboard when a clipboard tool is
+  found, and returns the account. Errors: `AzCliError` and its
+  subclasses `AzCliNotFoundError`, `AzCliNotLoggedInError`,
+  `AzCliNonInteractiveError` (no TTY or notebook kernel) and
+  `AzCliTimeoutError`.
 - `InteractiveBrowserCredential` with a redirect URI that is not on
   localhost signs in as `httr2::req_oauth_auth_code()` does: it prints
   the sign-in URL and reads back the callback URL, base64 JSON, or the
