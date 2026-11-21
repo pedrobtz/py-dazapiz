@@ -43,6 +43,7 @@ __all__ = [
 ]
 
 STORAGE_SCOPE = "https://storage.azure.com/.default"
+"""The Azure Storage token scope, `set_credential_secret()`'s default `scope`."""
 
 _log = logging.getLogger("dazure.duckdb")
 _REDACTED = "<redacted>"
@@ -148,11 +149,44 @@ def set_token_secret(
     """Register an access token as a DuckDB Azure secret.
 
     As `quak::az_set_token_secret()`: `CREATE OR REPLACE SECRET` with
-    `PROVIDER access_token`. With `account`, the secret is scoped to that
-    account's hosts (bare name or fully qualified host) and applies to
-    Parquet, CSV and JSON reads; Delta tables never match an account-scoped
-    secret, so register an unscoped one for them. The token expires and is
-    not refreshed: see `set_credential_secret()`.
+    `PROVIDER access_token`, named `dazure_default`, or `dazure_<account>`
+    with `account`. The token expires and is not refreshed: see
+    `set_credential_secret()`.
+
+    Parameters
+    ----------
+    conn
+        The DuckDB connection; the `azure` extension is installed and loaded
+        if it is not yet.
+    token
+        A storage access token (a bearer token for `STORAGE_SCOPE`).
+    account
+        Scope the secret to this storage account's hosts: a bare name
+        (`myaccount`) or a fully qualified host. Default: unscoped.
+
+    Raises
+    ------
+    TypeError
+        `token` or `account` is not a string.
+    ValueError
+        `token` or `account` is empty or holds a NUL character.
+    duckdb.Error
+        DuckDB refused the statement; the message never carries the token.
+
+    Notes
+    -----
+    An account-scoped secret applies to Parquet, CSV and JSON reads; Delta
+    tables never match one, so register an unscoped secret for them.
+
+    Examples
+    --------
+    ```python
+    import duckdb
+    from dazure.duckdb import set_token_secret
+
+    conn = duckdb.connect()
+    set_token_secret(conn, token, account="myaccount")
+    ```
     """
     _check_str(token, "token")
     _create_secret(
@@ -175,13 +209,51 @@ def set_credential_secret(
 
     Calls `credential.get_token(scope)` and registers the token as
     `set_token_secret()` does. This is how an `az login` refresh token
-    reaches DuckDB, which its own `credential_chain` cannot do:
-    `set_credential_secret(conn, RefreshTokenCredential(refresh_token_from_az_cli()))`.
+    reaches DuckDB, which its own `credential_chain` cannot do.
 
-    Returns the token's `expires_on` (seconds since the epoch). The secret is
-    not refreshed in the background; call again before then to replace it.
-    Delta tables never match an account-scoped secret, so register an
-    unscoped one for them.
+    Parameters
+    ----------
+    conn
+        The DuckDB connection.
+    credential
+        Any `TokenCredential`: `RefreshTokenCredential`,
+        `DefaultAzureCredential()`, ...
+    account
+        Scope the secret to this storage account's hosts, as for
+        `set_token_secret()`.
+    scope
+        The token scope.
+
+    Returns
+    -------
+    int
+        The token's `expires_on`, in seconds since the epoch.
+
+    Raises
+    ------
+    TypeError
+        `credential` has no `get_token()` (a refresh token string, say: wrap
+        it in `RefreshTokenCredential`).
+    ValueError
+        `scope` is empty.
+    azure.core.exceptions.ClientAuthenticationError
+        The credential could not get a token.
+
+    Notes
+    -----
+    The secret is not refreshed in the background; call again before
+    `expires_on` (typically an hour) to replace it. Delta tables never match
+    an account-scoped secret, so register an unscoped one for them.
+
+    Examples
+    --------
+    ```python
+    from dazure import RefreshTokenCredential, refresh_token_from_az_cli
+    from dazure.duckdb import set_credential_secret
+
+    expires_on = set_credential_secret(conn, RefreshTokenCredential(refresh_token_from_az_cli()))
+    conn.sql("SELECT * FROM 'abfss://data@myaccount.dfs.core.windows.net/sales/*.parquet'")
+    ```
     """
     if not callable(getattr(credential, "get_token", None)):
         raise TypeError(
@@ -204,9 +276,50 @@ def set_sp_secret(
     """Register a service principal as a DuckDB Azure secret.
 
     As `quak::az_set_sp_secret()`: `PROVIDER service_principal`, so DuckDB
-    redeems the client secret itself. With `account`, the secret also gets
-    `ACCOUNT_NAME` and is scoped to that account's hosts; Delta tables never
-    match an account-scoped secret, so register an unscoped one for them.
+    redeems the client secret itself.
+
+    Parameters
+    ----------
+    conn
+        The DuckDB connection.
+    tenant_id
+        The service principal's tenant.
+    client_id
+        Its client (application) ID.
+    client_secret
+        Its client secret.
+    account
+        Scope the secret to this storage account's hosts; it also gets
+        `ACCOUNT_NAME`.
+
+    Raises
+    ------
+    TypeError
+        An argument is not a string.
+    ValueError
+        An argument is empty or holds a NUL character.
+    duckdb.Error
+        DuckDB refused the statement; the message never carries the secret.
+
+    Notes
+    -----
+    Delta tables never match an account-scoped secret, so register an
+    unscoped one for them.
+
+    Examples
+    --------
+    ```python
+    import os
+    from dazure.duckdb import set_sp_secret
+
+    set_sp_secret(
+        conn,
+        os.environ["AZURE_TENANT_ID"],
+        os.environ["AZURE_CLIENT_ID"],
+        os.environ["AZURE_CLIENT_SECRET"],
+        account="myaccount",
+    )
+    ```
     """
     _check_str(tenant_id, "tenant_id")
     _check_str(client_id, "client_id")
@@ -232,12 +345,43 @@ def set_chain_secret(
 ) -> None:
     """Register a DuckDB credential-chain secret, which DuckDB resolves itself.
 
-    As `quak::az_set_chain_secret()`: `PROVIDER credential_chain`. `chain` is
-    one entry or several (joined with `;`), such as `"cli"` or
-    `["managed_identity", "env"]`; `None` leaves `CHAIN` out. With `account`,
-    the secret also gets `ACCOUNT_NAME` and is scoped to that account's
-    hosts; Delta tables never match an account-scoped secret, so register an
+    As `quak::az_set_chain_secret()`: `PROVIDER credential_chain`, so the
+    `azure` extension finds a credential itself (Azure CLI, managed
+    identity, environment, ...). No chain entry uses an `az login` refresh
+    token; for that, see `set_credential_secret()`.
+
+    Parameters
+    ----------
+    conn
+        The DuckDB connection.
+    account
+        Scope the secret to this storage account's hosts; it also gets
+        `ACCOUNT_NAME`.
+    chain
+        One chain entry or several (joined with `;`), such as `"cli"` or
+        `["managed_identity", "env"]`; `None` leaves `CHAIN` out.
+
+    Raises
+    ------
+    TypeError
+        `account` or an entry is not a string.
+    ValueError
+        `chain` is an empty sequence, or an entry is empty.
+    duckdb.Error
+        DuckDB refused the statement.
+
+    Notes
+    -----
+    Delta tables never match an account-scoped secret, so register an
     unscoped one for them.
+
+    Examples
+    --------
+    ```python
+    from dazure.duckdb import set_chain_secret
+
+    set_chain_secret(conn, chain="cli")
+    ```
     """
     options: list[tuple[str, str]] = []
     if chain is not None:
@@ -253,9 +397,25 @@ def set_chain_secret(
 def list_secrets(conn: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyRelation:
     """The connection's Azure secrets, as `quak::az_list_secrets()`.
 
-    A relation over `duckdb_secrets()` where `type = 'azure'`, ordered by
-    name; DuckDB redacts the secret values. Fetch it with `.fetchall()`,
-    `.df()` or `.pl()`, or print it.
+    Parameters
+    ----------
+    conn
+        The DuckDB connection.
+
+    Returns
+    -------
+    duckdb.DuckDBPyRelation
+        `duckdb_secrets()` where `type = 'azure'`, ordered by name; DuckDB
+        redacts the secret values. Fetch it with `.fetchall()`, `.df()` or
+        `.pl()`, or print it.
+
+    Examples
+    --------
+    ```python
+    from dazure.duckdb import list_secrets
+
+    list_secrets(conn).fetchall()
+    ```
     """
     _duckdb()
     _ensure_azure(conn)
@@ -265,8 +425,24 @@ def list_secrets(conn: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyRelation:
 def azure_settings(conn: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyRelation:
     """The connection's Azure settings, as `quak::az_conn_settings()`.
 
-    A relation of `name`, `value` and `description` from `duckdb_settings()`
-    for every setting whose name contains `azure`.
+    Parameters
+    ----------
+    conn
+        The DuckDB connection.
+
+    Returns
+    -------
+    duckdb.DuckDBPyRelation
+        `name`, `value` and `description` from `duckdb_settings()` for every
+        setting whose name contains `azure`.
+
+    Examples
+    --------
+    ```python
+    from dazure.duckdb import azure_settings
+
+    azure_settings(conn).df()
+    ```
     """
     _duckdb()
     _ensure_azure(conn)
@@ -324,9 +500,46 @@ def tune(
     | `metadata_cache` | `enable_http_metadata_cache` |
     | `context_cache` | `azure_context_caching` |
 
-    Warns, as `quak` does, when the buffer size is not a multiple of the
-    chunk size. A value DuckDB refuses raises its error, prefixed with the
-    setting's name.
+    Parameters
+    ----------
+    conn
+        The DuckDB connection.
+    concurrency
+        Parallel transfers per read; a positive integer.
+    chunk_size
+        Bytes per transfer chunk: a positive integer, or a string DuckDB
+        accepts.
+    buffer_size
+        Bytes of the read buffer, as `chunk_size`.
+    transport
+        The HTTP transport.
+    metadata_cache
+        Cache HTTP metadata (file sizes, ...) between queries.
+    context_cache
+        Cache the Azure context between requests.
+
+    Raises
+    ------
+    TypeError
+        An argument of the wrong type.
+    ValueError
+        A non-positive number or an empty string.
+    duckdb.Error
+        DuckDB refused a value; the message is prefixed with the setting's
+        name.
+
+    Warns
+    -----
+    UserWarning
+        The buffer size is not a multiple of the chunk size, as `quak` warns.
+
+    Examples
+    --------
+    ```python
+    from dazure.duckdb import tune
+
+    tune(conn, concurrency=8, chunk_size=1_048_576, buffer_size=8_388_608)
+    ```
     """
     if concurrency is not None:
         _check_positive_int(concurrency, "concurrency")

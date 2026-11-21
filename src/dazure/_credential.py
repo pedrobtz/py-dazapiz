@@ -35,15 +35,51 @@ def _authority_url(authority_host: str | None, tenant_id: str) -> str:
 class RefreshTokenCredential:
     """A `TokenCredential` that redeems a refresh token for access tokens.
 
-    Wraps `msal.PublicClientApplication.acquire_token_by_refresh_token()`.
-    `refresh_token` is a string, a `SupportsRefreshToken` (such as
-    `refresh_token_from_az_cli()`), or `None` for `$AZURE_REFRESH_TOKEN`; a
-    string takes the client ID and tenant of design §4.3.4. Access tokens are
-    kept in memory, per tenant and scope set, until five minutes before they
-    expire. When Entra rotates the refresh token, the new one is kept and
-    returned by `get_refresh_token()`.
+    Use it wherever the Azure SDK, `ApiClient` or
+    `dazure.duckdb.set_credential_secret()` takes a credential, to act as
+    the user an `az login` (or any other sign-in) refresh token belongs to.
+    Access tokens are kept in memory, per tenant and scope set, until five
+    minutes before they expire. When Entra rotates the refresh token, the new
+    one is kept and returned by `get_refresh_token()`. Thread-safe.
 
-    `authority_host` defaults to `$AZURE_AUTHORITY_HOST`, else the public cloud.
+    Parameters
+    ----------
+    refresh_token
+        A refresh token string, a `SupportsRefreshToken` (such as
+        `refresh_token_from_az_cli()`), or `None` for `$AZURE_REFRESH_TOKEN`.
+        A string is redeemed with `$AZURE_CLIENT_ID`, else
+        `AZURE_CLI_CLIENT_ID`, in `$AZURE_TENANT_ID`, else `"common"`; a
+        `SupportsRefreshToken` brings its own client ID and tenant.
+    authority_host
+        The Entra authority host, with or without `https://`; default
+        `$AZURE_AUTHORITY_HOST`, else the public cloud
+        (`login.microsoftonline.com`).
+
+    Raises
+    ------
+    RefreshTokenNotFoundError
+        `refresh_token` is `None` and `$AZURE_REFRESH_TOKEN` is unset.
+    TypeError
+        `refresh_token` is of another type.
+    ValueError
+        `refresh_token` is an empty string.
+
+    Notes
+    -----
+    Wraps `msal.PublicClientApplication.acquire_token_by_refresh_token()`,
+    one MSAL app per tenant. `azure-identity` has no credential that takes a
+    refresh token. `repr()` shows the client ID, tenant and username, never
+    a token.
+
+    Examples
+    --------
+    ```python
+    from azure.storage.filedatalake import DataLakeServiceClient
+    from dazure import RefreshTokenCredential, refresh_token_from_az_cli
+
+    credential = RefreshTokenCredential(refresh_token_from_az_cli())
+    lake = DataLakeServiceClient("https://myaccount.dfs.core.windows.net", credential)
+    ```
     """
 
     def __init__(
@@ -66,7 +102,13 @@ class RefreshTokenCredential:
         )
 
     def get_refresh_token(self) -> RefreshTokenInfo:
-        """The current refresh token: the one given, or the latest rotated one."""
+        """The current refresh token: the one given, or the latest rotated one.
+
+        Returns
+        -------
+        RefreshTokenInfo
+            The refresh token with its client ID, tenant and username.
+        """
         return self._info
 
     def _app(self, tenant_id: str) -> Any:
@@ -88,10 +130,33 @@ class RefreshTokenCredential:
     ) -> AccessToken:
         """An access token for `scopes`, from memory or by redeeming the refresh token.
 
-        `claims` (a claims challenge) skips the in-memory token and is sent to
-        Entra. `tenant_id` requests the token from that tenant instead of the
-        refresh token's own. An error response from MSAL raises
-        `azure.core.exceptions.ClientAuthenticationError`.
+        The `TokenCredential` protocol's method, which the Azure SDK calls.
+
+        Parameters
+        ----------
+        *scopes
+            One or more scopes, such as `"https://storage.azure.com/.default"`.
+        claims
+            A claims challenge from a resource; skips the in-memory token and
+            is sent to Entra.
+        tenant_id
+            Request the token from this tenant instead of the refresh token's
+            own.
+        **kwargs
+            Accepted for the protocol and ignored.
+
+        Returns
+        -------
+        azure.core.credentials.AccessToken
+            The token and its `expires_on` (seconds since the epoch).
+
+        Raises
+        ------
+        ValueError
+            No scope was given.
+        azure.core.exceptions.ClientAuthenticationError
+            Entra refused the refresh token (expired, revoked, or for another
+            client); the message carries MSAL's error, never the token.
         """
         if not scopes:
             raise ValueError("get_token() requires at least one scope")

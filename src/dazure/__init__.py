@@ -1,6 +1,9 @@
 """The Azure helpers azure-identity lacks.
 
-The design is in `.agents/design.md` in the repository.
+Your `az login` carried into Spark (`spark_storage_conf()`), DuckDB
+(`dazure.duckdb`) and any Azure REST API (`ApiClient`), on top of
+`azure-identity` and `msal`. The design is in `.agents/design.md` in the
+repository.
 """
 
 from importlib.metadata import version

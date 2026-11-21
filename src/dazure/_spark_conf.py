@@ -70,7 +70,17 @@ class SparkStorageConf(dict[str, str]):
     The dict holds the real values, to pass to
     `SparkSession.builder.config(map=conf)` or `spark.conf.set()`; `repr()` and
     `str()` show `<redacted>` for the client secret, refresh token and account
-    key.
+    key, so printing one in a notebook does not leak them. `copy()` and `|`
+    keep the type, and so the redaction.
+
+    Examples
+    --------
+    ```python
+    conf = spark_storage_conf(refresh_token=refresh_token_from_az_cli())
+    conf  # SparkStorageConf({..., 'spark.hadoop.fs.azure.account.oauth2.refresh.token': '<redacted>', ...})
+    for key, value in conf.items():
+        spark.conf.set(key, value)
+    ```
     """
 
     def _redacted(self) -> dict[str, str]:
@@ -145,42 +155,100 @@ def spark_storage_conf(
     or a cluster's Spark config; `prefix=None` gives the raw `fs.azure.*` keys
     for `core-site.xml` or `hadoopConfiguration().set()`.
 
-    `auth_type`:
+    Arguments another `auth_type` uses are ignored, as in azr. An empty
+    environment variable counts as unset.
 
-    - `"refresh_token"`: a delegated user (`RefreshTokenBasedTokenProvider`).
-      `refresh_token` is a string, a `SupportsRefreshToken` such as
-      `refresh_token_from_az_cli()`, or `None` for `$AZURE_REFRESH_TOKEN`. A
-      `SupportsRefreshToken` supplies its own client ID and tenant; a string
-      takes `$AZURE_CLIENT_ID`, else the Azure CLI's client ID, and
-      `$AZURE_TENANT_ID`, else `"common"`. `client_id` and `tenant_id`, when
-      passed, win.
-    - `"client_secret"`: a service principal (`ClientCredsTokenProvider`).
-      `client_id`, `tenant_id` and `client_secret` default to
-      `$AZURE_CLIENT_ID`, `$AZURE_TENANT_ID` and `$AZURE_CLIENT_SECRET`; a
-      missing one is a `ValueError`.
-    - `"workload_identity"`: Kubernetes workload identity
-      (`WorkloadIdentityTokenProvider`), with `client_id`, `tenant_id` and
-      `token_file` from `$AZURE_CLIENT_ID`, `$AZURE_TENANT_ID` and
-      `$AZURE_FEDERATED_TOKEN_FILE`, which the AKS webhook sets; a missing one
-      is a `ValueError`. Needs Hadoop 3.4.1+ (Spark 4.x, Databricks 14.3+ LTS,
-      Synapse 3.4+).
-    - `"managed_identity"`: IMDS (`MsiTokenProvider`). `client_id` (else
-      `$AZURE_CLIENT_ID`) selects a user-assigned identity; without one the
-      key is left out and Hadoop uses the system-assigned identity. `tenant_id`
-      defaults to `$AZURE_TENANT_ID`, else `"common"`.
-    - `"shared_key"`: the storage account key; needs `storage_account` and
-      `account_key`.
+    Parameters
+    ----------
+    auth_type
+        How Hadoop authenticates:
 
-    Arguments another `auth_type` uses are ignored, as in azr. With
-    `storage_account`, every key is scoped to that account's DFS host: a
-    short name is expanded with the DFS suffix of the cloud `authority_host`
-    names (public, US Government or China), a name with a dot is used as is.
-    `authority_host` defaults to `$AZURE_AUTHORITY_HOST`, else
-    `login.microsoftonline.com`, and may carry a scheme and trailing slash.
-    An empty environment variable counts as unset.
+        - `"refresh_token"`: a delegated user (`RefreshTokenBasedTokenProvider`).
+          Uses `refresh_token`; `client_id` and `tenant_id`, when passed, win
+          over the token's own.
+        - `"client_secret"`: a service principal (`ClientCredsTokenProvider`).
+          `client_id`, `tenant_id` and `client_secret` default to
+          `$AZURE_CLIENT_ID`, `$AZURE_TENANT_ID` and `$AZURE_CLIENT_SECRET`.
+        - `"workload_identity"`: Kubernetes workload identity
+          (`WorkloadIdentityTokenProvider`), with `client_id`, `tenant_id` and
+          `token_file` from `$AZURE_CLIENT_ID`, `$AZURE_TENANT_ID` and
+          `$AZURE_FEDERATED_TOKEN_FILE`, which the AKS webhook sets. Needs
+          Hadoop 3.4.1+ (Spark 4.x, Databricks 14.3+ LTS, Synapse 3.4+).
+        - `"managed_identity"`: IMDS (`MsiTokenProvider`). `client_id` (else
+          `$AZURE_CLIENT_ID`) selects a user-assigned identity; without one the
+          key is left out and Hadoop uses the system-assigned identity.
+          `tenant_id` defaults to `$AZURE_TENANT_ID`, else `"common"`.
+        - `"shared_key"`: the storage account key; needs `storage_account` and
+          `account_key`.
+    storage_account
+        Scope every key to this account's DFS host. A short name is expanded
+        with the DFS suffix of the cloud `authority_host` names (public, US
+        Government or China); a name with a dot is used as is. Default: keys
+        for every account.
+    tenant_id
+        The tenant (GUID or domain) whose token endpoint Hadoop calls.
+    client_id
+        The client (application) ID: the token's client for
+        `"refresh_token"`, the service principal or identity otherwise.
+    client_secret
+        The service principal's secret, for `"client_secret"`.
+    refresh_token
+        For `"refresh_token"`: a string, a `SupportsRefreshToken` such as
+        `refresh_token_from_az_cli()`, or `None` for `$AZURE_REFRESH_TOKEN`.
+        A `SupportsRefreshToken` supplies its own client ID and tenant; a
+        string takes `$AZURE_CLIENT_ID`, else `AZURE_CLI_CLIENT_ID`, and
+        `$AZURE_TENANT_ID`, else `"common"`.
+    account_key
+        The storage account key, for `"shared_key"`.
+    token_file
+        The federated token file, for `"workload_identity"`.
+    authority_host
+        The Entra authority host; default `$AZURE_AUTHORITY_HOST`, else
+        `login.microsoftonline.com`. May carry a scheme and trailing slash.
+    prefix
+        Prepended to every key with a dot; `None` for the raw Hadoop keys.
 
-    The result is a `SparkStorageConf`: a `dict[str, str]` whose `repr` and
-    `str` redact the secrets.
+    Returns
+    -------
+    SparkStorageConf
+        A `dict[str, str]` whose `repr` and `str` redact the secrets.
+
+    Raises
+    ------
+    ValueError
+        An unknown `auth_type`, an empty argument, a tenant ID that is not
+        valid, or a value `auth_type` needs that is neither passed nor in its
+        environment variable.
+    TypeError
+        An argument is not a string.
+    RefreshTokenNotFoundError
+        `auth_type="refresh_token"` with no `refresh_token` and no
+        `$AZURE_REFRESH_TOKEN`.
+
+    Notes
+    -----
+    Neither PySpark nor the Azure SDK builds these keys; Hadoop's ABFS
+    driver redeems the token itself. Two details carried over from azr:
+    `RefreshTokenBasedTokenProvider` reads `oauth2.refresh.token.endpoint`,
+    not `oauth2.client.endpoint`, and the MSI authority needs its trailing
+    `/`.
+
+    Examples
+    --------
+    ```python
+    from pyspark.sql import SparkSession
+    from dazure import refresh_token_from_az_cli, spark_storage_conf
+
+    conf = spark_storage_conf(refresh_token=refresh_token_from_az_cli())
+    spark = SparkSession.builder.config(map=conf).getOrCreate()
+    spark.read.parquet("abfss://data@myaccount.dfs.core.windows.net/sales/")
+    ```
+
+    A service principal, for one account only:
+
+    ```python
+    conf = spark_storage_conf("client_secret", storage_account="myaccount")
+    ```
     """
     if auth_type not in _AUTH_TYPES:
         raise ValueError(f"auth_type must be one of {', '.join(_AUTH_TYPES)}, not {auth_type!r}")
