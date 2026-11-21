@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import email.utils
 import json as jsonlib
 import logging
@@ -11,7 +12,7 @@ import threading
 import time
 import xml.etree.ElementTree as ET
 from collections.abc import Callable, Generator, Mapping
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar, TypeVar, cast, overload
 from urllib.parse import quote
 
 import httpx
@@ -20,7 +21,7 @@ from rich.logging import RichHandler
 from rich.markup import escape
 
 from ._app_credential import app_credential
-from .errors import ApiError
+from .errors import ApiError, ResponseParseError
 
 __all__ = ["ApiClient", "BearerAuth", "backoff_default"]
 
@@ -42,6 +43,9 @@ _sleep = time.sleep
 _uniform = random.uniform
 _now = time.time  # token expiry
 _clock = time.perf_counter  # request timing
+
+_T = TypeVar("_T")
+_Client = TypeVar("_Client", bound="ApiClient")
 
 
 def _transport() -> httpx.BaseTransport | None:
@@ -156,7 +160,7 @@ class ApiClient:
         cred = type(self._credential).__name__ if self._credential is not None else None
         return f"{type(self).__name__}(host_url={self._host_url!r}, credential={cred})"
 
-    def __enter__(self) -> ApiClient:
+    def __enter__(self: _Client) -> _Client:
         return self
 
     def __exit__(self, *exc: object) -> None:
@@ -165,6 +169,34 @@ class ApiClient:
     def close(self) -> None:
         """Close the underlying `httpx.Client`."""
         self._http.close()
+
+    @overload
+    def fetch(
+        self,
+        path: str,
+        method: str = "GET",
+        *,
+        query: Mapping[str, Any] | None = None,
+        json: Any = None,
+        headers: Mapping[str, str] | None = None,
+        content_type: str | None = None,
+        parse: None = None,
+        **path_params: str,
+    ) -> Any: ...
+
+    @overload
+    def fetch(
+        self,
+        path: str,
+        method: str = "GET",
+        *,
+        query: Mapping[str, Any] | None = None,
+        json: Any = None,
+        headers: Mapping[str, str] | None = None,
+        content_type: str | None = None,
+        parse: Callable[[Any], _T],
+        **path_params: str,
+    ) -> _T: ...
 
     def fetch(
         self,
@@ -175,6 +207,7 @@ class ApiClient:
         json: Any = None,
         headers: Mapping[str, str] | None = None,
         content_type: str | None = None,
+        parse: Callable[[Any], Any] | None = None,
         **path_params: str,
     ) -> Any:
         """Send one request to `path` under the host URL and return the parsed body.
@@ -187,13 +220,37 @@ class ApiClient:
         `ElementTree.Element`, anything else to `str`, an empty body to `None`;
         a non-empty result goes through `response_handler`. A non-2xx response
         raises `ApiError`.
+
+        `json` is sent as JSON. A pydantic model (anything with `model_dump()`)
+        is sent as `model_dump(mode="json", by_alias=True, exclude_unset=True)`,
+        a dataclass instance as `dataclasses.asdict()`; logging shows the body
+        as sent.
+
+        `parse`, when given, replaces `response_handler` for this call: it is
+        called with the parsed body of every 2xx response, `None` for an empty
+        one, and `fetch()` returns what it returns (typed so).
+        `TypeAdapter(list[Model]).validate_python` or `Model.model_validate`
+        validate the body. An exception from `parse` raises
+        `ResponseParseError`, chained to it.
         """
         url = _fill_path(path, path_params)
         method = method.upper()
-        response = self._send(method, url, params=query, json=json, headers=headers)
+        body = _to_json(json)
+        response = self._send(method, url, params=query, json=body, headers=headers)
         if not response.is_success:
             raise ApiError(_error_message(response), request=response.request, response=response)
         result = _parse(response, content_type)
+        if parse is not None:
+            try:
+                return parse(result)
+            except Exception as exc:
+                request = response.request
+                raise ResponseParseError(
+                    f"{request.method} {request.url}: the response body was rejected by "
+                    f"parse= ({type(exc).__name__}).",
+                    request=request,
+                    response=response,
+                ) from exc
         if result is not None and self._response_handler is not None:
             result = self._response_handler(result)
         return result
@@ -221,6 +278,20 @@ class ApiClient:
                 self._max_tries,
             )
             _sleep(wait)
+
+
+def _to_json(value: Any) -> Any:
+    """What `fetch(json=...)` sends: a pydantic model or a dataclass instance as a dict.
+
+    Duck-typed, so pydantic is not imported: anything (not a class) with a
+    callable `model_dump` is a pydantic v2 model (D50, D51).
+    """
+    dump = getattr(value, "model_dump", None)
+    if callable(dump):
+        return dump(mode="json", by_alias=True, exclude_unset=True)
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return dataclasses.asdict(value)
+    return value
 
 
 def _fill_path(path: str, params: Mapping[str, Any]) -> str:

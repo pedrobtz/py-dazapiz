@@ -22,6 +22,7 @@ from .errors import (
     AzCliTimeoutError,
     DazureError,
     RefreshTokenNotFoundError,
+    ResponseParseError,
     UnsupportedPlatformError,
 )
 
@@ -42,6 +43,7 @@ __all__ = [
     "RefreshTokenCredential",
     "RefreshTokenInfo",
     "RefreshTokenNotFoundError",
+    "ResponseParseError",
     "SparkStorageConf",
     "SupportsRefreshToken",
     "UnsupportedPlatformError",
