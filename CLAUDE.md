@@ -31,8 +31,8 @@ uv build                      # sdist and wheel into dist/
 
 `.github/workflows/ci.yml` has two profiles: `quick` on pull requests
 (lint, pytest on Ubuntu / 3.13) and `full` on pushes to `main`, manual
-runs, and pull requests labelled `full-ci`. Windows is in `full` because
-the persisted MSAL cache differs by OS (design §7). A release workflow
+runs, and pull requests labelled `full-ci`. Windows is in `full` for the
+platform branches (design §7). A release workflow
 with PyPI trusted publishing comes with 0.1.0, as in `py-dazdiff`.
 
 ## Rules
@@ -47,6 +47,11 @@ with PyPI trusted publishing comes with 0.1.0, as in `py-dazdiff`.
   errors, and tests assert it with a sentinel value.
 - Spark keys follow `azr::azure_spark_storage_conf()` key for key, except
   where design §4.4 records a divergence.
+- Tests in CI touch no Azure: only plain data or a simple mock
+  (`httpx.MockTransport`, a fake `az` on `PATH`, one `msal` method
+  patched). Anything needing a fake Entra authority or a real OS secret
+  store goes on the manual checklist in `tests/manual/README.md`
+  (design §8.2), run by hand with full Azure access.
 - Every user-visible change gets a line under the top section of
   `CHANGELOG.md`.
 
