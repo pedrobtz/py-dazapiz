@@ -384,6 +384,33 @@ none by default) and runs `az` with `--only-show-errors`.
 Getting tokens from the CLI is not wrapped: that is
 `azure.identity.AzureCliCredential`.
 
+Details settled in Stage 4 (2026-11-21):
+
+- The errors share a base, `AzCliError(DazureError)`; `AzCliNotFoundError`,
+  `AzCliNotLoggedInError`, `AzCliNonInteractiveError` and
+  `AzCliTimeoutError` (also a `TimeoutError`) derive from it.
+  `az_login()` and `az_logout()` raise on a non-zero exit (D31).
+- A failing `az` is "not logged in" when its stderr says `az login`
+  (`az account show`: "Please run 'az login' to setup account.") or
+  "no active accounts" (`az logout`); any other failure is `AzCliError`
+  with `az`'s stderr in the message.
+- `az_is_login()` is `False` on any `AzCliError` (D32).
+- `az_login()` checks the existing login before the TTY, as `azr` does,
+  so a reused login works in a batch job. The tenant comparison ignores
+  case. A `tenant_id` must match `[A-Za-z0-9.-]+`, as in §4.4.
+- The device code is found by `azr`'s pattern `enter the code
+  ([A-Z0-9]+) to authenticate` on each stderr line, ANSI styling removed;
+  the URL is the first `https://` in that line, else
+  `https://microsoft.com/devicelogin`. `az` prints MSAL's message with
+  `print()`, not its logger, so `--only-show-errors` keeps it
+  (azure-cli `auth/identity.py`, checked 2026-11-21).
+- `az_login()` returns the default account of `az login`'s list (D33)
+  and prints only the code, the URL, the clipboard notice and the account
+  name.
+- No browser is opened, and there is no `use_bridge` or `verbose`
+  (D34).
+- A timeout kills the whole process tree (D35).
+
 ### 4.3 Refresh tokens
 
 `azr` gives one interface across its credentials: `get_token()` returns
@@ -1072,6 +1099,26 @@ Settled in Stage 3 (2026-11-21), the implementer's calls:
   persistence by hand. Reason: one private call, checked by a test
   against `_load_persistent_cache()`, follows azure-identity's layout
   where a copy of its branches would drift.
+
+Settled in Stage 4 (2026-11-21), the implementer's calls:
+
+- **D31.** `az_login()` and `az_logout()` raise `AzCliError` on a
+  non-zero exit, where `azr` returns the exit status or warns. Reason: a
+  failed login must not come back looking like a result.
+- **D32.** `az_is_login()` returns `False` on any `AzCliError`, no `az`
+  and a timeout included, as `azr::az_cli_is_login()`. Reason: it answers
+  "can I use the CLI login now"; `az_account_show()` says why not.
+- **D33.** `az_login()` returns the `isDefault` entry of `az login`'s
+  list, else its first, else `az_account_show()`. Reason: §4.2 promises
+  one account `dict`, and that entry is what `az account show` shows next.
+- **D34.** `az_login()` prints the code and URL and opens no browser; the
+  clipboard is the first of `pbcopy`, `clip`, `wl-copy`, `xclip`, `xsel`
+  that works, silently skipped otherwise. Reason: §4.2 names printing and
+  the clipboard only, `azr`'s browser opening fails silently on remote
+  hosts, and `clipr` runs the same tools.
+- **D35.** A timeout kills `az`'s process tree (a new session on POSIX,
+  `taskkill /T` on Windows). Reason: `az` is a script that starts Python,
+  and killing the script alone leaves its child holding the pipes.
 
 The author's calls, open until the package repository records them:
 

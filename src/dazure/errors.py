@@ -7,7 +7,16 @@ token, key or secret (design §6).
 
 from __future__ import annotations
 
-__all__ = ["DazureError", "RefreshTokenNotFoundError", "UnsupportedPlatformError"]
+__all__ = [
+    "AzCliError",
+    "AzCliNonInteractiveError",
+    "AzCliNotFoundError",
+    "AzCliNotLoggedInError",
+    "AzCliTimeoutError",
+    "DazureError",
+    "RefreshTokenNotFoundError",
+    "UnsupportedPlatformError",
+]
 
 
 class DazureError(Exception):
@@ -23,3 +32,23 @@ class RefreshTokenNotFoundError(DazureError):
 
 class UnsupportedPlatformError(DazureError):
     """The operation is not available on this operating system."""
+
+
+class AzCliError(DazureError):
+    """An `az` command failed; the message carries what `az` wrote to stderr."""
+
+
+class AzCliNotFoundError(AzCliError):
+    """No `az` on PATH."""
+
+
+class AzCliNotLoggedInError(AzCliError):
+    """The Azure CLI is not logged in."""
+
+
+class AzCliNonInteractiveError(AzCliError):
+    """`az_login()` was called where nobody can answer the device-code prompt."""
+
+
+class AzCliTimeoutError(AzCliError, TimeoutError):
+    """An `az` command did not finish within its timeout and was killed."""

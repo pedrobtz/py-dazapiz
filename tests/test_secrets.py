@@ -186,3 +186,37 @@ def test_pasted_code_errors(monkeypatch):
         with pytest.raises(ClientAuthenticationError) as err:
             cred._request_token("User.Read")
         assert SENTINEL not in shown(err.value)
+
+
+def test_az_login_prints_only_the_code_and_account_name(fake_az, monkeypatch, capsys):
+    # Every field of the login JSON but the account name holds the sentinel (design §6).
+    import json
+
+    import dazure._session
+    from dazure import az_login
+
+    monkeypatch.setattr(dazure._session, "is_interactive", lambda: True)
+    account = {
+        "environmentName": SENTINEL,
+        "homeTenantId": SENTINEL,
+        "id": SENTINEL,
+        "isDefault": True,
+        "managedByTenants": [{"tenantId": SENTINEL}],
+        "name": SENTINEL,
+        "state": SENTINEL,
+        "tenantId": SENTINEL,
+        "user": {"name": "alice@contoso.com", "type": SENTINEL},
+    }
+    prompt = (
+        "To sign in, use a web browser to open the page https://microsoft.com/devicelogin"
+        " and enter the code F7GH2K9QX to authenticate."
+    )
+    fake_az.script("account show", [{"stderr": ["ERROR: Please run 'az login'"], "exit": 1}])
+    fake_az.script("login", {"stderr": [prompt], "stdout": json.dumps([account])})
+    assert az_login() == account
+    fake_az.script("account show", {"stdout": json.dumps(account)})
+    assert az_login() == account
+    out, err = capsys.readouterr()
+    assert SENTINEL not in out + err
+    assert "F7GH2K9QX" in out
+    assert out.count("alice@contoso.com") == 2

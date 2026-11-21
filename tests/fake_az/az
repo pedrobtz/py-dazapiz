@@ -1,0 +1,3 @@
+#!/bin/sh
+# The fake `az` on POSIX: run fake_az.py with the test's Python (tests/conftest.py).
+exec "$DAZURE_FAKE_AZ_PYTHON" "$(dirname "$0")/fake_az.py" "$@"
