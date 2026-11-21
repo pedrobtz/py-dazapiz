@@ -366,3 +366,13 @@ def test_duckdb_helpers_never_show_the_secret(azure_extension, caplog, capsys):
         # into the traceback.
         assert error.__cause__ is None
         assert error.__suppress_context__
+
+
+def test_static_token_credential_never_shows_the_token():
+    from dazure.testing import StaticTokenCredential
+
+    cred = StaticTokenCredential(SENTINEL)
+    cred.get_token("api://x/.default")
+    assert SENTINEL not in shown(cred)
+    assert SENTINEL not in shown([cred, {"k": cred}])
+    assert "StaticTokenCredential(" in repr(cred)
