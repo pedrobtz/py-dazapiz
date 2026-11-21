@@ -5,6 +5,7 @@ The design is in `.agents/design.md` in the repository.
 
 from importlib.metadata import version
 
+from ._app_credential import app_credential
 from ._az import az_account_show, az_is_login, az_login, az_logout
 from ._az_cli_token import refresh_token_from_az_cli
 from ._credential import RefreshTokenCredential
@@ -41,6 +42,7 @@ __all__ = [
     "SupportsRefreshToken",
     "UnsupportedPlatformError",
     "__version__",
+    "app_credential",
     "az_account_show",
     "az_is_login",
     "az_login",
