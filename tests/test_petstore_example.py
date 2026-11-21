@@ -20,7 +20,6 @@ import pytest
 from pydantic import BaseModel, HttpUrl, ValidationError
 from recording_transport import RecordingTransport, json_response
 
-import dazure._api_client
 from dazure import ApiError, ResponseParseError
 
 ROOT = Path(__file__).parent.parent
@@ -49,15 +48,13 @@ ORDER = {
 
 
 @pytest.fixture
-def transport(monkeypatch) -> RecordingTransport:
-    t = RecordingTransport()
-    monkeypatch.setattr(dazure._api_client, "_transport", lambda: t)
-    return t
+def transport() -> RecordingTransport:
+    return RecordingTransport()
 
 
 @pytest.fixture
 def store(transport):
-    with ps.PetStoreClient() as client:
+    with ps.PetStoreClient(transport=transport) as client:
         yield client
 
 

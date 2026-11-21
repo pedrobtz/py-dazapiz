@@ -81,11 +81,12 @@ the `ApiError`:
 
 `side_effect` with a list answers each call in turn, which scripts a
 retry. `ApiClient` retries 429, 503 and connection failures, waiting
-between attempts; `dazure._api_client._sleep` is the one function it waits
-through, so patching it makes the test instant and records the waits:
+between attempts with `time.sleep`; its `sleep=` argument takes the
+function to wait with instead, so `sleep=waits.append` makes the test
+instant and records the waits:
 
-<!-- snippet: def test_503_is_retried( -->
-{{< include examples/tests/test_azure_petstore.py lines="71-94" >}}
+<!-- snippet: def test_503_is_retried(api: respx.MockRouter, credential: StaticTokenCredential) -> None: -->
+{{< include examples/tests/test_azure_petstore.py lines="71-93" >}}
 
 ## Which credential the client picks
 
@@ -93,14 +94,14 @@ Whether a deployment gets its service principal and a developer their
 `az login` depends on the environment, and can be tested without signing
 in: `app_credential()` only builds the azure-identity credential, it
 fetches no token until a request is made. Set or clear the variables with
-`monkeypatch`, and check the credential by type:
+`monkeypatch`, build the client, and check `client.credential`, the
+credential it chose, by type:
 
 <!-- snippet: def test_service_principal_when_its_variables_are_set(monkeypatch: pytest.MonkeyPatch) -> None: -->
-{{< include examples/tests/test_azure_petstore.py lines="100-125" >}}
+{{< include examples/tests/test_azure_petstore.py lines="99-117" >}}
 
 Clear `AZURE_TOKEN_CREDENTIALS` too: a value on the runner would choose the
-mode instead. `repr()` of a client names its credential's class, never a
-token. These tests run with the network blocked (below), so building
+mode instead. These tests run with the network blocked (below), so building
 `ClientSecretCredential` and the `az login` chain is checked to make no
 connection.
 
@@ -126,7 +127,7 @@ directory; tests elsewhere that need a local server keep their sockets.
 themselves tested:
 
 <!-- snippet: def test_an_unmocked_request_fails(api: respx.MockRouter, store: AzurePetStoreClient) -> None: -->
-{{< include examples/tests/test_azure_petstore.py lines="131-141" >}}
+{{< include examples/tests/test_azure_petstore.py lines="123-133" >}}
 
 pytest-socket also issues a warning when it blocks a socket, which
 `pytest.warns` expects here; under `filterwarnings = ["error"]` an
@@ -135,33 +136,29 @@ unexpected block fails the test either way.
 ## Without respx: `httpx.MockTransport`
 
 If you would rather not add a dependency, `httpx.MockTransport` takes a
-function from request to response. `ApiClient` builds its own `httpx`
-client, getting the transport from `dazure._api_client._transport()`, so
-patch that, as dazure's own tests do (it is private, so pin your dazure
-version):
+function from request to response. Pass it as the client's `transport=`:
 
 ```python
 import httpx
 import pytest
 
-import dazure._api_client
 from dazure.testing import StaticTokenCredential
 
 
 @pytest.fixture
-def store(monkeypatch):
+def store():
     def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "GET" and request.url.path == "/api/v3/pet/7":
             return httpx.Response(200, json=PET)
         return httpx.Response(404)
 
-    monkeypatch.setattr(dazure._api_client, "_transport", lambda: httpx.MockTransport(handler))
-    with AzurePetStoreClient(credential=StaticTokenCredential()) as client:
+    transport = httpx.MockTransport(handler)
+    with AzurePetStoreClient(credential=StaticTokenCredential(), transport=transport) as client:
         yield client
 ```
 
-respx does the routing, the call recording and the unmocked-request check
-for you, through no private name.
+respx adds the routing, the call recording and the unmocked-request check,
+and needs no change to how the client is built.
 
 ## What stays manual
 

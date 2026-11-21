@@ -22,10 +22,9 @@ SENTINEL = "body-sentinel-6d1f"
 
 
 @pytest.fixture
-def transport(monkeypatch) -> RecordingTransport:
-    t = RecordingTransport()
-    monkeypatch.setattr(dazure._api_client, "_transport", lambda: t)
-    return t
+def transport() -> RecordingTransport:
+    """Passed as `transport=`; records what was sent."""
+    return RecordingTransport()
 
 
 @pytest.fixture(autouse=True)
@@ -68,7 +67,7 @@ def test_parse_is_applied_after_content_type_parsing(transport):
         httpx.Response(200, text="plain"),
         httpx.Response(200, content=b"<r><i>1</i></r>", headers={"content-type": "text/xml"}),
     )
-    client = ApiClient(HOST)
+    client = ApiClient(HOST, transport=transport)
     assert client.fetch("/x", parse=parse) == ("parsed", {"a": [1, 2]})
     assert client.fetch("/x", parse=parse) == ("parsed", "plain")
     # content_type still decides the parsing parse= receives.
@@ -79,7 +78,9 @@ def test_parse_is_applied_after_content_type_parsing(transport):
 
 def test_parse_with_a_pydantic_model(transport):
     transport.add(json_response(200, {"thingId": 3, "displayName": "n", "extra": True}))
-    thing = ApiClient(HOST).fetch("/things/{id}", id="3", parse=Thing.model_validate)
+    thing = ApiClient(HOST, transport=transport).fetch(
+        "/things/{id}", id="3", parse=Thing.model_validate
+    )
     assert thing == Thing(thing_id=3, display_name="n")
     assert transport.requests[0].url == f"{HOST}/things/3"
 
@@ -92,7 +93,7 @@ def test_parse_replaces_response_handler_for_that_call_only(transport):
         return "handled"
 
     transport.add(json_response(200, [1]), json_response(200, [2]))
-    client = ApiClient(HOST, response_handler=handler)
+    client = ApiClient(HOST, transport=transport, response_handler=handler)
     assert client.fetch("/x", parse=lambda c: ("parsed", c)) == ("parsed", [1])
     assert handled == []  # not called before, after, or instead of parse=
     assert client.fetch("/x") == "handled"
@@ -104,7 +105,9 @@ def test_parse_gets_none_for_an_empty_body(transport):
     # one as None, so fetch(..., parse=f) always returns what f returns.
     seen = []
     transport.add(httpx.Response(204), httpx.Response(200, content=b""), httpx.Response(204))
-    client = ApiClient(HOST, response_handler=lambda c: pytest.fail("handler called"))
+    client = ApiClient(
+        HOST, transport=transport, response_handler=lambda c: pytest.fail("handler called")
+    )
     assert client.fetch("/x", "DELETE", parse=lambda c: seen.append(c) or "none-seen") == (
         "none-seen"
     )
@@ -119,7 +122,7 @@ def test_parse_gets_none_for_an_empty_body(transport):
 def test_parse_error_is_wrapped_naming_method_and_url_not_the_body(transport):
     body = {"thingId": SENTINEL, "displayName": "n"}  # the bad value is quoted by pydantic
     transport.add(json_response(200, body, headers={"x-secret": SENTINEL}))
-    client = ApiClient(HOST)
+    client = ApiClient(HOST, transport=transport)
     with pytest.raises(ResponseParseError) as err:
         client.fetch("/things/{id}", "post", id="a b", query={"q": "1"}, parse=Thing.model_validate)
     e = err.value
@@ -144,20 +147,22 @@ def test_any_exception_from_parse_is_wrapped(transport):
 
     transport.add(json_response(200, {}))
     with pytest.raises(ResponseParseError, match=r"^GET .*/x: .*\(KeyError\)\.$") as err:
-        ApiClient(HOST).fetch("/x", parse=parse)
+        ApiClient(HOST, transport=transport).fetch("/x", parse=parse)
     assert err.value.__cause__ is original
 
 
 def test_parse_is_not_called_on_an_error_response(transport):
     transport.add(json_response(404, {"error": "nope"}))
     with pytest.raises(ApiError):
-        ApiClient(HOST).fetch("/x", parse=lambda c: pytest.fail("parse called"))
+        ApiClient(HOST, transport=transport).fetch(
+            "/x", parse=lambda c: pytest.fail("parse called")
+        )
 
 
 def test_parse_is_not_a_path_parameter(transport):
     transport.add(httpx.Response(204))
     with pytest.raises(ValueError, match="Missing path parameter"):
-        ApiClient(HOST).fetch("/x/{parse}", parse=lambda c: c)
+        ApiClient(HOST, transport=transport).fetch("/x/{parse}", parse=lambda c: c)
     assert transport.requests == []
 
 
@@ -190,7 +195,9 @@ def test_content_that_does_not_parse_is_a_parse_error(transport, content_type, b
     # (#26) A body whose content type says JSON or XML but does not parse is a
     # ResponseParseError, not the parser's own exception; the body stays out.
     transport.add(httpx.Response(200, content=body, headers={"content-type": content_type}))
-    client = ApiClient(HOST, response_handler=lambda c: pytest.fail("handler called"))
+    client = ApiClient(
+        HOST, transport=transport, response_handler=lambda c: pytest.fail("handler called")
+    )
     with pytest.raises(ResponseParseError) as err:
         client.fetch("/x/{id}", "delete", id="7", parse=lambda c: pytest.fail("parse called"))
     e = err.value
@@ -206,7 +213,7 @@ def test_content_that_does_not_parse_is_a_parse_error(transport, content_type, b
 def test_content_type_override_also_wraps_parse_failures(transport):
     transport.add(httpx.Response(200, text="<html>", headers={"content-type": "text/html"}))
     with pytest.raises(ResponseParseError, match=r"not valid application/xml \(ParseError\)\.$"):
-        ApiClient(HOST).fetch("/x", content_type="application/xml")
+        ApiClient(HOST, transport=transport).fetch("/x", content_type="application/xml")
 
 
 def test_text_content_type_avoids_the_json_parse(transport):
@@ -214,7 +221,10 @@ def test_text_content_type_avoids_the_json_parse(transport):
     transport.add(
         httpx.Response(200, content=b"Pet deleted", headers={"content-type": "application/json"})
     )
-    assert ApiClient(HOST).fetch("/x", "DELETE", content_type="text/plain") == "Pet deleted"
+    assert (
+        ApiClient(HOST, transport=transport).fetch("/x", "DELETE", content_type="text/plain")
+        == "Pet deleted"
+    )
 
 
 # json= models ----------------------------------------------------------------------
@@ -222,7 +232,7 @@ def test_text_content_type_avoids_the_json_parse(transport):
 
 def test_json_pydantic_model_is_sent_by_alias_without_unset_fields(transport):
     transport.add(httpx.Response(204), httpx.Response(204))
-    client = ApiClient(HOST)
+    client = ApiClient(HOST, transport=transport)
     client.fetch("/things", "POST", json=Thing(thing_id=1, display_name="a"))
     # An explicit None is set, so it is sent: exclude_unset, not exclude_none (D51).
     client.fetch("/things", "POST", json=Thing(thing_id=2, display_name="b", note=None))
@@ -240,13 +250,15 @@ def test_json_pydantic_model_uses_json_mode(transport):
         url: str
 
     transport.add(httpx.Response(204))
-    ApiClient(HOST).fetch("/d", "PUT", json=Dated(on=date(2026, 11, 21), url="u"))
+    ApiClient(HOST, transport=transport).fetch(
+        "/d", "PUT", json=Dated(on=date(2026, 11, 21), url="u")
+    )
     assert json.loads(transport.requests[0].body) == {"on": "2026-11-21", "url": "u"}
 
 
 def test_json_dataclass_is_sent_as_asdict(transport):
     transport.add(httpx.Response(204))
-    ApiClient(HOST).fetch("/p", "POST", json=Point(x_value=1, tags=["t"]))
+    ApiClient(HOST, transport=transport).fetch("/p", "POST", json=Point(x_value=1, tags=["t"]))
     assert json.loads(transport.requests[0].body) == {"x_value": 1, "label": None, "tags": ["t"]}
 
 
@@ -257,7 +269,7 @@ def test_json_dataclass_is_sent_as_asdict(transport):
 )
 def test_json_other_values_are_unchanged(transport, body):
     transport.add(httpx.Response(204))
-    ApiClient(HOST).fetch("/o", "POST", json=body)
+    ApiClient(HOST, transport=transport).fetch("/o", "POST", json=body)
     sent = transport.requests[0].body
     if body is None:
         assert sent == b""  # json=None sends no body, as before
@@ -267,7 +279,7 @@ def test_json_other_values_are_unchanged(transport, body):
 
 def test_json_models_nested_in_lists_tuples_and_dicts(transport):
     transport.add(httpx.Response(204), httpx.Response(204), httpx.Response(204))
-    client = ApiClient(HOST)
+    client = ApiClient(HOST, transport=transport)
     client.fetch("/l", "POST", json=[Thing(thing_id=1, display_name="a"), Point(x_value=2), 3])
     client.fetch(
         "/d",
@@ -313,7 +325,7 @@ def test_dict_keys_are_left_alone():
 
 def test_logging_sees_the_converted_body(transport, caplog):
     transport.add(httpx.Response(204))
-    client = ApiClient(HOST, verbose=True)
+    client = ApiClient(HOST, transport=transport, verbose=True)
     with caplog.at_level(logging.INFO, logger="dazure.http"):
         client.fetch("/things", "POST", json=Thing(thing_id=1, display_name="a"))
     messages = [r.getMessage() for r in caplog.records]

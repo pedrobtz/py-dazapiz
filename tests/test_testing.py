@@ -8,7 +8,6 @@ import httpx
 from azure.core.credentials import AccessToken, AccessTokenInfo, SupportsTokenInfo, TokenCredential
 
 import dazure
-import dazure._api_client
 import dazure.testing
 from dazure import ApiClient
 from dazure.testing import StaticTokenCredential
@@ -53,7 +52,7 @@ def test_context_manager_and_close():
         cred.close()
 
 
-def test_api_client_sends_it_as_bearer(monkeypatch):
+def test_api_client_sends_it_as_bearer():
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -64,9 +63,8 @@ def test_api_client_sends_it_as_bearer(monkeypatch):
         host_url = "https://api.example.com"
         scope = "api://app/.default"
 
-    monkeypatch.setattr(dazure._api_client, "_transport", lambda: httpx.MockTransport(handler))
     cred = StaticTokenCredential("tok-1")
-    client = Client(credential=cred)
+    client = Client(credential=cred, transport=httpx.MockTransport(handler))
     assert client.fetch("/x") == {"ok": True}
     assert seen[0].headers["Authorization"] == "Bearer tok-1"
     assert cred.calls == [("api://app/.default",)]

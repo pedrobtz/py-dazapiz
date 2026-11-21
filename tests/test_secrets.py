@@ -231,7 +231,6 @@ def test_api_client_never_logs_or_shows_the_bearer_token(monkeypatch, caplog, ca
     from azure.core.credentials import AccessToken
     from recording_transport import RecordingTransport, json_response
 
-    import dazure._api_client
     from dazure import ApiClient, ApiError
     from dazure._api_client import BearerAuth
 
@@ -246,12 +245,16 @@ def test_api_client_never_logs_or_shows_the_bearer_token(monkeypatch, caplog, ca
             json_response(401, {"error": "unauthorized"}),
         ]
     )
-    monkeypatch.setattr(dazure._api_client, "_transport", lambda: transport)
-    monkeypatch.setattr(dazure._api_client, "_sleep", lambda s: None)
     log = logging.getLogger("dazure.http")
     monkeypatch.setattr(log, "handlers", [])
     monkeypatch.setattr(log, "level", logging.NOTSET)
-    client = ApiClient("https://api.example.com", credential=Credential(), verbose=True)
+    client = ApiClient(
+        "https://api.example.com",
+        credential=Credential(),
+        verbose=True,
+        transport=transport,
+        sleep=lambda s: None,
+    )
     with caplog.at_level(logging.DEBUG):
         client.fetch("/x", "POST", json={"a": 1})
         with pytest.raises(ApiError) as err:

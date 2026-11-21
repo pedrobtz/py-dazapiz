@@ -18,7 +18,7 @@ from petstore import Pet, PetCreate, PetNotFoundError
 from pydantic import HttpUrl
 from pytest_socket import SocketBlockedError
 
-from dazure import ApiError, ResponseParseError, app_credential
+from dazure import ApiError, ResponseParseError
 from dazure.testing import StaticTokenCredential
 
 PET = {"id": 7, "name": "Rex", "photoUrls": ["https://example.com/rex.png"], "status": "available"}
@@ -68,27 +68,26 @@ def test_404_is_pet_not_found(api: respx.MockRouter, store: AzurePetStoreClient)
     assert err.value.__cause__.response.status_code == 404
 
 
-def test_503_is_retried(
-    api: respx.MockRouter, store: AzurePetStoreClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_503_is_retried(api: respx.MockRouter, credential: StaticTokenCredential) -> None:
     waits: list[float] = []
-    monkeypatch.setattr("dazure._api_client._sleep", waits.append)  # no real waiting
     route = api.get("/pet/7")
     route.side_effect = [httpx.Response(503), httpx.Response(200, json=PET)]
 
-    assert store.get_pet(7).id == 7
+    # sleep= receives each retry wait instead of time.sleep: no real waiting.
+    with AzurePetStoreClient(credential=credential, sleep=waits.append) as store:
+        assert store.get_pet(7).id == 7
     assert route.call_count == 2
     assert len(waits) == 1
 
 
-def test_500_is_not_retried(
-    api: respx.MockRouter, store: AzurePetStoreClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_500_is_not_retried(api: respx.MockRouter, credential: StaticTokenCredential) -> None:
     waits: list[float] = []
-    monkeypatch.setattr("dazure._api_client._sleep", waits.append)
     route = api.get("/pet/7").respond(500)
 
-    with pytest.raises(ApiError):
+    with (
+        AzurePetStoreClient(credential=credential, sleep=waits.append) as store,
+        pytest.raises(ApiError),
+    ):
         store.get_pet(7)
     assert route.call_count == 1
     assert waits == []
@@ -103,26 +102,19 @@ def test_service_principal_when_its_variables_are_set(monkeypatch: pytest.Monkey
     monkeypatch.setenv("PETSTORE_CLIENT_SECRET", "not-a-secret")
     monkeypatch.setenv("AZURE_TENANT_ID", "00000000-0000-0000-0000-000000000002")
 
-    credential = app_credential(
-        AzurePetStoreClient.client_id_env or "", AzurePetStoreClient.client_secret_env or ""
-    )
-    assert isinstance(credential, ClientSecretCredential)
     with AzurePetStoreClient() as client:
-        assert "credential=ClientSecretCredential" in repr(client)
+        assert isinstance(client.credential, ClientSecretCredential)
 
 
 def test_your_az_login_when_they_are_not(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("AZURE_TOKEN_CREDENTIALS", "PETSTORE_CLIENT_ID", "PETSTORE_CLIENT_SECRET"):
         monkeypatch.delenv(name, raising=False)
 
-    credential = app_credential(
-        AzurePetStoreClient.client_id_env or "", AzurePetStoreClient.client_secret_env or ""
-    )
+    with AzurePetStoreClient() as client:
+        credential = client.credential
     assert isinstance(credential, ChainedTokenCredential)
     # Then the device code, but only in an interactive session.
     assert isinstance(credential.credentials[0], AzureCliCredential)
-    with AzurePetStoreClient() as client:
-        assert "credential=ChainedTokenCredential" in repr(client)
 
 
 # The guards: nothing leaves the machine -------------------------------------------

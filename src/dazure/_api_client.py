@@ -38,19 +38,13 @@ _START = "dazure.start"
 # azr's cli alert symbols.
 _INFO = "\N{INFORMATION SOURCE}"
 
-# Patched by the tests so retries take no time and the backoff is known.
-_sleep = time.sleep
+# Patched by the tests so the backoff and timings are known.
 _uniform = random.uniform
 _now = time.time  # token expiry
 _clock = time.perf_counter  # request timing
 
 _T = TypeVar("_T")
 _Client = TypeVar("_Client", bound="ApiClient")
-
-
-def _transport() -> httpx.BaseTransport | None:
-    """The transport the client sends through; None is httpx's own (patched by tests)."""
-    return None
 
 
 def backoff_default(attempt: int, max_time: float = 60.0, b: float = 2.5) -> float:
@@ -126,6 +120,12 @@ class ApiClient:
     response_handler
         Called with every non-empty parsed body; `fetch()` returns what it
         returns. `fetch(parse=...)` replaces it for one call.
+    transport
+        The `httpx` transport requests go through; default httpx's own. For
+        tests: an `httpx.MockTransport` answers requests without a server.
+    sleep
+        Called with each retry wait, in seconds; default `time.sleep`. For
+        tests: `sleep=waits.append` records the waits and does not wait.
 
     Attributes
     ----------
@@ -142,6 +142,8 @@ class ApiClient:
         Class attribute: the variable holding its tenant; `"AZURE_TENANT_ID"`.
     mode : str or None
         Class attribute: `app_credential()`'s mode.
+    credential : TokenCredential or None
+        The credential the client uses, read-only (see `credential`).
 
     Raises
     ------
@@ -194,6 +196,8 @@ class ApiClient:
         max_tries: int = 5,
         verbose: bool = False,
         response_handler: Callable[[Any], Any] | None = None,
+        transport: httpx.BaseTransport | None = None,
+        sleep: Callable[[float], None] | None = None,
     ) -> None:
         host = host_url if host_url is not None else type(self).host_url
         if not isinstance(host, str) or not host:
@@ -208,6 +212,7 @@ class ApiClient:
         self._max_tries = max_tries
         self._verbose = bool(verbose)
         self._response_handler = response_handler
+        self._sleep = sleep if sleep is not None else time.sleep
         if self._verbose:
             _enable_verbose()
 
@@ -227,8 +232,22 @@ class ApiClient:
             auth=auth,
             timeout=httpx.Timeout(timeout, connect=connect_timeout),
             event_hooks=hooks,
-            transport=_transport(),
+            transport=transport,
         )
+
+    @property
+    def credential(self) -> TokenCredential | None:
+        """The credential the client uses, or None when it sends no token.
+
+        The `credential` argument, else the one `app_credential()` chose when
+        the client was created. Read-only. Tests can check its type to see
+        which credential an environment selects, without fetching a token.
+
+        Returns
+        -------
+        azure.core.credentials.TokenCredential or None
+        """
+        return self._credential
 
     def __repr__(self) -> str:
         """The class, host URL and credential class; never a token."""
@@ -396,7 +415,7 @@ class ApiClient:
                 attempt,
                 self._max_tries,
             )
-            _sleep(wait)
+            self._sleep(wait)
 
 
 def _to_json(value: Any) -> Any:

@@ -180,7 +180,12 @@ class ApiClient:
         max_tries: int = 5,
         verbose: bool = False,
         response_handler: Callable[[Any], Any] | None = None,
+        transport: httpx.BaseTransport | None = None,  # D60: for tests
+        sleep: Callable[[float], None] | None = None,  # D60: retry waits
     ): ...
+
+    @property
+    def credential(self) -> TokenCredential | None: ...  # D60: the one chosen
 
     def fetch(
         self,
@@ -200,7 +205,13 @@ class ApiClient:
 ```
 
 The client holds one `httpx.Client(base_url=host_url,
-timeout=httpx.Timeout(timeout, connect=connect_timeout))`.
+timeout=httpx.Timeout(timeout, connect=connect_timeout),
+transport=transport)`; `transport=None` is httpx's own. The retry loop
+waits with `sleep` (default `time.sleep`). `credential` is the
+read-only credential the client uses, `None` when unauthenticated. These
+three are the public test hooks (D60): a test passes an
+`httpx.MockTransport` and `sleep=waits.append`, and checks the type of
+`client.credential` to see which credential an environment selects.
 
 **Auth.** `BearerAuth(httpx.Auth)` calls `credential.get_token(scope)`,
 keeps the `AccessToken` until five minutes before `expires_on`, and sets
@@ -441,9 +452,9 @@ Details settled in Stage 5 (2026-11-21):
     `1.23456789` stays), not jsonlite's 4 significant digits.
   - `azr` turns any `"..."` string in the body into a bare `...`; in
     `dazure` only the placeholder is bare.
-- The tests send through a recording `httpx.MockTransport` by patching
-  the module's `_transport()`, and patch its `_sleep`, `_uniform`, `_now`
-  and `_clock`, so the public signatures stay as above.
+- The tests send through a recording `httpx.MockTransport` passed as
+  `transport=` and record waits with `sleep=` (D60); they patch only the
+  module's `_uniform`, `_now` and `_clock`.
 
 **Typed results: `parse=`** (D49, maintainer, 2026-11-21; #26). `parse` is
 any callable `Any -> T`: `Model.model_validate`,
@@ -1072,6 +1083,9 @@ from dazure.duckdb import (
 from dazure.testing import StaticTokenCredential
 ```
 
+`ApiClient(..., transport=, sleep=)` and its read-only `credential`
+property are its test hooks (§4.1, D60).
+
 `dazure.testing` (D59) holds test doubles for code built on dazure, with
 no dependency beyond azure-core: `StaticTokenCredential(token="fake-token",
 *, expires_in=3600)` implements `TokenCredential` and `SupportsTokenInfo`,
@@ -1196,7 +1210,7 @@ not simple, and is manual instead.
   parameters percent-encoded on the request line (the server's own log;
   httpbin's echo decodes `%2F`), query and JSON bodies on `/anything`,
   parsing of `/json`, `/xml`, `/html` and `/status/204`, 429 and 503
-  retried (counted from the retry warnings, sleep patched to nothing) and
+  retried (counted from the retry warnings, `sleep=` recording the waits) and
   500 not, `/delay/2` under a 0.5 s timeout sent once, and timing and size
   in the log records with no `Authorization` value.
 - **The Petstore example** (D53). `tests/test_petstore_example.py`, with
@@ -1223,7 +1237,8 @@ not simple, and is manual instead.
   500 not, `app_credential()`'s choice by environment checked by type with
   sockets blocked (building `ClientSecretCredential` and the `dev` chain
   opens no connection), and that both guards fire. `tests/test_testing.py`
-  covers the credential itself. `examples/` is on pytest's `pythonpath`
+  covers the credential itself. The retry tests pass `sleep=`, and the
+  mode tests check `client.credential` (D60). `examples/` is on pytest's `pythonpath`
   and pyright's `extraPaths`, so every test imports the example modules by
   name.
 - **Types.** pyright (strict, Python 3.10) runs in the lint job over
@@ -1506,6 +1521,15 @@ Settled for #26 (2026-11-21):
   client for a real Azure API in CI (#30); a public fake keeps users off
   dazure's internals, and blocking sockets proves no test leaks to Entra
   ID or the API.
+- **D60.** (maintainer, 2026-11-21: follow-up to the approved testing
+  guide, D59) `ApiClient.__init__` takes keyword-only `transport`
+  (passed to `httpx.Client`) and `sleep` (the retry loop's wait, default
+  `time.sleep`), and `ApiClient.credential` is a read-only property for
+  the credential chosen. They replace the private `_transport()` and
+  `_sleep` that dazure's tests patched. Reason: a user-facing guide must
+  not patch private names; these are the smallest public hooks for a
+  mock transport, instant retries and checking `app_credential()`'s
+  choice.
 
 The author's calls, open until the package repository records them:
 
