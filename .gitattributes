@@ -1,0 +1,3 @@
+# cmd.exe wants CRLF; sh wants LF.
+*.cmd text eol=crlf
+tests/fake_az/az text eol=lf
