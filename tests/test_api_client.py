@@ -26,19 +26,15 @@ HOST = "https://api.example.com"
 
 
 @pytest.fixture
-def transport(monkeypatch) -> RecordingTransport:
-    """Every ApiClient built in the test sends through this transport."""
-    t = RecordingTransport()
-    monkeypatch.setattr(dazure._api_client, "_transport", lambda: t)
-    return t
+def transport() -> RecordingTransport:
+    """The transport a test passes as `transport=`, recording what was sent."""
+    return RecordingTransport()
 
 
 @pytest.fixture
-def sleeps(monkeypatch) -> list[float]:
-    """Retries record their waits here instead of sleeping."""
-    waits: list[float] = []
-    monkeypatch.setattr(dazure._api_client, "_sleep", waits.append)
-    return waits
+def sleeps() -> list[float]:
+    """Retries record their waits here instead of sleeping (`sleep=sleeps.append`)."""
+    return []
 
 
 @pytest.fixture(autouse=True)
@@ -67,7 +63,7 @@ class FakeCredential:
 
 def test_path_templating_and_encoding(transport):
     transport.add(httpx.Response(204), httpx.Response(204))
-    with ApiClient(HOST + "/base") as client:
+    with ApiClient(HOST + "/base", transport=transport) as client:
         client.fetch("/subscriptions/{sub}/rg/{name}", sub="s 1", name="a/b?c#d%")
         client.fetch("plain", query={"api-version": "2021-04-01", "q": "x y"})
     first, second = (r.url for r in transport.requests)
@@ -86,7 +82,7 @@ def test_path_templating_and_encoding(transport):
     ],
 )
 def test_missing_and_unused_path_parameters(transport, path, params, match):
-    with ApiClient(HOST) as client, pytest.raises(ValueError, match=match):
+    with ApiClient(HOST, transport=transport) as client, pytest.raises(ValueError, match=match):
         client.fetch(path, **params)
     assert transport.requests == []
 
@@ -96,8 +92,8 @@ def test_host_url_from_the_class_or_argument(transport):
         host_url = HOST
 
     transport.add(httpx.Response(204), httpx.Response(204))
-    Api().fetch("/x")
-    Api("https://other.example.com").fetch("/x")
+    Api(transport=transport).fetch("/x")
+    Api("https://other.example.com", transport=transport).fetch("/x")
     assert [str(r.url) for r in transport.requests] == [f"{HOST}/x", "https://other.example.com/x"]
     with pytest.raises(ValueError, match="host_url"):
         ApiClient()
@@ -105,7 +101,7 @@ def test_host_url_from_the_class_or_argument(transport):
 
 def test_method_json_body_and_headers(transport):
     transport.add(httpx.Response(204))
-    with ApiClient(HOST) as client:
+    with ApiClient(HOST, transport=transport) as client:
         client.fetch("/x", "post", json={"a": [1, None]}, headers={"X-Extra": "1"})
     (req,) = transport.requests
     assert req.method == "POST"
@@ -147,7 +143,7 @@ def test_method_json_body_and_headers(transport):
 )
 def test_parsing_by_content_type(transport, response, content_type, expected):
     transport.add(response)
-    result = ApiClient(HOST).fetch("/x", content_type=content_type)
+    result = ApiClient(HOST, transport=transport).fetch("/x", content_type=content_type)
     if isinstance(result, ET.Element):
         assert result.tag == expected
         assert result.find("i").text == "1"
@@ -163,7 +159,7 @@ def test_response_handler(transport):
         return ("handled", content)
 
     transport.add(json_response(200, [1]), httpx.Response(200, text="t"), httpx.Response(204))
-    client = ApiClient(HOST, response_handler=handler)
+    client = ApiClient(HOST, transport=transport, response_handler=handler)
     assert client.fetch("/x") == ("handled", [1])
     assert client.fetch("/x") == ("handled", "t")
     assert client.fetch("/x") is None  # an empty body is not handed to the handler
@@ -172,7 +168,7 @@ def test_response_handler(transport):
 
 def test_api_error_message(transport):
     transport.add(json_response(404, {"error": {"code": "NotFound"}}), httpx.Response(500))
-    client = ApiClient(HOST)
+    client = ApiClient(HOST, transport=transport)
     with pytest.raises(ApiError) as err:
         client.fetch("/things/{id}", "DELETE", id="7")
     e = err.value
@@ -196,25 +192,34 @@ def test_api_error_message(transport):
 def test_transient_statuses_are_retried_up_to_max_tries(transport, sleeps, status):
     transport.add(*[httpx.Response(status)] * 3)
     with pytest.raises(ApiError) as err:
-        ApiClient(HOST, max_tries=3).fetch("/x", "POST", json={})
+        ApiClient(HOST, transport=transport, sleep=sleeps.append, max_tries=3).fetch(
+            "/x", "POST", json={}
+        )
     assert err.value.response.status_code == status
     assert len(transport.requests) == 3
     assert len(sleeps) == 2
 
     transport.add(httpx.Response(status), json_response(200, "ok"))
-    assert ApiClient(HOST, max_tries=3).fetch("/x") == "ok"
+    assert (
+        ApiClient(HOST, transport=transport, sleep=sleeps.append, max_tries=3).fetch("/x") == "ok"
+    )
     assert len(transport.requests) == 5
 
 
 def test_connection_errors_are_retried(transport, sleeps):
     transport.add(httpx.ConnectError, httpx.ConnectTimeout, json_response(200, "ok"))
-    assert ApiClient(HOST, max_tries=3).fetch("/x", "PUT", json={}) == "ok"
+    assert (
+        ApiClient(HOST, transport=transport, sleep=sleeps.append, max_tries=3).fetch(
+            "/x", "PUT", json={}
+        )
+        == "ok"
+    )
     assert len(transport.requests) == 3
     assert len(sleeps) == 2
 
     transport.add(*[httpx.ConnectError] * 2)
     with pytest.raises(httpx.ConnectError):
-        ApiClient(HOST, max_tries=2).fetch("/x")
+        ApiClient(HOST, transport=transport, sleep=sleeps.append, max_tries=2).fetch("/x")
     assert len(transport.requests) == 5
 
 
@@ -231,7 +236,9 @@ def test_connection_errors_are_retried(transport, sleeps):
 def test_other_failures_are_sent_once(transport, sleeps, outcome):
     transport.add(outcome)
     with pytest.raises((ApiError, httpx.ReadTimeout, httpx.ReadError)):
-        ApiClient(HOST).fetch("/x", "POST", json={"side": "effect"})
+        ApiClient(HOST, transport=transport, sleep=sleeps.append).fetch(
+            "/x", "POST", json={"side": "effect"}
+        )
     assert len(transport.requests) == 1
     assert sleeps == []
 
@@ -245,7 +252,7 @@ def test_retry_after_is_honoured(transport, sleeps, monkeypatch):
         httpx.Response(503, headers={"Retry-After": when}),
         httpx.Response(204),
     )
-    ApiClient(HOST).fetch("/x")
+    ApiClient(HOST, transport=transport, sleep=sleeps.append).fetch("/x")
     assert sleeps[:2] == [7.0, 0.5]
     assert 28 <= sleeps[2] <= 30
 
@@ -260,7 +267,7 @@ def test_backoff_without_retry_after(transport, sleeps, monkeypatch):
     monkeypatch.setattr(dazure._api_client, "_uniform", uniform)
     transport.add(httpx.Response(429, headers={"Retry-After": "soon"}), *[httpx.Response(503)] * 5)
     with pytest.raises(ApiError):
-        ApiClient(HOST, max_tries=6).fetch("/x")
+        ApiClient(HOST, transport=transport, sleep=sleeps.append, max_tries=6).fetch("/x")
     assert bounds == [(1.0, 2.5**i) for i in range(1, 6)]
     assert sleeps == [2.5, 6.2, 15.6, 39.1, 60.0]  # round(2.5**i, 1), capped at 60
 
@@ -283,7 +290,7 @@ def test_retry_is_logged_as_a_warning(transport, sleeps, monkeypatch, caplog):
     monkeypatch.setattr(dazure._api_client, "_uniform", lambda a, b: 2.0)
     transport.add(httpx.Response(503), httpx.Response(204))
     with caplog.at_level(logging.WARNING, logger="dazure.http"):
-        ApiClient(HOST).fetch("/x")
+        ApiClient(HOST, transport=transport, sleep=sleeps.append).fetch("/x")
     (record,) = caplog.records
     assert record.levelno == logging.WARNING
     assert "⚠ Request failed. Retrying in 2 secs. (attempt 1 of 5)." in record.getMessage()
@@ -295,14 +302,14 @@ def test_retry_is_logged_as_a_warning(transport, sleeps, monkeypatch, caplog):
 def test_bearer_token_fetched_once_for_the_scope(transport):
     cred = FakeCredential()
     transport.add(*[httpx.Response(204)] * 3)
-    client = ApiClient(HOST, credential=cred)
+    client = ApiClient(HOST, transport=transport, credential=cred)
     for _ in range(3):
         client.fetch("/x")
     assert cred.calls == [(f"{HOST}/.default",)]
     assert [r.headers["authorization"] for r in transport.requests] == ["Bearer token-1"] * 3
 
     transport.add(httpx.Response(204))
-    ApiClient(HOST, credential=cred, scope="api://app/.default").fetch("/x")
+    ApiClient(HOST, transport=transport, credential=cred, scope="api://app/.default").fetch("/x")
     assert cred.calls[-1] == ("api://app/.default",)
 
 
@@ -312,7 +319,7 @@ def test_bearer_token_renewed_five_minutes_before_expiry(transport, monkeypatch)
     clock = [now]
     monkeypatch.setattr(dazure._api_client, "_now", lambda: clock[0])
     transport.add(*[httpx.Response(204)] * 3)
-    client = ApiClient(HOST, credential=cred)
+    client = ApiClient(HOST, transport=transport, credential=cred)
     client.fetch("/x")
     clock[0] = now + 3600 - 301
     client.fetch("/x")
@@ -325,7 +332,7 @@ def test_bearer_token_renewed_five_minutes_before_expiry(transport, monkeypatch)
 def test_bearer_token_dropped_after_401_and_not_replayed(transport):
     cred = FakeCredential()
     transport.add(httpx.Response(401), httpx.Response(204))
-    client = ApiClient(HOST, credential=cred)
+    client = ApiClient(HOST, transport=transport, credential=cred)
     with pytest.raises(ApiError):
         client.fetch("/x")
     assert len(transport.requests) == 1
@@ -353,7 +360,7 @@ def test_class_credential_from_app_credential(transport, monkeypatch):
         mode = "prod"
 
     transport.add(httpx.Response(204))
-    client = Api()
+    client = Api(transport=transport)
     assert calls == [(("APP_ID", "APP_SECRET"), {"tenant_id_env": "APP_TENANT", "mode": "prod"})]
     assert cred.calls == []  # the first token is fetched lazily
     client.fetch("/x")
@@ -372,7 +379,7 @@ def test_logging_in_azr_format(transport, caplog, monkeypatch):
         json_response(201, {"id": 1}),
         json_response(500, {"error": {"code": "Boom", "message": "bad"}}),
     )
-    client = ApiClient(HOST, credential=FakeCredential(), verbose=True)
+    client = ApiClient(HOST, transport=transport, credential=FakeCredential(), verbose=True)
     with caplog.at_level(logging.INFO, logger="dazure.http"):
         client.fetch("/x", "POST", json={"name": "rg1", "location": "westeurope"})
         with pytest.raises(ApiError):
@@ -398,7 +405,7 @@ def test_logging_in_azr_format(transport, caplog, monkeypatch):
 def test_not_verbose_logs_no_requests(transport, caplog):
     transport.add(httpx.Response(204))
     with caplog.at_level(logging.DEBUG, logger="dazure.http"):
-        ApiClient(HOST).fetch("/x")
+        ApiClient(HOST, transport=transport).fetch("/x")
     assert caplog.records == []
 
 
@@ -406,17 +413,17 @@ def test_verbose_attaches_rich_handler_only_if_none(transport):
     log = logging.getLogger("dazure.http")
     log.handlers.clear()
     log.setLevel(logging.NOTSET)
-    ApiClient(HOST, verbose=True)
-    ApiClient(HOST, verbose=True)
+    ApiClient(HOST, transport=transport, verbose=True)
+    ApiClient(HOST, transport=transport, verbose=True)
     (handler,) = log.handlers
     assert isinstance(handler, RichHandler)
     assert log.getEffectiveLevel() == logging.INFO
 
     own = logging.NullHandler()
     log.handlers[:] = [own]
-    ApiClient(HOST, verbose=True)
+    ApiClient(HOST, transport=transport, verbose=True)
     assert log.handlers == [own]
-    ApiClient(HOST)
+    ApiClient(HOST, transport=transport)
     assert log.handlers == [own]
 
 
@@ -424,7 +431,9 @@ def test_bearer_auth_repr_and_markup_escaped(transport, caplog):
     assert "token" not in repr(BearerAuth(FakeCredential(), "s")).replace("FakeCredential", "")
     transport.add(json_response(400, {"why": "[bold]x[/bold]"}))
     with caplog.at_level(logging.INFO, logger="dazure.http"), pytest.raises(ApiError):
-        ApiClient(HOST, verbose=True).fetch("/x", "POST", json={"f": "[red]x[/red]"})
+        ApiClient(HOST, transport=transport, verbose=True).fetch(
+            "/x", "POST", json={"f": "[red]x[/red]"}
+        )
     bodies = [r.getMessage() for r in caplog.records if r.getMessage().startswith("{")]
     # Rich markup in a body is escaped, so it prints as sent.
     assert bodies == ['{\n  "f": "\\[red]x\\[/red]"\n}', '{\n  "why": "\\[bold]x\\[/bold]"\n}']
@@ -507,7 +516,7 @@ def test_abbreviate_json_keeps_scalars_and_ellipsis_strings():
 
 def test_logged_bodies_are_abbreviated(transport, caplog):
     transport.add(json_response(400, {"error": {"details": list(range(13))}}))
-    client = ApiClient(HOST, verbose=True)
+    client = ApiClient(HOST, transport=transport, verbose=True)
     body = {f"k{i:02d}": [str(j) for j in range(13)] for i in range(11)}
     with caplog.at_level(logging.INFO, logger="dazure.http"), pytest.raises(ApiError):
         client.fetch("/x", "POST", json=body)
@@ -529,7 +538,7 @@ def test_logged_non_json_bodies_are_unchanged(transport, caplog):
         httpx.Response(500, text=text, headers={"content-type": "text/plain"}),
         httpx.Response(500, text=text, headers={"content-type": "application/json"}),
     )
-    client = ApiClient(HOST, verbose=True)
+    client = ApiClient(HOST, transport=transport, verbose=True)
     with caplog.at_level(logging.INFO, logger="dazure.http"):
         for _ in range(2):
             with pytest.raises(ApiError):
@@ -542,3 +551,60 @@ def test_logged_non_json_bodies_are_unchanged(transport, caplog):
 def test_max_tries_must_be_a_positive_integer(bad):
     with pytest.raises(ValueError, match="max_tries"):
         ApiClient(HOST, max_tries=bad)
+
+
+# Public test hooks: transport=, sleep=, .credential --------------------------------
+
+
+def test_transport_argument_carries_the_requests():
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"ok": True})
+
+    with ApiClient(HOST, transport=httpx.MockTransport(handler)) as client:
+        assert client.fetch("/x") == {"ok": True}
+    assert [str(r.url) for r in seen] == [HOST + "/x"]
+
+
+def test_sleep_argument_receives_the_retry_waits():
+    waits: list[float] = []
+    transport = RecordingTransport()
+    transport.add(httpx.Response(429, headers={"Retry-After": "7"}), json_response(200, "ok"))
+    client = ApiClient(HOST, transport=transport, sleep=waits.append)
+    assert client.fetch("/x") == "ok"
+    assert waits == [7.0]
+
+
+def test_sleep_defaults_to_time_sleep(monkeypatch):
+    waits: list[float] = []
+    monkeypatch.setattr(time, "sleep", waits.append)
+    transport = RecordingTransport()
+    transport.add(httpx.Response(503, headers={"Retry-After": "0.5"}), httpx.Response(204))
+    ApiClient(HOST, transport=transport).fetch("/x")
+    assert waits == [0.5]
+
+
+def test_credential_property():
+    cred = FakeCredential()
+    assert ApiClient(HOST, credential=cred).credential is cred
+    assert ApiClient(HOST).credential is None
+    with pytest.raises(AttributeError):
+        ApiClient(HOST).credential = cred  # type: ignore[misc]
+
+
+def test_credential_property_is_the_one_app_credential_chose(monkeypatch):
+    monkeypatch.delenv("AZURE_TOKEN_CREDENTIALS", raising=False)
+    monkeypatch.setenv("T_ID", "00000000-0000-0000-0000-000000000001")
+    monkeypatch.setenv("T_SECRET", "s")
+    monkeypatch.setenv("AZURE_TENANT_ID", "00000000-0000-0000-0000-000000000002")
+
+    class Client(ApiClient):
+        host_url = HOST
+        client_id_env = "T_ID"
+        client_secret_env = "T_SECRET"
+
+    from azure.identity import ClientSecretCredential
+
+    assert isinstance(Client().credential, ClientSecretCredential)

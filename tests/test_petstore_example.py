@@ -6,34 +6,26 @@ models against `tests/fixtures/petstore-openapi.json` (design §8.1, D53).
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import get_args
 
 import httpx
+
+# examples/ is on pytest's `pythonpath`, so the example imports by name, as
+# examples/tests/ imports it: one module object, one set of model classes.
+import petstore as ps
 import pytest
 from pydantic import BaseModel, HttpUrl, ValidationError
 from recording_transport import RecordingTransport, json_response
 
-import dazure._api_client
 from dazure import ApiError, ResponseParseError
 
 ROOT = Path(__file__).parent.parent
 BASE = "https://petstore3.swagger.io/api/v3"
 
 
-def _load_example():
-    spec = importlib.util.spec_from_file_location("petstore", ROOT / "examples" / "petstore.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["petstore"] = module  # pydantic resolves the models' annotations here
-    spec.loader.exec_module(module)
-    return module
-
-
-ps = _load_example()
 SPEC = json.loads((ROOT / "tests" / "fixtures" / "petstore-openapi.json").read_text("utf-8"))
 SCHEMAS = SPEC["components"]["schemas"]
 
@@ -56,15 +48,13 @@ ORDER = {
 
 
 @pytest.fixture
-def transport(monkeypatch) -> RecordingTransport:
-    t = RecordingTransport()
-    monkeypatch.setattr(dazure._api_client, "_transport", lambda: t)
-    return t
+def transport() -> RecordingTransport:
+    return RecordingTransport()
 
 
 @pytest.fixture
 def store(transport):
-    with ps.PetStoreClient() as client:
+    with ps.PetStoreClient(transport=transport) as client:
         yield client
 
 

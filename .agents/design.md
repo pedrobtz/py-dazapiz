@@ -180,7 +180,12 @@ class ApiClient:
         max_tries: int = 5,
         verbose: bool = False,
         response_handler: Callable[[Any], Any] | None = None,
+        transport: httpx.BaseTransport | None = None,  # D60: for tests
+        sleep: Callable[[float], None] | None = None,  # D60: retry waits
     ): ...
+
+    @property
+    def credential(self) -> TokenCredential | None: ...  # D60: the one chosen
 
     def fetch(
         self,
@@ -200,7 +205,13 @@ class ApiClient:
 ```
 
 The client holds one `httpx.Client(base_url=host_url,
-timeout=httpx.Timeout(timeout, connect=connect_timeout))`.
+timeout=httpx.Timeout(timeout, connect=connect_timeout),
+transport=transport)`; `transport=None` is httpx's own. The retry loop
+waits with `sleep` (default `time.sleep`). `credential` is the
+read-only credential the client uses, `None` when unauthenticated. These
+three are the public test hooks (D60): a test passes an
+`httpx.MockTransport` and `sleep=waits.append`, and checks the type of
+`client.credential` to see which credential an environment selects.
 
 **Auth.** `BearerAuth(httpx.Auth)` calls `credential.get_token(scope)`,
 keeps the `AccessToken` until five minutes before `expires_on`, and sets
@@ -441,9 +452,9 @@ Details settled in Stage 5 (2026-11-21):
     `1.23456789` stays), not jsonlite's 4 significant digits.
   - `azr` turns any `"..."` string in the body into a bare `...`; in
     `dazure` only the placeholder is bare.
-- The tests send through a recording `httpx.MockTransport` by patching
-  the module's `_transport()`, and patch its `_sleep`, `_uniform`, `_now`
-  and `_clock`, so the public signatures stay as above.
+- The tests send through a recording `httpx.MockTransport` passed as
+  `transport=` and record waits with `sleep=` (D60); they patch only the
+  module's `_uniform`, `_now` and `_clock`.
 
 **Typed results: `parse=`** (D49, maintainer, 2026-11-21; #26). `parse` is
 any callable `Any -> T`: `Model.model_validate`,
@@ -1069,7 +1080,20 @@ from dazure.duckdb import (
     set_token_secret, set_credential_secret, set_sp_secret, set_chain_secret,
     list_secrets, azure_settings, tune, STORAGE_SCOPE,
 )
+from dazure.testing import StaticTokenCredential
 ```
+
+`ApiClient(..., transport=, sleep=)` and its read-only `credential`
+property are its test hooks (§4.1, D60).
+
+`dazure.testing` (D59) holds test doubles for code built on dazure, with
+no dependency beyond azure-core: `StaticTokenCredential(token="fake-token",
+*, expires_in=3600)` implements `TokenCredential` and `SupportsTokenInfo`,
+returns the token with a fresh expiry on every call, records each call's
+scopes in `.calls`, and redacts the token in `repr` (§6). It is exported
+from `dazure.testing` only, so `import dazure` does not offer a fake
+credential next to the real ones. The guide page "Testing your API
+client" shows it with `respx` on an `ApiClient` subclass.
 
 Errors derive from `dazure.DazureError`; `dazure.ApiError` also derives
 from `httpx.HTTPStatusError`. `dazure.ResponseParseError` is what
@@ -1078,7 +1102,9 @@ from `httpx.HTTPStatusError`. `dazure.ResponseParseError` is what
 `ClientAuthenticationError` from a credential passes through unwrapped.
 
 `examples/petstore.py` (§4.1) shows an `ApiClient` subclass with pydantic
-models; it is in the repository, not the package.
+models, and `examples/azure_petstore.py` the same client with an Entra ID
+scope and service-principal variables, tested offline in `examples/tests/`;
+they are in the repository, not the package.
 Names are snake_case Python names; `azr`'s `az_cli_` prefix is shortened
 to `az_` because the module already says Azure.
 
@@ -1118,11 +1144,11 @@ Documentation site built with great-docs (Quarto) from `great-docs.yml`,
 (`https://pedrobtz.github.io/py-dazure/`) by `.github/workflows/docs.yml`
 on pushes to `main`, and built and linted (`great-docs lint`) on every
 pull request; great-docs 0.17.0 and Quarto 1.11.9 pinned, as `py-dazdiff`
-does. The reference groups follow §5; `dazure.duckdb` is listed by
+does. The reference groups follow §5; `dazure.duckdb` (and `dazure.testing`) is listed by
 submodule-qualified names (`duckdb.tune`) and read by static analysis
 (`dynamic: false`), since `import dazure` does not import it. Guide code
-is never executed (it needs Azure); the Petstore walkthrough includes
-`examples/petstore.py` by line range, checked by a test. `great-docs.yml`
+is never executed (it needs Azure); the Petstore walkthrough and the testing page include
+`examples/` code by line range, checked by a test. `great-docs.yml`
 and `user_guide/` are left out of the sdist (decided 2026-11-21, #27: the
 maintainer asked for the site as `py-dazdiff` has it).
 
@@ -1184,7 +1210,7 @@ not simple, and is manual instead.
   parameters percent-encoded on the request line (the server's own log;
   httpbin's echo decodes `%2F`), query and JSON bodies on `/anything`,
   parsing of `/json`, `/xml`, `/html` and `/status/204`, 429 and 503
-  retried (counted from the retry warnings, sleep patched to nothing) and
+  retried (counted from the retry warnings, `sleep=` recording the waits) and
   500 not, `/delay/2` under a 0.5 s timeout sent once, and timing and size
   in the log records with no `Authorization` value.
 - **The Petstore example** (D53). `tests/test_petstore_example.py`, with
@@ -1200,6 +1226,21 @@ not simple, and is manual instead.
   names, its required fields the schema's `required` plus the listed
   deliberate additions, the status `Literal`s the schema's `enum`s, and
   every property `example` validates and dumps back unchanged.
+- **Testing an `ApiClient` subclass** (D59). `examples/tests/` is the
+  pattern the guide page "Testing your API client" includes: `respx` for
+  HTTP (an unmocked request raises), `StaticTokenCredential` as
+  `credential=`, and an autouse fixture calling `pytest-socket`'s
+  `disable_socket(allow_unix_socket=True)` for that directory only (the
+  httpbin and DuckDB tests in `tests/` keep their sockets). It checks a
+  validated result with the bearer token and the class's scope, the JSON
+  body as recorded, a malformed body, a 404 domain error, 503 retried and
+  500 not, `app_credential()`'s choice by environment checked by type with
+  sockets blocked (building `ClientSecretCredential` and the `dev` chain
+  opens no connection), and that both guards fire. `tests/test_testing.py`
+  covers the credential itself. The retry tests pass `sleep=`, and the
+  mode tests check `client.credential` (D60). `examples/` is on pytest's `pythonpath`
+  and pyright's `extraPaths`, so every test imports the example modules by
+  name.
 - **Types.** pyright (strict, Python 3.10) runs in the lint job over
   `src/`, `examples/` and `tests/typing/` (D55), whose `assert_type`
   checks pin `fetch()`'s overloads and `__enter__`'s return type; pytest
@@ -1471,6 +1512,24 @@ Settled for #26 (2026-11-21):
   inside a dataclass would otherwise be deep-copied, not dumped. Keys
   stay as given: a converted key would be an unhashable dict, and JSON
   keys are strings anyway.
+- **D59.** (maintainer, 2026-11-21: testing guide; StaticTokenCredential
+  public) A guide page on testing an `ApiClient` subclass in CI, with the
+  Petstore treated as Azure-hosted, and `dazure.testing.StaticTokenCredential`
+  public so users need not write their own fake credential. The example
+  tests run fully offline: `respx` for HTTP, `pytest-socket` for the rest
+  (maintainer's addition). Reason: the maintainer asked how to mock a
+  client for a real Azure API in CI (#30); a public fake keeps users off
+  dazure's internals, and blocking sockets proves no test leaks to Entra
+  ID or the API.
+- **D60.** (maintainer, 2026-11-21: follow-up to the approved testing
+  guide, D59) `ApiClient.__init__` takes keyword-only `transport`
+  (passed to `httpx.Client`) and `sleep` (the retry loop's wait, default
+  `time.sleep`), and `ApiClient.credential` is a read-only property for
+  the credential chosen. They replace the private `_transport()` and
+  `_sleep` that dazure's tests patched. Reason: a user-facing guide must
+  not patch private names; these are the smallest public hooks for a
+  mock transport, instant retries and checking `app_credential()`'s
+  choice.
 
 The author's calls, open until the package repository records them:
 

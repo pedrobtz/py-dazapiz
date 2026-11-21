@@ -10,25 +10,18 @@ neither.
 
 from __future__ import annotations
 
-import importlib.util
+import importlib
 import random
-import sys
-from pathlib import Path
 
 import pytest
 
 import dazure
 
-EXAMPLE = Path(__file__).parent.parent.parent / "examples" / "petstore.py"
-
 
 @pytest.fixture(scope="module")
 def ps():
-    spec = importlib.util.spec_from_file_location("petstore", EXAMPLE)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["petstore"] = module
-    spec.loader.exec_module(module)
-    return module
+    # examples/ is on pytest's `pythonpath` (pyproject.toml).
+    return importlib.import_module("petstore")
 
 
 @pytest.fixture

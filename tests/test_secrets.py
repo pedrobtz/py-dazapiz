@@ -231,7 +231,6 @@ def test_api_client_never_logs_or_shows_the_bearer_token(monkeypatch, caplog, ca
     from azure.core.credentials import AccessToken
     from recording_transport import RecordingTransport, json_response
 
-    import dazure._api_client
     from dazure import ApiClient, ApiError
     from dazure._api_client import BearerAuth
 
@@ -246,12 +245,16 @@ def test_api_client_never_logs_or_shows_the_bearer_token(monkeypatch, caplog, ca
             json_response(401, {"error": "unauthorized"}),
         ]
     )
-    monkeypatch.setattr(dazure._api_client, "_transport", lambda: transport)
-    monkeypatch.setattr(dazure._api_client, "_sleep", lambda s: None)
     log = logging.getLogger("dazure.http")
     monkeypatch.setattr(log, "handlers", [])
     monkeypatch.setattr(log, "level", logging.NOTSET)
-    client = ApiClient("https://api.example.com", credential=Credential(), verbose=True)
+    client = ApiClient(
+        "https://api.example.com",
+        credential=Credential(),
+        verbose=True,
+        transport=transport,
+        sleep=lambda s: None,
+    )
     with caplog.at_level(logging.DEBUG):
         client.fetch("/x", "POST", json={"a": 1})
         with pytest.raises(ApiError) as err:
@@ -366,3 +369,13 @@ def test_duckdb_helpers_never_show_the_secret(azure_extension, caplog, capsys):
         # into the traceback.
         assert error.__cause__ is None
         assert error.__suppress_context__
+
+
+def test_static_token_credential_never_shows_the_token():
+    from dazure.testing import StaticTokenCredential
+
+    cred = StaticTokenCredential(SENTINEL)
+    cred.get_token("api://x/.default")
+    assert SENTINEL not in shown(cred)
+    assert SENTINEL not in shown([cred, {"k": cred}])
+    assert "StaticTokenCredential(" in repr(cred)

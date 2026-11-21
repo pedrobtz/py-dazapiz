@@ -21,7 +21,7 @@ already do.
 
 ```sh
 uv sync --all-extras          # install, including the dev group and duckdb
-uv run pytest                 # tests
+uv run pytest                 # tests (tests/ and examples/tests/)
 uv run ruff check .           # lint
 uv run ruff format .          # format (Python files only)
 uv run pyright                # strict type check of src/, examples/, tests/typing/
@@ -50,7 +50,8 @@ GitHub Pages from `main` (great-docs and Quarto pinned).
 ## Rules
 
 - Source lives in `src/dazure/`; public names are re-exported from
-  `__init__.py`. `dazure.duckdb` imports `duckdb` lazily: the base
+  `__init__.py`, except the `dazure.duckdb` and `dazure.testing`
+  submodules' names, exported from those modules only. `dazure.duckdb` imports `duckdb` lazily: the base
   install must not need it, nor PySpark ever.
 - The SDK first (design §3): anything `azure-identity` or `msal` does is
   called, not reimplemented, and the docstring says what it wraps.
@@ -61,7 +62,9 @@ GitHub Pages from `main` (great-docs and Quarto pinned).
   where design §4.4 records a divergence.
 - Tests in CI touch no Azure: only plain data or a simple mock
   (`httpx.MockTransport`, a local httpbin on loopback, a fake `az` on
-  `PATH`, one `msal` method patched). Anything needing a fake Entra authority or a real OS secret
+  `PATH`, one `msal` method patched; in `examples/tests/`, `respx` and
+  `dazure.testing.StaticTokenCredential`, with `pytest-socket` blocking
+  all network there). Anything needing a fake Entra authority or a real OS secret
   store goes on the manual checklist in `tests/manual/README.md`
   (design §8.2), run by hand with full Azure access.
 - `pyright` is strict (design D55): fix what it finds; an ignore names its

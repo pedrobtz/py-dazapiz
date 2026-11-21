@@ -41,9 +41,8 @@ def _reply(request: httpx.Request) -> httpx.Response:
 
 
 @pytest.fixture
-def client(monkeypatch: pytest.MonkeyPatch) -> ApiClient:
-    monkeypatch.setattr("dazure._api_client._transport", lambda: httpx.MockTransport(_reply))
-    return ApiClient(HOST)
+def client() -> ApiClient:
+    return ApiClient(HOST, transport=httpx.MockTransport(_reply))
 
 
 def test_without_parse_fetch_is_any(client: ApiClient) -> None:
@@ -71,8 +70,7 @@ def test_parse_types_the_result(client: ApiClient) -> None:
     assert count == 2
 
 
-def test_parse_types_in_a_subclass_and_context_manager(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("dazure._api_client._transport", lambda: httpx.MockTransport(_reply))
-    with ItemClient() as api:
+def test_parse_types_in_a_subclass_and_context_manager() -> None:
+    with ItemClient(transport=httpx.MockTransport(_reply)) as api:
         assert_type(api, ItemClient)
         assert assert_type(api.item(7), Item) == Item(id=7)

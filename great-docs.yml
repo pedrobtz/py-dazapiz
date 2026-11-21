@@ -20,12 +20,14 @@ user_guide:
     contents:
       - get-started.qmd
       - rest-client.qmd
+      - testing.qmd
       - duckdb.qmd
       - browser-sign-in.qmd
 
-# Groups follow design §5. The `dazure.duckdb` submodule's members are listed
-# by their submodule-qualified names (`duckdb.tune`), which Great Docs
-# resolves relative to the package (`dazure:duckdb.tune`). `members` lists
+# Groups follow design §5. The `dazure.duckdb` and `dazure.testing` submodules'
+# members are listed by their submodule-qualified names (`duckdb.tune`,
+# `testing.StaticTokenCredential`), which Great Docs resolves relative to the
+# package (`dazure:duckdb.tune`). `members` lists
 # keep the dunder methods (documented for `great-docs lint`) off the pages.
 reference:
   - title: Refresh tokens and credentials
@@ -80,6 +82,14 @@ reference:
       - duckdb.azure_settings
       - duckdb.tune
       - duckdb.STORAGE_SCOPE
+  - title: Testing
+    desc: "Test doubles for code built on dazure, in `dazure.testing`."
+    contents:
+      - name: testing.StaticTokenCredential
+        members:
+          - get_token
+          - get_token_info
+          - close
   - title: Errors
     desc: Everything dazure raises derives from `DazureError`.
     contents:

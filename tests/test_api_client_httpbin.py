@@ -19,7 +19,6 @@ from azure.core.credentials import AccessToken
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-import dazure._api_client
 from dazure import ApiClient, ApiError
 
 TOKEN = "httpbin-bearer-sentinel-91c4"
@@ -45,10 +44,9 @@ class Body(BaseModel):
 
 
 @pytest.fixture
-def no_sleep(monkeypatch) -> list[float]:
-    waits: list[float] = []
-    monkeypatch.setattr(dazure._api_client, "_sleep", waits.append)
-    return waits
+def no_sleep() -> list[float]:
+    """Retry waits, recorded instead of slept (`sleep=no_sleep.append`)."""
+    return []
 
 
 @pytest.fixture(autouse=True)
@@ -168,7 +166,7 @@ def retry_warnings(caplog) -> list[str]:
 @pytest.mark.parametrize("status", [429, 503])
 def test_transient_statuses_are_retried(httpbin, caplog, no_sleep, status):
     with (
-        ApiClient(httpbin.url, max_tries=3) as client,
+        ApiClient(httpbin.url, sleep=no_sleep.append, max_tries=3) as client,
         caplog.at_level(logging.WARNING),
         pytest.raises(ApiError) as err,
     ):
@@ -182,7 +180,7 @@ def test_transient_statuses_are_retried(httpbin, caplog, no_sleep, status):
 
 def test_500_is_not_retried(httpbin, caplog, no_sleep):
     with (
-        ApiClient(httpbin.url, max_tries=3) as client,
+        ApiClient(httpbin.url, sleep=no_sleep.append, max_tries=3) as client,
         caplog.at_level(logging.INFO),
         pytest.raises(ApiError) as err,
     ):
@@ -193,7 +191,7 @@ def test_500_is_not_retried(httpbin, caplog, no_sleep):
 
 
 def test_read_timeout_is_not_resent(httpbin, caplog, no_sleep):
-    client = ApiClient(httpbin.url, timeout=0.5, max_tries=3, verbose=True)
+    client = ApiClient(httpbin.url, sleep=no_sleep.append, timeout=0.5, max_tries=3, verbose=True)
     with client, caplog.at_level(logging.INFO), pytest.raises(httpx.ReadTimeout):
         client.fetch("/delay/2", "POST", json={"once": True})
     sent = [m for m in messages(caplog) if ">>> POST" in m]

@@ -1,0 +1,177 @@
+---
+title: Testing your API client
+---
+
+You have written an `ApiClient` subclass for a REST API hosted in Azure
+behind Entra ID. Its tests should run in CI on every pull request, and CI
+has no Azure: no `az login`, no service principal you would want to put in
+a runner, and an API you do not want a test to change. dazure's own CI
+works the same way ([design decision D23](https://github.com/pedrobtz/py-dazure/blob/main/.agents/design.md#10-decisions):
+Azure is tested by hand, CI only with simple mocks): what needs real Azure is checked
+by hand, and the automated tests touch neither Azure nor the network.
+
+So the tests replace the two things the client talks to:
+
+- **the API**, with [respx](https://lundberg.github.io/respx/), which
+  answers `httpx` requests from routes you declare. `ApiClient` is an
+  `httpx` client, so respx mocks it with no change to the client;
+- **the credential**, with `dazure.testing.StaticTokenCredential`, a
+  `TokenCredential` that hands out a fixed token and records the scopes it
+  was asked for. Pass it as `credential=`, which wins over
+  `app_credential()`.
+
+Everything else is the real client: its URL templating, request bodies,
+parsing, validation, errors and retries.
+
+## The example: the Petstore as an Azure-hosted API
+
+The public Swagger Petstore needs no token, so the example in
+`examples/azure_petstore.py` pretends it does. It is the Petstore client of
+the [REST client](rest-client.qmd) page with an Entra ID scope and its own
+service-principal variables:
+
+<!-- snippet: class AzurePetStoreClient(PetStoreClient): -->
+{{< include examples/azure_petstore.py lines="24-32" >}}
+
+Its tests are in `examples/tests/` and run in dazure's CI. They need
+`pytest`, `respx` and `pytest-socket` in your dev dependencies:
+
+```sh
+uv add --dev pytest respx pytest-socket
+```
+
+## The fixtures: `conftest.py`
+
+Copy this file next to your tests and change the client, the URL and the
+names:
+
+<!-- snippet: @pytest.fixture -->
+{{< include examples/tests/conftest.py lines="30-53" >}}
+
+`api` is a respx router for the API's base URL, so routes are written as
+paths (`api.get("/pet/7")`). `assert_all_called=False` lets a test declare
+routes it does not end up calling. `credential` is a fresh
+`StaticTokenCredential` per test, so `credential.calls` holds only that
+test's calls. `store` is the client under test, built on both.
+
+## The tests
+
+Each test scripts the API's answer, calls a method, and checks what came
+back and what was sent. A successful call returns a validated model, and
+the request carried the fake token, asked for with the class's scope:
+
+<!-- snippet: def test_get_pet_returns_a_validated_pet_and_sends_the_token( -->
+{{< include examples/tests/test_azure_petstore.py lines="27-39" >}}
+
+The scope is written out rather than read from the class, so a test fails
+if the class's scope changes by mistake.
+
+A request body is checked as it was sent, from the recorded request: the
+model's camelCase aliases, and only the fields that were set.
+
+<!-- snippet: def test_add_pet_sends_the_model_as_json(api: respx.MockRouter, store: AzurePetStoreClient) -> None: -->
+{{< include examples/tests/test_azure_petstore.py lines="42-49" >}}
+
+Failures are scripted the same way. A body that does not validate is a
+`ResponseParseError`; a 404 is the client's own domain error, chained to
+the `ApiError`:
+
+<!-- snippet: def test_a_malformed_pet_is_a_parse_error( -->
+{{< include examples/tests/test_azure_petstore.py lines="52-68" >}}
+
+`side_effect` with a list answers each call in turn, which scripts a
+retry. `ApiClient` retries 429, 503 and connection failures, waiting
+between attempts with `time.sleep`; its `sleep=` argument takes the
+function to wait with instead, so `sleep=waits.append` makes the test
+instant and records the waits:
+
+<!-- snippet: def test_503_is_retried(api: respx.MockRouter, credential: StaticTokenCredential) -> None: -->
+{{< include examples/tests/test_azure_petstore.py lines="71-93" >}}
+
+## Which credential the client picks
+
+Whether a deployment gets its service principal and a developer their
+`az login` depends on the environment, and can be tested without signing
+in: `app_credential()` only builds the azure-identity credential, it
+fetches no token until a request is made. Set or clear the variables with
+`monkeypatch`, build the client, and check `client.credential`, the
+credential it chose, by type:
+
+<!-- snippet: def test_service_principal_when_its_variables_are_set(monkeypatch: pytest.MonkeyPatch) -> None: -->
+{{< include examples/tests/test_azure_petstore.py lines="99-117" >}}
+
+Clear `AZURE_TOKEN_CREDENTIALS` too: a value on the runner would choose the
+mode instead. These tests run with the network blocked (below), so building
+`ClientSecretCredential` and the `az login` chain is checked to make no
+connection.
+
+## Offline by construction
+
+Two guards make sure no test reaches the network, even by mistake.
+
+- **respx, for `httpx`.** While the `api` router is active, a request no
+  route matches raises an `AssertionError` ("not mocked") instead of going
+  out: respx's `assert_all_mocked=True`, its default, which the fixture
+  keeps.
+- **pytest-socket, for everything else.** An autouse fixture blocks every
+  socket for each test in the directory: MSAL and azure-identity fetching a
+  token, another HTTP client, even a DNS lookup fail with
+  `SocketBlockedError`. Unix sockets stay allowed, for local tooling.
+
+<!-- snippet: @pytest.fixture(autouse=True) -->
+{{< include examples/tests/conftest.py lines="22-27" >}}
+
+Being a fixture in `conftest.py`, it covers only the tests in that
+directory; tests elsewhere that need a local server keep their sockets.
+(`pytest --disable-socket` does the same for a whole run.) Both guards are
+themselves tested:
+
+<!-- snippet: def test_an_unmocked_request_fails(api: respx.MockRouter, store: AzurePetStoreClient) -> None: -->
+{{< include examples/tests/test_azure_petstore.py lines="123-133" >}}
+
+pytest-socket also issues a warning when it blocks a socket, which
+`pytest.warns` expects here; under `filterwarnings = ["error"]` an
+unexpected block fails the test either way.
+
+## Without respx: `httpx.MockTransport`
+
+If you would rather not add a dependency, `httpx.MockTransport` takes a
+function from request to response. Pass it as the client's `transport=`:
+
+```python
+import httpx
+import pytest
+
+from dazure.testing import StaticTokenCredential
+
+
+@pytest.fixture
+def store():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path == "/api/v3/pet/7":
+            return httpx.Response(200, json=PET)
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    with AzurePetStoreClient(credential=StaticTokenCredential(), transport=transport) as client:
+        yield client
+```
+
+respx adds the routing, the call recording and the unmocked-request check,
+and needs no change to how the client is built.
+
+## What stays manual
+
+The fakes stand in for Entra ID and the API, so these tests cannot tell
+you that the real ones agree. Keep a short live check, run by hand or on a
+schedule with real credentials, outside the CI suite:
+
+- the scope and the app registration: a real token for `scope` is accepted
+  by the API;
+- the service principal, managed identity or workload identity of each
+  deployment signs in;
+- the real API still answers in the shape the models expect.
+
+dazure does the same with an opt-in live test of the Petstore example
+(`DAZURE_LIVE_HTTP=1`) and a manual checklist for everything that needs
+Azure.
