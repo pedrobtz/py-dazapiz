@@ -7,7 +7,10 @@ token, key or secret (design §6).
 
 from __future__ import annotations
 
+import httpx
+
 __all__ = [
+    "ApiError",
     "AzCliError",
     "AzCliNonInteractiveError",
     "AzCliNotFoundError",
@@ -52,3 +55,11 @@ class AzCliNonInteractiveError(AzCliError):
 
 class AzCliTimeoutError(AzCliError, TimeoutError):
     """An `az` command did not finish within its timeout and was killed."""
+
+
+class ApiError(DazureError, httpx.HTTPStatusError):
+    """An `ApiClient` request ended in a non-2xx response, after any retries.
+
+    The message carries the method, URL, status and response body, never a
+    request header. `request` and `response` are the `httpx` objects.
+    """

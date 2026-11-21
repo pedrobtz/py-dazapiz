@@ -5,6 +5,7 @@ The design is in `.agents/design.md` in the repository.
 
 from importlib.metadata import version
 
+from ._api_client import ApiClient
 from ._app_credential import app_credential
 from ._az import az_account_show, az_is_login, az_login, az_logout
 from ._az_cli_token import refresh_token_from_az_cli
@@ -13,6 +14,7 @@ from ._interactive import DeviceCodeCredential, InteractiveBrowserCredential
 from ._refresh_token import AZURE_CLI_CLIENT_ID, RefreshTokenInfo, SupportsRefreshToken
 from ._spark_conf import SparkStorageConf, spark_storage_conf
 from .errors import (
+    ApiError,
     AzCliError,
     AzCliNonInteractiveError,
     AzCliNotFoundError,
@@ -27,6 +29,8 @@ __version__ = version("dazure")
 
 __all__ = [
     "AZURE_CLI_CLIENT_ID",
+    "ApiClient",
+    "ApiError",
     "AzCliError",
     "AzCliNonInteractiveError",
     "AzCliNotFoundError",
