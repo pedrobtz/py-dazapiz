@@ -292,11 +292,73 @@ def _number(x: float) -> str:
     return f"{x:.3g}"
 
 
-def _pretty_json(content: bytes) -> str:
+class _Ellipsis:
+    """Stands for the items `_abbreviate_json()` leaves out; prints as a bare `...`."""
+
+
+_ELLIPSIS = _Ellipsis()
+
+
+def _head_tail(items: list, n: int) -> list:
+    half = max(n // 2, 1)
+    return [*items[:half], _ELLIPSIS, *items[-half:]]
+
+
+def _abbreviate_json(obj: Any, max_items: int = 10, max_size: int = 12) -> str:
+    """Pretty JSON text of `obj`, abbreviated as `azr`'s `format_json_body()`.
+
+    An object or array with more than `max_items` items keeps the first and
+    last `max_items // 2`, a nested array of scalars (an R atomic vector) with
+    more than `max_size` the first and last `max_size // 2`, with a bare
+    `...` between. The layout is jsonlite's `pretty = TRUE`: two-space
+    indent, a nested array of scalars on one line. Differences from azr's
+    text are in design §4.1.
+    """
+
+    def scalar(x: Any) -> str:
+        return "..." if x is _ELLIPSIS else jsonlib.dumps(x, ensure_ascii=False)
+
+    def is_atomic(x: list) -> bool:
+        return bool(x) and not any(isinstance(i, (dict, list)) for i in x)
+
+    def render(x: Any, level: int, top: bool = False) -> str:
+        pad, inner = "  " * level, "  " * (level + 1)
+        if isinstance(x, dict):
+            if not x:
+                return "{}"
+            items = list(x.items())
+            if len(items) > max_items:
+                items = _head_tail(items, max_items)
+            lines = [
+                f"{inner}..."
+                if item is _ELLIPSIS
+                else f"{inner}{scalar(item[0])}: {render(item[1], level + 1)}"
+                for item in items
+            ]
+            return "{\n" + ",\n".join(lines) + f"\n{pad}}}"
+        if isinstance(x, list):
+            if not x:
+                return "[]"
+            if not top and is_atomic(x):
+                if len(x) > max_size:
+                    x = _head_tail(x, max_size)
+                return "[" + ", ".join(scalar(i) for i in x) + "]"
+            if len(x) > max_items:
+                x = _head_tail(x, max_items)
+            lines = [f"{inner}..." if i is _ELLIPSIS else inner + render(i, level + 1) for i in x]
+            return "[\n" + ",\n".join(lines) + f"\n{pad}]"
+        return scalar(x)
+
+    return render(obj, 0, top=True)
+
+
+def _json_body(content: bytes) -> str:
+    """A JSON body abbreviated for the log; text that is not JSON as is."""
     try:
-        return jsonlib.dumps(jsonlib.loads(content), indent=2, ensure_ascii=False)
+        obj = jsonlib.loads(content)
     except ValueError:
         return content.decode("utf-8", "replace")
+    return _abbreviate_json(obj)
 
 
 def _log_request(request: httpx.Request) -> None:
@@ -305,7 +367,7 @@ def _log_request(request: httpx.Request) -> None:
     content = request.content
     if content and request.headers.get("content-type", "").startswith("application/json"):
         logger.info(f"{_INFO} >>> body:")
-        logger.info("%s", escape(_pretty_json(content)))
+        logger.info("%s", escape(_json_body(content)))
 
 
 def _log_response(response: httpx.Response) -> None:
@@ -322,7 +384,7 @@ def _log_response(response: httpx.Response) -> None:
         logger.info("[red]✖ <<< body:[/red]")
         body = response.content
         if _media_type(response, None) == "application/json":
-            text = _pretty_json(body)
+            text = _json_body(body)
         else:
             text = response.text
         logger.info("%s", escape(text))
