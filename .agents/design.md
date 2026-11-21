@@ -4,7 +4,8 @@ Adopted from [RFC 0078](https://github.com/pedrobtz/packages/blob/c2a33fa70cbfe8
 on 2026-11-21. This file is the single source of truth for the design; the
 RFC is now a pointer here. Changed since adoption: §8 split into automated
 and manual tiers (D23), with §4.3.2, §7, §9, D16 and D22 following;
-§9's outline moved to [roadmap.md](roadmap.md) on 2026-11-21.
+§9's outline moved to [roadmap.md](roadmap.md) on 2026-11-21;
+§4.3.1, §4.3.4 and §4.3.5 detailed by Stage 1 (D24 to D26), 2026-11-21.
 
 - **Status:** Proposed. The decisions in §10 marked "maintainer" were
   settled in conversation on 2026-11-19 (D21 on 2026-11-21); the rest
@@ -451,6 +452,23 @@ installed but its config directory is (a mounted `~/.azure`):
    `RefreshTokenNotFoundError` ("run `az login`"), naming the file and
    the username looked for, never a token.
 
+Details settled in Stage 1 (2026-11-21):
+
+- Usernames match case-insensitively, as `msal`'s `get_accounts()` does;
+  accounts and refresh tokens are matched on `home_account_id` and
+  `environment`; with several CLI refresh tokens for the account (one per
+  scope set), the newest `last_modification_time` wins.
+- `username` alone takes the tenant of that user's subscription (the
+  default one if it is theirs); `username` and `tenant_id` together do
+  not read the profile at all.
+- `azureProfile.json` is read as `utf-8-sig`: the Azure CLI writes it
+  with a byte order mark.
+- An encrypted cache is not read (D24). With
+  `core.encrypt_token_cache=true` the CLI writes `msal_token_cache.bin`
+  through `msal-extensions` (Keychain, libsecret) instead of the JSON
+  file; `azr` reads only the JSON file and has no answer either. When
+  only the `.bin` exists, the error says so and how to switch back.
+
 macOS and Linux only (maintainer). On Windows the CLI signs in through
 the Windows broker by default and the function raises
 `UnsupportedPlatformError` pointing to §4.3.2 and to
@@ -605,7 +623,10 @@ wrong state was refused. Redeeming a real code was not tried.
 is honoured by `spark_storage_conf()` and `RefreshTokenCredential` when
 no token is passed, for CI and containers. A plain string gets
 `$AZURE_CLIENT_ID`, else the CLI client ID, and `$AZURE_TENANT_ID`, else
-`"common"`, as in `azr`. Nothing reads a cache implicitly: callers pass
+`"common"`, as in `azr`. An empty variable counts as unset, where
+`azr`'s `Sys.getenv()` would pass the empty string on (D25). Nothing
+given and no `$AZURE_REFRESH_TOKEN` raises `RefreshTokenNotFoundError`.
+Nothing reads a cache implicitly: callers pass
 `refresh_token_from_az_cli()` or a credential, as in §1, so a function
 that assembles keys never reads the disk.
 
@@ -621,6 +642,17 @@ rotated refresh token MSAL returns, which `get_refresh_token()` then
 gives back. It is what lets the REST client and the DuckDB helper use a
 refresh token without `az` or a browser at run time, for example inside
 a Spark executor or a container.
+
+The `msal` application is built on the first `get_token()`, one per
+tenant, because its constructor runs instance and tenant discovery over
+the network (D26). `get_token(tenant_id=...)` asks that tenant instead
+of the token's own; `claims` goes to Entra as the `claims` parameter and
+bypasses the in-memory token. The margin is inclusive: a token with 300
+seconds or fewer left is renewed. An MSAL error dict becomes
+`ClientAuthenticationError` with its `error` and `error_description`,
+and the refresh token, should Entra ever echo it, replaced by
+`<redacted>`. `authority_host` defaults to `$AZURE_AUTHORITY_HOST`, then
+the public cloud, as `azure-identity` does.
 
 ### 4.4 `spark_storage_conf()`
 
@@ -925,6 +957,21 @@ Settled by the maintainer in conversation on 2026-11-19:
 - **D23.** (2026-11-21) Azure testing is mostly manual, in an
   environment with full Azure access; CI tests only what needs no Azure
   or a simple mock (§8).
+
+Settled in Stage 1 (2026-11-21), the implementer's calls:
+
+- **D24.** `refresh_token_from_az_cli()` does not read the CLI's
+  encrypted `msal_token_cache.bin`; it names it in the error. Reason:
+  decrypting needs the OS secret store, which D23 keeps out of CI, and
+  the encryption is off by default outside Windows, which D9 excludes.
+- **D25.** An empty `$AZURE_REFRESH_TOKEN`, `$AZURE_CLIENT_ID` or
+  `$AZURE_TENANT_ID` counts as unset. Reason: an empty client ID or
+  tenant can only fail later with a less clear error.
+- **D26.** `RefreshTokenCredential` builds its `msal`
+  `PublicClientApplication` lazily, per tenant. Reason: the constructor
+  does network discovery, which must not happen at construction (Spark
+  driver) nor in tests (D23), so the tests replace the class rather than
+  one method.
 
 The author's calls, open until the package repository records them:
 

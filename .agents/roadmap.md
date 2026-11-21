@@ -39,7 +39,7 @@ package, a branch on the operating system. Azure itself is never in CI
 | Stage | Title | CI | Issue | Pull request | Done |
 | --- | --- | --- | --- | --- | --- |
 | 0 | [Package identity](#stage-0--package-identity) | quick | [#3](https://github.com/pedrobtz/py-dazure/issues/3) | `a095141` | 2026-11-21 |
-| 1 | [Refresh tokens](#stage-1--refresh-tokens) | full | [#4](https://github.com/pedrobtz/py-dazure/issues/4) | | |
+| 1 | [Refresh tokens](#stage-1--refresh-tokens) | full | [#4](https://github.com/pedrobtz/py-dazure/issues/4) | [#16](https://github.com/pedrobtz/py-dazure/pull/16) | 2026-11-21 |
 | 2 | [Spark config](#stage-2--spark-config) | quick | [#5](https://github.com/pedrobtz/py-dazure/issues/5) | | |
 | 3 | [Interactive credentials](#stage-3--interactive-credentials) | full | [#6](https://github.com/pedrobtz/py-dazure/issues/6) | | |
 | 4 | [az CLI helpers](#stage-4--az-cli-helpers) | full | [#7](https://github.com/pedrobtz/py-dazure/issues/7) | | |
@@ -120,7 +120,8 @@ time carrying the client ID and tenant it belongs to.
   `$AZURE_CLIENT_ID`, `$AZURE_TENANT_ID`, `"common"`): the §4.3.4 table,
   in `tests/test_refresh_token.py`.
 - `RefreshTokenCredential`: `PublicClientApplication` patched at
-  `acquire_token_by_refresh_token`; the scopes and token it was handed,
+  `acquire_token_by_refresh_token` (the whole class is replaced, since its
+  constructor runs network discovery; D26, 2026-11-21); the scopes and token it was handed,
   the in-memory cache until five minutes before expiry, rotation
   returned by `get_refresh_token()`, an MSAL error becoming
   `ClientAuthenticationError`; in `tests/test_refresh_token_credential.py`.

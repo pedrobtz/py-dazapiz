@@ -1,0 +1,170 @@
+"""The `az login` refresh token, read from the Azure CLI's files (design §4.3.1)."""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+from typing import Any
+
+import msal
+
+from ._refresh_token import AZURE_CLI_CLIENT_ID, RefreshTokenInfo
+from .errors import RefreshTokenNotFoundError, UnsupportedPlatformError
+
+__all__ = ["refresh_token_from_az_cli"]
+
+_PROFILE = "azureProfile.json"
+_CACHE = "msal_token_cache.json"
+_ENCRYPTED_CACHE = "msal_token_cache.bin"
+
+
+def _is_windows() -> bool:
+    return sys.platform == "win32"
+
+
+def _config_dir(config_dir: str | os.PathLike[str] | None) -> Path:
+    if config_dir is not None:
+        return Path(config_dir).expanduser()
+    from_env = os.environ.get("AZURE_CONFIG_DIR")
+    if from_env:
+        return Path(from_env).expanduser()
+    return Path.home() / ".azure"
+
+
+def _read_json(path: Path, encoding: str) -> Any:
+    try:
+        return json.loads(path.read_text(encoding=encoding))
+    except (OSError, UnicodeDecodeError, ValueError) as e:
+        # The exception text is not kept: a JSON error can quote the file's content.
+        raise RefreshTokenNotFoundError(
+            f"{path} could not be read ({type(e).__name__}); run `az login` again."
+        ) from None
+
+
+def _current_account(
+    config_dir: Path, username: str | None, tenant_id: str | None
+) -> tuple[str, str]:
+    """The (username, tenant) the Azure CLI is signed in as, with overrides applied."""
+    if username is not None and tenant_id is not None:
+        return username, tenant_id
+    path = config_dir / _PROFILE
+    if not path.is_file():
+        raise RefreshTokenNotFoundError(f"No Azure CLI profile at {path}: run `az login`.")
+    # The Azure CLI writes this file with a UTF-8 byte order mark.
+    profile = _read_json(path, "utf-8-sig")
+    subscriptions = [s for s in (profile.get("subscriptions") or []) if isinstance(s, dict)]
+
+    def user_of(s: dict) -> str | None:
+        user = s.get("user")
+        return user.get("name") if isinstance(user, dict) else None
+
+    if username is None:
+        default = next((s for s in subscriptions if s.get("isDefault") is True), None)
+        if default is None or not user_of(default) or not default.get("tenantId"):
+            raise RefreshTokenNotFoundError(f"No default subscription in {path}: run `az login`.")
+        return user_of(default), tenant_id or default["tenantId"]
+
+    # Prefer the default subscription when it is the given user's, else any of theirs.
+    wanted = username.lower()
+    theirs = sorted(
+        (s for s in subscriptions if (user_of(s) or "").lower() == wanted and s.get("tenantId")),
+        key=lambda s: s.get("isDefault") is not True,
+    )
+    if not theirs:
+        raise RefreshTokenNotFoundError(
+            f"No subscription of {username!r} in {path}: run `az login`, or pass tenant_id."
+        )
+    return username, theirs[0]["tenantId"]
+
+
+def _find_refresh_token(config_dir: Path, username: str) -> str:
+    path = config_dir / _CACHE
+    if not path.is_file():
+        if (config_dir / _ENCRYPTED_CACHE).is_file():
+            raise RefreshTokenNotFoundError(
+                f"The Azure CLI token cache is encrypted ({config_dir / _ENCRYPTED_CACHE}), "
+                "which dazure does not read. Run `az config set core.encrypt_token_cache=false` "
+                f"and `az login` again to look up {username!r}, or set $AZURE_REFRESH_TOKEN."
+            )
+        raise RefreshTokenNotFoundError(
+            f"No Azure CLI token cache at {path} for {username!r}: run `az login`."
+        )
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        raise RefreshTokenNotFoundError(
+            f"{path} could not be read ({type(e).__name__}); run `az login` again."
+        ) from None
+    cache = msal.SerializableTokenCache()
+    try:
+        cache.deserialize(text)
+    except ValueError:
+        raise RefreshTokenNotFoundError(
+            f"{path} could not be read (not JSON); run `az login` again."
+        ) from None
+
+    wanted = username.lower()
+    accounts = {
+        (a.get("home_account_id"), a.get("environment"))
+        for a in cache.search(cache.CredentialType.ACCOUNT)
+        if (a.get("username") or "").lower() == wanted
+    }
+    tokens = [
+        rt
+        for rt in cache.search(
+            cache.CredentialType.REFRESH_TOKEN, query={"client_id": AZURE_CLI_CLIENT_ID}
+        )
+        if (rt.get("home_account_id"), rt.get("environment")) in accounts and rt.get("secret")
+    ]
+    if not tokens:
+        raise RefreshTokenNotFoundError(
+            f"No Azure CLI refresh token for {username!r} in {path}: run `az login`."
+        )
+    newest = max(tokens, key=lambda rt: int(rt.get("last_modification_time") or 0))
+    return newest["secret"]
+
+
+def refresh_token_from_az_cli(
+    *,
+    username: str | None = None,
+    tenant_id: str | None = None,
+    config_dir: str | os.PathLike[str] | None = None,
+) -> RefreshTokenInfo:
+    """The refresh token of the account the Azure CLI is signed in as.
+
+    Reads the Azure CLI's files without running `az`, so it also works where
+    only the config directory is present (a mounted `~/.azure`):
+
+    1. The config directory is `config_dir`, else `$AZURE_CONFIG_DIR`, else `~/.azure`.
+    2. `azureProfile.json` gives the current account: the default subscription's
+       user and tenant. `username` and `tenant_id` override them; with both
+       given the profile is not read.
+    3. `msal_token_cache.json` is loaded into `msal.SerializableTokenCache`, which
+       is only read, never written. The refresh token is the newest one issued
+       to `AZURE_CLI_CLIENT_ID` for that user's `home_account_id`. Refresh tokens
+       carry no tenant, so the tenant comes from the profile.
+
+    An encrypted cache (`msal_token_cache.bin`, from
+    `az config set core.encrypt_token_cache=true`) is not read.
+
+    Raises:
+        RefreshTokenNotFoundError: no profile, no default subscription, no cache
+            or no matching token. The message names the file and the username,
+            never a token.
+        UnsupportedPlatformError: on Windows, where the Azure CLI signs in
+            through the Windows broker and encrypts its cache.
+    """
+    if _is_windows():
+        raise UnsupportedPlatformError(
+            "refresh_token_from_az_cli() is not available on Windows, where the Azure CLI "
+            "keeps its tokens in the Windows broker. Use dazure.DeviceCodeCredential or "
+            "dazure.InteractiveBrowserCredential, or set $AZURE_REFRESH_TOKEN."
+        )
+    directory = _config_dir(config_dir)
+    username, tenant = _current_account(directory, username, tenant_id)
+    token = _find_refresh_token(directory, username)
+    return RefreshTokenInfo(
+        token=token, client_id=AZURE_CLI_CLIENT_ID, tenant_id=tenant, username=username
+    )
