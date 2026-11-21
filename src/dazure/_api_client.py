@@ -284,7 +284,7 @@ def _to_json(value: Any) -> Any:
     """What `fetch(json=...)` sends: a pydantic model or a dataclass instance as a dict.
 
     Duck-typed, so pydantic is not imported: anything (not a class) with a
-    callable `model_dump` is a pydantic v2 model (D50, D51).
+    callable `model_dump` is a pydantic v2 model (D51, D52).
     """
     dump = getattr(value, "model_dump", None)
     if callable(dump):

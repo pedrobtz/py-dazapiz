@@ -159,7 +159,10 @@ jobs:
       - run: uvx twine check --strict dist/*
       - name: sdist leaves out repository-only files
         run: |
-          ! tar tzf dist/*.tar.gz | grep -E '/(\.agents|\.github)/'
+          ! tar tzf dist/*.tar.gz | grep -E '/(\.agents|\.github|examples|typings)/|petstore-openapi|test_petstore_example'
+      - name: the wheel holds the package only
+        run: |
+          ! unzip -l dist/*.whl | grep -E 'examples/|typings/|petstore|tests/'
       - name: the installed wheel imports
         run: |
           uv venv /tmp/smoke

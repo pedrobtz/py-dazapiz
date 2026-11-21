@@ -24,14 +24,17 @@ uv sync --all-extras          # install, including the dev group and duckdb
 uv run pytest                 # tests
 uv run ruff check .           # lint
 uv run ruff format .          # format (Python files only)
+uv run pyright                # strict type check of src/, examples/, tests/typing/
+uv run python examples/petstore.py   # the Petstore example, against the public store
+DAZURE_LIVE_HTTP=1 uv run pytest tests/manual/test_live_petstore.py  # its live test
 uv build                      # sdist and wheel into dist/
 ```
 
 ## CI
 
 `.github/workflows/ci.yml` has two profiles: `quick` on pull requests
-(lint, pytest on Ubuntu / 3.13) and `full` on pushes to `main`, manual
-runs, and pull requests labelled `full-ci`. Windows is in `full` for the
+(lint: ruff and pyright; pytest on Ubuntu / 3.13) and `full` on pushes
+to `main`, manual runs, and pull requests labelled `full-ci`. Windows is in `full` for the
 platform branches (design §7); `full` also has a coverage job (Ubuntu /
 3.13) whose `--cov-fail-under` floor is the level reached, less a point.
 A release workflow with PyPI trusted publishing comes with 0.1.0, as in
@@ -50,17 +53,22 @@ A release workflow with PyPI trusted publishing comes with 0.1.0, as in
 - Spark keys follow `azr::azure_spark_storage_conf()` key for key, except
   where design §4.4 records a divergence.
 - Tests in CI touch no Azure: only plain data or a simple mock
-  (`httpx.MockTransport`, a fake `az` on `PATH`, one `msal` method
-  patched). Anything needing a fake Entra authority or a real OS secret
+  (`httpx.MockTransport`, a local httpbin on loopback, a fake `az` on
+  `PATH`, one `msal` method patched). Anything needing a fake Entra authority or a real OS secret
   store goes on the manual checklist in `tests/manual/README.md`
   (design §8.2), run by hand with full Azure access.
+- `pyright` is strict (design D55): fix what it finds; an ignore names its
+  rule and its reason, and only azure-identity's private API has one.
+  pydantic is a dev dependency (tests and `examples/`), never imported
+  by `src/`.
+- `examples/` is repository-only: not in the sdist or the wheel.
 - Every user-visible change gets a line under the top section of
   `CHANGELOG.md`.
 
 ## Definition of done
 
-Tests and `ruff check` / `ruff format --check` pass locally, the pull
-request's checks are green at the stage's tier, and the roadmap and the
+Tests, `ruff check` / `ruff format --check` and `pyright` pass locally,
+the pull request's checks are green at the stage's tier, and the roadmap and the
 design are updated in the same pull request.
 
 Merge pull requests with a merge commit (`gh pr merge --merge`), and only

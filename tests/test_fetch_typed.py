@@ -1,4 +1,4 @@
-"""`fetch(parse=...)` and model bodies for `json=` (design §4.1, D49 to D52)."""
+"""`fetch(parse=...)` and model bodies for `json=` (design §4.1, D49 to D52, D54)."""
 
 from __future__ import annotations
 
@@ -99,7 +99,7 @@ def test_parse_replaces_response_handler_for_that_call_only(transport):
 
 
 def test_parse_gets_none_for_an_empty_body(transport):
-    # D49: unlike response_handler (D41), parse= sees every 2xx body, an empty
+    # D50: unlike response_handler (D41), parse= sees every 2xx body, an empty
     # one as None, so fetch(..., parse=f) always returns what f returns.
     seen = []
     transport.add(httpx.Response(204), httpx.Response(200, content=b""), httpx.Response(204))
@@ -167,7 +167,7 @@ def test_json_pydantic_model_is_sent_by_alias_without_unset_fields(transport):
     transport.add(httpx.Response(204), httpx.Response(204))
     client = ApiClient(HOST)
     client.fetch("/things", "POST", json=Thing(thing_id=1, display_name="a"))
-    # An explicit None is set, so it is sent: exclude_unset, not exclude_none (D50).
+    # An explicit None is set, so it is sent: exclude_unset, not exclude_none (D51).
     client.fetch("/things", "POST", json=Thing(thing_id=2, display_name="b", note=None))
     first, second = transport.requests
     assert json.loads(first.body) == {"thingId": 1, "displayName": "a"}

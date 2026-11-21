@@ -24,7 +24,7 @@ The full CI profile was green on the first push (15 jobs).
 
 | Profile | Runs | Target |
 | --- | --- | --- |
-| `quick` | `ruff check`, `ruff format --check`, pytest on Ubuntu, Python 3.13, all extras | under 5 minutes |
+| `quick` | `ruff check`, `ruff format --check`, `pyright` (strict; added by #26, 2026-11-21), pytest on Ubuntu, Python 3.13, all extras | under 5 minutes |
 | `full` | pytest on Ubuntu and Windows × Python 3.10–3.14, macOS × 3.10 and 3.14; lowest direct dependencies; coverage on Ubuntu, Python 3.13, with a floor of 98% (Stage 8 reached 99%, less a point); build sdist and wheel, `twine check`, import the installed wheel | — |
 
 Pull requests run `quick`; pushes to `main` and pull requests labelled

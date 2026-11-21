@@ -44,9 +44,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.sdist]
 exclude = [
     ".agents", ".github", "CLAUDE.md", "uv.lock", ".python-version", "typings",
-    # The Petstore example and what tests it: repository-only (design §8.1).
+    # The Petstore example, its OpenAPI fixture and their CI test: repository-only
+    # (design §7). The opt-in live test stays: it is collected and skipped.
     "examples", "tests/fixtures/petstore-openapi.*", "tests/test_petstore_example.py",
-    "tests/manual/test_live_petstore.py",
 ]
 
 [dependency-groups]
