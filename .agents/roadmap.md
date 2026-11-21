@@ -40,7 +40,7 @@ package, a branch on the operating system. Azure itself is never in CI
 | --- | --- | --- | --- | --- | --- |
 | 0 | [Package identity](#stage-0--package-identity) | quick | [#3](https://github.com/pedrobtz/py-dazure/issues/3) | `a095141` | 2026-11-21 |
 | 1 | [Refresh tokens](#stage-1--refresh-tokens) | full | [#4](https://github.com/pedrobtz/py-dazure/issues/4) | [#16](https://github.com/pedrobtz/py-dazure/pull/16) | 2026-11-21 |
-| 2 | [Spark config](#stage-2--spark-config) | quick | [#5](https://github.com/pedrobtz/py-dazure/issues/5) | | 2026-11-21 |
+| 2 | [Spark config](#stage-2--spark-config) | quick | [#5](https://github.com/pedrobtz/py-dazure/issues/5) | [#17](https://github.com/pedrobtz/py-dazure/pull/17) | 2026-11-21 |
 | 3 | [Interactive credentials](#stage-3--interactive-credentials) | full | [#6](https://github.com/pedrobtz/py-dazure/issues/6) | | |
 | 4 | [az CLI helpers](#stage-4--az-cli-helpers) | full | [#7](https://github.com/pedrobtz/py-dazure/issues/7) | | |
 | 5 | [REST client](#stage-5--rest-client) | quick | [#8](https://github.com/pedrobtz/py-dazure/issues/8) | | |
