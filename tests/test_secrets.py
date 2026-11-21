@@ -307,3 +307,62 @@ def test_app_credential_never_logs_or_shows_the_client_secret(monkeypatch, caplo
             with pytest.raises(ValueError) as err:
                 app_credential("APP_ID", "APP_SECRET", tenant_id_env="APP_TENANT", mode=mode)
         assert SENTINEL not in shown(err.value)
+
+
+def test_duckdb_helpers_never_show_the_secret(azure_extension, caplog, capsys):
+    # The token, the client secret and a credential's access token stay out
+    # of logs, output, list_secrets() and the error of a failed CREATE SECRET.
+    import logging
+    import time
+
+    duckdb = pytest.importorskip("duckdb")
+    from azure.core.credentials import AccessToken
+
+    import dazure.duckdb as dd
+
+    class Credential:
+        def get_token(self, *scopes, **kwargs):
+            return AccessToken(SENTINEL + "-at", int(time.time()) + 3600)
+
+    conn = duckdb.connect()
+    with caplog.at_level(logging.DEBUG, logger="dazure.duckdb"):
+        dd.set_token_secret(conn, SENTINEL, account="acct")
+        dd.set_sp_secret(conn, "tid", "cid", SENTINEL + "'q", account="b")
+        assert dd.set_credential_secret(conn, Credential())
+        listed = repr(dd.list_secrets(conn).fetchall())
+
+    class Failing:
+        """A connection whose CREATE SECRET fails with the statement in the message."""
+
+        def __init__(self, c):
+            self._c = c
+
+        def execute(self, sql, *args):
+            if sql.startswith("CREATE"):
+                raise duckdb.ParserException(f"syntax error at or near {sql}")
+            return self._c.execute(sql, *args)
+
+    failing = Failing(conn)
+    errors = []
+    for call in (
+        lambda: dd.set_token_secret(failing, SENTINEL),
+        lambda: dd.set_sp_secret(failing, "t", "c", SENTINEL + "'q"),
+        lambda: dd.set_credential_secret(failing, Credential()),
+    ):
+        with pytest.raises(duckdb.ParserException) as err:
+            call()
+        errors.append(err.value)
+    conn.close()
+
+    assert caplog.records
+    for record in caplog.records:
+        assert SENTINEL not in record.getMessage()
+    out, errout = capsys.readouterr()
+    assert SENTINEL not in out + errout + listed
+    for error in errors:
+        assert "syntax error" in str(error)
+        assert SENTINEL not in shown(error)
+        # The original error, which carries the statement, is not chained
+        # into the traceback.
+        assert error.__cause__ is None
+        assert error.__suppress_context__

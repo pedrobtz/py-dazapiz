@@ -59,6 +59,18 @@
   a partly set service principal raises `ValueError` naming the missing
   variable. `ApiClient` subclasses call it when they set `client_id_env`
   and `client_secret_env`.
+- `dazure.duckdb` (extra `duckdb`) registers DuckDB Azure secrets as
+  `quak` does, named `dazure_default` or `dazure_<account>` and, with
+  `account`, scoped to the account's `abfss://`, `abfs://`, `az://` and
+  `azure://` hosts: `set_token_secret()`, `set_sp_secret()`,
+  `set_chain_secret()`, and `set_credential_secret()`, which registers an
+  access token from any `TokenCredential` (scope `STORAGE_SCOPE`) and
+  returns its `expires_on`. `list_secrets()` and `azure_settings()`
+  return DuckDB relations; `tune()` sets the six Azure read and cache
+  settings. The `azure` extension is installed and loaded when needed.
+  Values are quoted as DuckDB literals, and no secret appears in a log
+  record or error. `import dazure` never imports `duckdb`; without it,
+  `dazure.duckdb` raises `ImportError` naming `pip install 'dazure[duckdb]'`.
 - `dazure.errors`: `DazureError`, `RefreshTokenNotFoundError`,
   `UnsupportedPlatformError`, `ApiError`. No token appears in a `repr`,
   `str` or error message.

@@ -6,7 +6,8 @@ RFC is now a pointer here. Changed since adoption: §8 split into automated
 and manual tiers (D23), with §4.3.2, §7, §9, D16 and D22 following;
 §9's outline moved to [roadmap.md](roadmap.md) on 2026-11-21;
 §4.3.1, §4.3.4 and §4.3.5 detailed by Stage 1 (D24 to D26), 2026-11-21;
-§4.1 and §4.1.1 detailed by Stage 5 (D36 to D43), 2026-11-21.
+§4.1 and §4.1.1 detailed by Stage 5 (D36 to D43), 2026-11-21;
+§4.5 detailed by Stage 6 (D44 to D48), 2026-11-21.
 
 - **Status:** Proposed. The decisions in §10 marked "maintainer" were
   settled in conversation on 2026-11-19 (D21 on 2026-11-21); the rest
@@ -492,8 +493,9 @@ class SupportsRefreshToken(Protocol):
 AZURE_CLI_CLIENT_ID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 ```
 
-`spark_storage_conf()`, `RefreshTokenCredential` and the DuckDB helpers
-accept a plain string or any `SupportsRefreshToken`, so the token always
+`spark_storage_conf()` and `RefreshTokenCredential` accept a plain
+string or any `SupportsRefreshToken`, and the DuckDB helper takes one
+through `RefreshTokenCredential` (D47, 2026-11-21), so the token always
 arrives with the client ID and tenant it belongs to. Four things
 implement it. Service-principal, managed and workload identity never
 receive a refresh token, because their flows do not issue one, so they
@@ -937,6 +939,27 @@ access token it registers expires (typically after an hour); the
 function returns the token's `expires_on` and does not refresh it in
 the background. Calling it again replaces the secret.
 
+Details settled in Stage 6 (2026-11-21), checked against DuckDB 1.1.0,
+1.5.6 and 2.0.1 with the azure extension:
+
+- The extension is installed only if `duckdb_extensions()` says it is
+  not, and loaded only if it is not loaded.
+- Values are DuckDB string literals, single quotes doubled, because 1.1
+  cannot bind parameters in `CREATE SECRET` (D45). A value with a NUL
+  character is refused, since 1.1 ends the literal there. `SET` binds its
+  value.
+- The secret name is lower-cased (D44). `access_token` gets no
+  `ACCOUNT_NAME`, as in `quak`, although DuckDB 2 would take one.
+- `list_secrets()` and `azure_settings()` return a `DuckDBPyRelation`
+  (D46). Each helper logs one INFO record on `dazure.duckdb` naming the
+  secret, where `quak` prints with `cli`.
+- `set_credential_secret()` takes a `TokenCredential` only, and raises
+  `TypeError` pointing to `RefreshTokenCredential` for anything without
+  `get_token()` (D47).
+- Bad arguments raise `ValueError` or `TypeError`; a failed statement
+  raises DuckDB's own error type (D48). `tune()` warns, as `quak` does,
+  when the buffer size is not a multiple of the chunk size.
+
 ## 5. Public API summary
 
 ```python
@@ -950,7 +973,7 @@ from dazure import (
 )
 from dazure.duckdb import (
     set_token_secret, set_credential_secret, set_sp_secret, set_chain_secret,
-    list_secrets, azure_settings, tune,
+    list_secrets, azure_settings, tune, STORAGE_SCOPE,
 )
 ```
 
@@ -1195,6 +1218,26 @@ Settled in Stage 5 (2026-11-21), the implementer's calls:
 - **D43.** Request bodies are logged whole. Reason: §4.1 asks for the body
   pretty-printed; `azr`'s truncation can follow if long bodies are a
   problem.
+
+Settled in Stage 6 (2026-11-21), the implementer's calls:
+
+- **D44.** DuckDB secret names are lower-cased. Reason: DuckDB 1.1 folds
+  an unquoted name to lower case and 2.x keeps it, so only a lower-case
+  name is the same on every supported version.
+- **D45.** Values in `CREATE SECRET` are quoted literals, never bound.
+  Reason: the 1.1 floor's parser refuses `?` and `$name` there, and one
+  quoting path tested on every version beats two.
+- **D46.** `list_secrets()` and `azure_settings()` return a DuckDB
+  relation. Reason: it is DuckDB's own table, printed like `quak`'s tibble
+  and converted by `.df()` or `.pl()`, without making pandas a dependency.
+- **D47.** `set_credential_secret()` takes a `TokenCredential` only; a
+  refresh token goes through `RefreshTokenCredential`. Reason: §4.5's
+  signature and example say so, and §4.3's wording that the DuckDB helpers
+  take a refresh token directly is corrected to match.
+- **D48.** A failed `CREATE SECRET` re-raises DuckDB's error type with any
+  secret value replaced by `<redacted>` and the original unchained;
+  `tune()` prefixes the setting's name. Reason: DuckDB errors can quote the
+  statement (§6), and callers keep catching `duckdb.Error`.
 
 The author's calls, open until the package repository records them:
 
