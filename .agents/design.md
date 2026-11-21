@@ -1109,6 +1109,18 @@ or lock moves, because the private details these items guard (§4.3.2,
 §4.3.3) are what a new release can change. Each run is recorded with
 date, OS and versions in the release's pull request.
 
+The checklist (2026-11-21, Stage 7) has the scripted items as
+`tests/manual/test_live_*.py` (items 1, 4, 6, 7 and the read-only part of
+5), skipped by a collection hook in `tests/manual/conftest.py` unless
+`DAZURE_LIVE` is exactly `1`, configured only by `DAZURE_TEST_*`
+variables, and skipped naming the variable when one is unset. The
+interactive items (2, 3, `az_login()` / `az_logout()`) are driven by
+`tests/manual/interactive.py`, which a person runs. It also carries the
+items the stages deferred to it: the encrypted CLI cache error (D24), a
+real clipboard tool and the streamed device code of `az login`, and the
+pasted code given as code then state. The §12 Hadoop note is checked by
+loading `hadoop-azure` and looking for `WorkloadIdentityTokenProvider`.
+
 - **`az login` refresh token** (macOS, Linux): `refresh_token_from_az_cli()`
   after a real `az login`, including a guest tenant; the token is
   redeemed by `RefreshTokenCredential`.
@@ -1358,6 +1370,8 @@ The author's calls, open until the package repository records them:
   `AuthCodeRedirectServer`; `_request_token()` is the only flow-specific
   method. `msal` 1.39.0: `initiate_auth_code_flow()`,
   `acquire_token_by_auth_code_flow()` and the reserved scopes.
-- Not verified here and to be checked during stage 1: the Hadoop
-  version note for `WorkloadIdentityTokenProvider` (taken from
-  `azr`'s documentation, HADOOP-18610).
+- Not verified here: the Hadoop version note for
+  `WorkloadIdentityTokenProvider` (taken from `azr`'s documentation,
+  HADOOP-18610). It is checked by hand, item 6 of the manual checklist
+  (`test_workload_identity_provider_needs_hadoop_3_4_1`), against
+  PySpark 3.5 and 4 (2026-11-21, Stage 7).
