@@ -42,6 +42,16 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.13"
+      # DuckDB's azure extension is downloaded once per DuckDB version (the one
+      # uv.lock, or the lowest resolution, installs) and restored from the cache.
+      - name: DuckDB version
+        id: duckdb
+        shell: bash
+        run: echo "version=$(uv run --frozen --all-extras python -c 'import duckdb; print(duckdb.__version__)')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.duckdb/extensions
+          key: duckdb-extensions-${{ runner.os }}-${{ runner.arch }}-${{ steps.duckdb.outputs.version }}
       - run: uv run --frozen --all-extras pytest
 
   test:
@@ -63,6 +73,16 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
+      # DuckDB's azure extension is downloaded once per DuckDB version (the one
+      # uv.lock, or the lowest resolution, installs) and restored from the cache.
+      - name: DuckDB version
+        id: duckdb
+        shell: bash
+        run: echo "version=$(uv run --frozen --all-extras python -c 'import duckdb; print(duckdb.__version__)')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.duckdb/extensions
+          key: duckdb-extensions-${{ runner.os }}-${{ runner.arch }}-${{ steps.duckdb.outputs.version }}
       - run: uv run --frozen --all-extras pytest
 
   lowest:
@@ -74,6 +94,31 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.10"
+      # Design principle 5: the base install works without the duckdb extra.
+      - name: dazure imports without the duckdb extra
+        run: |
+          uv run --resolution lowest-direct --isolated --no-dev python -c "
+          import importlib.util
+          assert importlib.util.find_spec('duckdb') is None, 'duckdb is installed'
+          import dazure, dazure.duckdb
+          try:
+              dazure.duckdb.list_secrets(None)
+          except ImportError as err:
+              assert 'dazure[duckdb]' in str(err), err
+          else:
+              raise SystemExit('dazure.duckdb ran without duckdb')
+          print('dazure', dazure.__version__, 'imports without duckdb')
+          "
+      # DuckDB's azure extension is downloaded once per DuckDB version (the one
+      # uv.lock, or the lowest resolution, installs) and restored from the cache.
+      - name: DuckDB version
+        id: duckdb
+        shell: bash
+        run: echo "version=$(uv run --resolution lowest-direct --isolated --all-extras python -c 'import duckdb; print(duckdb.__version__)')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.duckdb/extensions
+          key: duckdb-extensions-${{ runner.os }}-${{ runner.arch }}-${{ steps.duckdb.outputs.version }}
       - run: uv run --resolution lowest-direct --isolated --all-extras pytest
 
   package:
