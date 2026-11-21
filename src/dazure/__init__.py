@@ -5,6 +5,7 @@ The design is in `.agents/design.md` in the repository.
 
 from importlib.metadata import version
 
+from ._az_cli_token import refresh_token_from_az_cli
 from ._refresh_token import AZURE_CLI_CLIENT_ID, RefreshTokenInfo, SupportsRefreshToken
 from .errors import DazureError, RefreshTokenNotFoundError, UnsupportedPlatformError
 
@@ -18,4 +19,5 @@ __all__ = [
     "SupportsRefreshToken",
     "UnsupportedPlatformError",
     "__version__",
+    "refresh_token_from_az_cli",
 ]
