@@ -2,6 +2,14 @@
 
 ## 0.1.0 (unreleased)
 
+- `dazure.testing.StaticTokenCredential`: a fake `TokenCredential` for
+  tests without Azure, which returns a fixed token, records the scopes it
+  was asked for in `.calls` and redacts the token in `repr` (#30).
+- A guide page, "Testing your API client": an `ApiClient` subclass tested
+  in CI with `respx` and `StaticTokenCredential`, fully offline
+  (`pytest-socket`), including which credential `app_credential()` picks;
+  its example, `examples/azure_petstore.py` and `examples/tests/`, runs in
+  dazure's CI (#30).
 - A documentation site, <https://pedrobtz.github.io/py-dazure/>, built with
   Great Docs: a guide (get started, REST client with the Petstore example,
   DuckDB, browser-hosted sign-in) and an API reference from NumPy

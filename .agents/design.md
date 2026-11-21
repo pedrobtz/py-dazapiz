@@ -1069,7 +1069,17 @@ from dazure.duckdb import (
     set_token_secret, set_credential_secret, set_sp_secret, set_chain_secret,
     list_secrets, azure_settings, tune, STORAGE_SCOPE,
 )
+from dazure.testing import StaticTokenCredential
 ```
+
+`dazure.testing` (D59) holds test doubles for code built on dazure, with
+no dependency beyond azure-core: `StaticTokenCredential(token="fake-token",
+*, expires_in=3600)` implements `TokenCredential` and `SupportsTokenInfo`,
+returns the token with a fresh expiry on every call, records each call's
+scopes in `.calls`, and redacts the token in `repr` (§6). It is exported
+from `dazure.testing` only, so `import dazure` does not offer a fake
+credential next to the real ones. The guide page "Testing your API
+client" shows it with `respx` on an `ApiClient` subclass.
 
 Errors derive from `dazure.DazureError`; `dazure.ApiError` also derives
 from `httpx.HTTPStatusError`. `dazure.ResponseParseError` is what
@@ -1078,7 +1088,9 @@ from `httpx.HTTPStatusError`. `dazure.ResponseParseError` is what
 `ClientAuthenticationError` from a credential passes through unwrapped.
 
 `examples/petstore.py` (§4.1) shows an `ApiClient` subclass with pydantic
-models; it is in the repository, not the package.
+models, and `examples/azure_petstore.py` the same client with an Entra ID
+scope and service-principal variables, tested offline in `examples/tests/`;
+they are in the repository, not the package.
 Names are snake_case Python names; `azr`'s `az_cli_` prefix is shortened
 to `az_` because the module already says Azure.
 
@@ -1118,11 +1130,11 @@ Documentation site built with great-docs (Quarto) from `great-docs.yml`,
 (`https://pedrobtz.github.io/py-dazure/`) by `.github/workflows/docs.yml`
 on pushes to `main`, and built and linted (`great-docs lint`) on every
 pull request; great-docs 0.17.0 and Quarto 1.11.9 pinned, as `py-dazdiff`
-does. The reference groups follow §5; `dazure.duckdb` is listed by
+does. The reference groups follow §5; `dazure.duckdb` (and `dazure.testing`) is listed by
 submodule-qualified names (`duckdb.tune`) and read by static analysis
 (`dynamic: false`), since `import dazure` does not import it. Guide code
-is never executed (it needs Azure); the Petstore walkthrough includes
-`examples/petstore.py` by line range, checked by a test. `great-docs.yml`
+is never executed (it needs Azure); the Petstore walkthrough and the testing page include
+`examples/` code by line range, checked by a test. `great-docs.yml`
 and `user_guide/` are left out of the sdist (decided 2026-11-21, #27: the
 maintainer asked for the site as `py-dazdiff` has it).
 
@@ -1200,6 +1212,20 @@ not simple, and is manual instead.
   names, its required fields the schema's `required` plus the listed
   deliberate additions, the status `Literal`s the schema's `enum`s, and
   every property `example` validates and dumps back unchanged.
+- **Testing an `ApiClient` subclass** (D59). `examples/tests/` is the
+  pattern the guide page "Testing your API client" includes: `respx` for
+  HTTP (an unmocked request raises), `StaticTokenCredential` as
+  `credential=`, and an autouse fixture calling `pytest-socket`'s
+  `disable_socket(allow_unix_socket=True)` for that directory only (the
+  httpbin and DuckDB tests in `tests/` keep their sockets). It checks a
+  validated result with the bearer token and the class's scope, the JSON
+  body as recorded, a malformed body, a 404 domain error, 503 retried and
+  500 not, `app_credential()`'s choice by environment checked by type with
+  sockets blocked (building `ClientSecretCredential` and the `dev` chain
+  opens no connection), and that both guards fire. `tests/test_testing.py`
+  covers the credential itself. `examples/` is on pytest's `pythonpath`
+  and pyright's `extraPaths`, so every test imports the example modules by
+  name.
 - **Types.** pyright (strict, Python 3.10) runs in the lint job over
   `src/`, `examples/` and `tests/typing/` (D55), whose `assert_type`
   checks pin `fetch()`'s overloads and `__enter__`'s return type; pytest
@@ -1471,6 +1497,15 @@ Settled for #26 (2026-11-21):
   inside a dataclass would otherwise be deep-copied, not dumped. Keys
   stay as given: a converted key would be an unhashable dict, and JSON
   keys are strings anyway.
+- **D59.** (maintainer, 2026-11-21: testing guide; StaticTokenCredential
+  public) A guide page on testing an `ApiClient` subclass in CI, with the
+  Petstore treated as Azure-hosted, and `dazure.testing.StaticTokenCredential`
+  public so users need not write their own fake credential. The example
+  tests run fully offline: `respx` for HTTP, `pytest-socket` for the rest
+  (maintainer's addition). Reason: the maintainer asked how to mock a
+  client for a real Azure API in CI (#30); a public fake keeps users off
+  dazure's internals, and blocking sockets proves no test leaks to Entra
+  ID or the API.
 
 The author's calls, open until the package repository records them:
 

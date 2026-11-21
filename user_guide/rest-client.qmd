@@ -216,3 +216,6 @@ chained to the `ApiError`, and lets every other failure through:
 `tests/test_petstore_example.py` checks the models against the store's
 OpenAPI document and the requests the client sends; a live test against the
 public store runs by hand.
+
+To test a client of your own in CI, without Azure or the network, see
+[Testing your API client](testing.qmd).
