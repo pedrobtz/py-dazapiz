@@ -44,7 +44,7 @@ package, a branch on the operating system. Azure itself is never in CI
 | 3 | [Interactive credentials](#stage-3--interactive-credentials) | full | [#6](https://github.com/pedrobtz/py-dazure/issues/6) | [#18](https://github.com/pedrobtz/py-dazure/pull/18) | 2026-11-21 |
 | 4 | [az CLI helpers](#stage-4--az-cli-helpers) | full | [#7](https://github.com/pedrobtz/py-dazure/issues/7) | [#19](https://github.com/pedrobtz/py-dazure/pull/19) | 2026-11-21 |
 | 5 | [REST client](#stage-5--rest-client) | quick | [#8](https://github.com/pedrobtz/py-dazure/issues/8) | [#20](https://github.com/pedrobtz/py-dazure/pull/20) | 2026-11-21 |
-| 6 | [DuckDB](#stage-6--duckdb) | quick | [#9](https://github.com/pedrobtz/py-dazure/issues/9) | | 2026-11-21 |
+| 6 | [DuckDB](#stage-6--duckdb) | quick | [#9](https://github.com/pedrobtz/py-dazure/issues/9) | [#21](https://github.com/pedrobtz/py-dazure/pull/21) | 2026-11-21 |
 | 7 | [Manual checklist](#stage-7--manual-checklist) | quick | [#10](https://github.com/pedrobtz/py-dazure/issues/10) | | |
 | 8 | [Full CI](#stage-8--full-ci) | full | [#11](https://github.com/pedrobtz/py-dazure/issues/11) | | |
 | 9 | [v0.1.0 readiness](#stage-9--v010-readiness) | full | [#12](https://github.com/pedrobtz/py-dazure/issues/12) | | |
