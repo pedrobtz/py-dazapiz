@@ -65,3 +65,22 @@ class FakeAz:
 def fake_az(tmp_path, monkeypatch) -> FakeAz:
     """Put the fake `az` first on PATH; see `FakeAz`."""
     return FakeAz(tmp_path / "fake_az", monkeypatch)
+
+
+@pytest.fixture(scope="session")
+def azure_extension():
+    """DuckDB's azure extension, installed once; CI caches its directory.
+
+    In CI a failed install fails the tests that need it. Elsewhere, offline,
+    they are skipped with the reason.
+    """
+    duckdb = pytest.importorskip("duckdb", reason="needs the duckdb extra")
+    conn = duckdb.connect()
+    try:
+        conn.execute("INSTALL azure")
+    except duckdb.Error as err:
+        if os.environ.get("CI"):
+            pytest.fail(f"cannot install DuckDB's azure extension in CI: {err}")
+        pytest.skip(f"DuckDB's azure extension is not installed and cannot be: {err}")
+    finally:
+        conn.close()
