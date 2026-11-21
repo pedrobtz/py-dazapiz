@@ -25,7 +25,7 @@ The full CI profile was green on the first push (15 jobs).
 | Profile | Runs | Target |
 | --- | --- | --- |
 | `quick` | `ruff check`, `ruff format --check`, pytest on Ubuntu, Python 3.13, all extras | under 5 minutes |
-| `full` | pytest on Ubuntu and Windows × Python 3.10–3.14, macOS × 3.10 and 3.14; lowest direct dependencies; build sdist and wheel, `twine check`, import the installed wheel | — |
+| `full` | pytest on Ubuntu and Windows × Python 3.10–3.14, macOS × 3.10 and 3.14; lowest direct dependencies; coverage on Ubuntu, Python 3.13, with a floor of 98% (Stage 8 reached 99%, less a point); build sdist and wheel, `twine check`, import the installed wheel | — |
 
 Pull requests run `quick`; pushes to `main` and pull requests labelled
 `full-ci` run `full`. A pull request's superseded runs are cancelled; a
@@ -46,7 +46,7 @@ package, a branch on the operating system. Azure itself is never in CI
 | 5 | [REST client](#stage-5--rest-client) | quick | [#8](https://github.com/pedrobtz/py-dazure/issues/8) | [#20](https://github.com/pedrobtz/py-dazure/pull/20) | 2026-11-21 |
 | 6 | [DuckDB](#stage-6--duckdb) | quick | [#9](https://github.com/pedrobtz/py-dazure/issues/9) | [#21](https://github.com/pedrobtz/py-dazure/pull/21) | 2026-11-21 |
 | 7 | [Manual checklist](#stage-7--manual-checklist) | quick | [#10](https://github.com/pedrobtz/py-dazure/issues/10) | [#24](https://github.com/pedrobtz/py-dazure/pull/24) | 2026-11-21 |
-| 8 | [Full CI](#stage-8--full-ci) | full | [#11](https://github.com/pedrobtz/py-dazure/issues/11) | | |
+| 8 | [Full CI](#stage-8--full-ci) | full | [#11](https://github.com/pedrobtz/py-dazure/issues/11) | [#25](https://github.com/pedrobtz/py-dazure/pull/25) | 2026-11-21 |
 | 9 | [v0.1.0 readiness](#stage-9--v010-readiness) | full | [#12](https://github.com/pedrobtz/py-dazure/issues/12) | | |
 | 10 | [Review](#stage-10--review) | full | [#13](https://github.com/pedrobtz/py-dazure/issues/13) | | |
 

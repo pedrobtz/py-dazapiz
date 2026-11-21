@@ -350,3 +350,9 @@ def test_missing_extra_names_the_install(monkeypatch):
 def test_import_dazure_does_not_import_duckdb():
     code = "import sys, dazure, dazure.duckdb; assert 'duckdb' not in sys.modules, 'imported'"
     subprocess.run([sys.executable, "-c", code], check=True)
+
+
+def test_empty_chain_refused(conn):
+    with pytest.raises(ValueError, match="at least one"):
+        dd.set_chain_secret(conn, chain=[])
+    assert dd.list_secrets(conn).fetchall() == []

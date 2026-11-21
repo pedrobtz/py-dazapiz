@@ -346,3 +346,25 @@ def test_is_interactive_notebook_kernel(monkeypatch):
     assert is_interactive() is False
     monkeypatch.setitem(sys.modules, "IPython", fake_ipython(None))
     assert is_interactive() is False
+
+
+def test_flow_msal_could_not_begin(flow, capsys):
+    app = FakeApp()
+    app.flow = {"error": "invalid_scope"}  # MSAL returned no auth_uri
+    cred, _, prompts = flow(FakeApp.callback_url, app=app)
+    with pytest.raises(CredentialUnavailableError, match="begin authentication"):
+        cred._request_token("User.Read")
+    assert prompts == []
+    assert app.redeemed == []
+    assert capsys.readouterr().out == ""
+
+
+def test_is_interactive_when_get_ipython_raises(monkeypatch):
+    def broken():
+        raise RuntimeError("no shell")
+
+    module = types.ModuleType("IPython")
+    module.get_ipython = broken
+    monkeypatch.setattr(sys, "stdin", Stdin(False))
+    monkeypatch.setitem(sys.modules, "IPython", module)
+    assert is_interactive() is False
