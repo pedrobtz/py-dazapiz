@@ -23,6 +23,16 @@
   system-assigned identity. It returns a `SparkStorageConf`, a
   `dict[str, str]` whose `repr` and `str` redact the secret, refresh token
   and account key.
+- `DeviceCodeCredential` and `InteractiveBrowserCredential` subclass the
+  `azure-identity` classes, keep their token cache in the platform store
+  under the name `"dazure"` (`allow_unencrypted_storage=True` falls back
+  to a plain file), and add `get_refresh_token()`, which signs in if
+  needed and returns the refresh token from that cache.
+- `InteractiveBrowserCredential` with a redirect URI that is not on
+  localhost signs in as `httr2::req_oauth_auth_code()` does: it prints
+  the sign-in URL and reads back the callback URL, base64 JSON, or the
+  code and state shown by the callback page, so it works from
+  code-server and notebooks in the cloud.
 - `dazure.errors`: `DazureError`, `RefreshTokenNotFoundError`,
   `UnsupportedPlatformError`. No token appears in a `repr`, `str` or error
   message.

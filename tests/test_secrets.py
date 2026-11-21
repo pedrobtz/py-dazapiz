@@ -9,6 +9,8 @@ from helpers import Login, subscription, write_az_login, write_profile, write_to
 import dazure._az_cli_token
 import dazure._credential
 from dazure import (
+    DeviceCodeCredential,
+    InteractiveBrowserCredential,
     RefreshTokenCredential,
     RefreshTokenInfo,
     RefreshTokenNotFoundError,
@@ -16,6 +18,7 @@ from dazure import (
     refresh_token_from_az_cli,
     spark_storage_conf,
 )
+from dazure._interactive import find_refresh_token
 from dazure._refresh_token import as_refresh_token_info
 
 SENTINEL = "SENTINEL-7f3c9a-refresh-token"
@@ -144,3 +147,42 @@ def test_spark_storage_conf_built_by_hand():
     )
     assert SENTINEL not in shown(conf)
     assert "OAuth" in repr(conf)
+
+
+def test_interactive_cache_lookup(tmp_path, monkeypatch):
+    # The lookup's result and its not-found error, with other accounts' tokens in the cache.
+    import azure.identity._persistent_cache as persistent_cache
+    from test_interactive import OPTIONS, Store, record_of
+
+    store = Store(tmp_path)
+    monkeypatch.setattr(persistent_cache, "_get_persistence", store.get_persistence)
+    alice = Login("alice@contoso.com", TENANT, TENANT, SENTINEL)
+    bob = Login("bob@contoso.com", TENANT, TENANT, SENTINEL + "-bob")
+    store.write("dazure.nocae", [bob])
+    with pytest.raises(RefreshTokenNotFoundError) as err:
+        find_refresh_token(OPTIONS, record_of(alice))
+    assert SENTINEL not in shown(err.value)
+
+    store.write("dazure.nocae", [alice, bob])
+    cred = DeviceCodeCredential(authentication_record=record_of(alice))
+    info = cred.get_refresh_token()
+    assert info.token == SENTINEL
+    assert SENTINEL not in shown(info)
+    assert SENTINEL not in shown(cred)
+
+
+def test_pasted_code_errors(monkeypatch):
+    # The authorization code the user pasted is not echoed by any refusal.
+    from test_pasted_code import REDIRECT, FakeApp
+
+    import dazure._session
+
+    cred = InteractiveBrowserCredential(redirect_uri=REDIRECT)
+    app = FakeApp(error=ValueError("state mismatch: STATE-from-msal vs other"))
+    monkeypatch.setattr(cred, "_get_app", lambda **kw: app)
+    monkeypatch.setattr(dazure._session, "is_interactive", lambda: True)
+    for reply in (f"{REDIRECT}?code={SENTINEL}&state=other", f"{REDIRECT}?code={SENTINEL}"):
+        monkeypatch.setattr("builtins.input", lambda prompt="", reply=reply: reply)
+        with pytest.raises(ClientAuthenticationError) as err:
+            cred._request_token("User.Read")
+        assert SENTINEL not in shown(err.value)

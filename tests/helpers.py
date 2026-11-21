@@ -50,10 +50,10 @@ class Login:
     def home_account_id(self) -> str:
         return f"{_uid(self.username)}.{self.home_tenant}"
 
-    def token_response(self) -> dict:
-        """A token endpoint response as Entra returns it to the Azure CLI."""
+    def id_token_claims(self) -> dict:
+        """The ID token's claims, as Entra issues them and msal decodes them."""
         uid = _uid(self.username)
-        claims = {
+        return {
             "aud": self.client_id,
             "iss": f"https://{self.environment}/{self.tenant_id}/v2.0",
             "tid": self.tenant_id,
@@ -61,6 +61,11 @@ class Login:
             "sub": uid,
             "preferred_username": self.username,
         }
+
+    def token_response(self) -> dict:
+        """A token endpoint response as Entra returns it to the Azure CLI."""
+        uid = _uid(self.username)
+        claims = self.id_token_claims()
         return {
             "token_type": "Bearer",
             "scope": " ".join(self.scope),
@@ -72,9 +77,13 @@ class Login:
             "client_info": _b64url({"uid": uid, "utid": self.home_tenant}),
         }
 
+    def token_result(self) -> dict:
+        """What msal's `acquire_token_*()` returns: the response with its decoded claims."""
+        return {**self.token_response(), "id_token_claims": self.id_token_claims()}
 
-def write_token_cache(config_dir: Path, logins: list[Login]) -> Path:
-    """Write `msal_token_cache.json` holding `logins`, in order, through msal."""
+
+def token_cache(logins: list[Login]) -> msal.SerializableTokenCache:
+    """An msal cache holding `logins`, added in order through msal."""
     cache = msal.SerializableTokenCache()
     for login in logins:
         cache.add(
@@ -87,6 +96,12 @@ def write_token_cache(config_dir: Path, logins: list[Login]) -> Path:
             },
             now=login.now,
         )
+    return cache
+
+
+def write_token_cache(config_dir: Path, logins: list[Login]) -> Path:
+    """Write `msal_token_cache.json` holding `logins`, in order, through msal."""
+    cache = token_cache(logins)
     config_dir.mkdir(parents=True, exist_ok=True)
     path = config_dir / "msal_token_cache.json"
     path.write_text(cache.serialize(), encoding="utf-8")

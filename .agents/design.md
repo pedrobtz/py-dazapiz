@@ -511,6 +511,30 @@ platform, Windows included.
   The private argument `_cache`, which would avoid the persisted store,
   is not used.
 
+Details settled in Stage 3 (2026-11-21):
+
+- The layout matches azure-identity 1.27.0 as described:
+  `_persistent_cache._get_persistence(allow_unencrypted, account_name,
+  cache_name)`, called by `_load_persistent_cache()` with account
+  `MSALCache` and cache name `<name>.nocae` / `<name>.cae` (the Keychain
+  account is the cache name); `MsalCredential._get_app(**kwargs)`;
+  `InteractiveCredential._request_token(*scopes, **kwargs)`.
+- The lookup calls that private `_get_persistence()` itself, with the
+  arguments `_load_persistent_cache()` passes, instead of copying its
+  four platform branches (D30); a test compares the two calls. It only
+  `load()`s each persistence: no `PersistedTokenCache`, no lock file, no
+  write.
+- Both constructors take `allow_unencrypted_storage: bool = False`, the
+  parent's default; it builds the `"dazure"` options and is refused
+  together with the caller's own `cache_persistence_options` (D29).
+- Selection matches `home_account_id` and `client_id` only, as the
+  parent's silent lookup matches the account, not the environment; of
+  several tokens, across both caches, the newest
+  `last_modification_time` wins, as in §4.3.1. None found raises
+  `RefreshTokenNotFoundError` naming the cache and the username.
+- With `authentication_record=` given, `get_refresh_token()` does not
+  sign in; the record says whose token to read.
+
 #### 4.3.3 Sign-in through a callback page: httr2's pasted code
 
 `azure-identity` cannot do the sign-in that `httr2::req_oauth_auth_code()`
@@ -558,6 +582,29 @@ no authorize URL, no PKCE and no persisted cache.
   `acquire_token_by_auth_code_flow()`, which checks the state. A state
   mismatch, which MSAL raises as `ValueError`, becomes
   `ClientAuthenticationError`.
+
+Details settled in Stage 3 (2026-11-21):
+
+- "Localhost" is httr2's set, `localhost` and `127.0.0.1`
+  (`normalize_redirect_uri()`); a localhost URI without a port gets the
+  parent's `ValueError`, as before.
+- The prompts are httr2's ("Enter authorization code or URL: ", "Enter
+  state parameter: "), read with `input()` and trimmed. The authorize
+  URL is printed to stdout; no browser is opened, since in a hosted
+  session it would open on the wrong machine.
+- A reply starting `http://` or `https://` is a callback URL, and its
+  whole query goes to MSAL, as the parent's listener passes it. A reply
+  that base64-decodes (standard or URL-safe) to a JSON *object* is the
+  JSON form; jsonlite's one-element arrays are unwrapped. Anything else
+  is a bare code, and the state is asked for.
+- An `error` in the callback URL raises `ClientAuthenticationError` with
+  `error` and `error_description`, as httr2's listener does. An empty
+  reply, a reply without a code, or without a state, raises
+  `ClientAuthenticationError` before MSAL is called. Closed input
+  (`EOFError`) raises `CredentialUnavailableError`.
+- The interactive check is `dazure._session.is_interactive()`:
+  `sys.stdin.isatty()`, or an already imported IPython whose shell has a
+  `kernel`. §4.1.1 and §4.2 are to use the same check.
 
 Everything else is inherited, so this flow uses the same cache as the
 rest of §4.3.2 and needs nothing new from the MSAL side. The
@@ -1013,6 +1060,18 @@ Settled in Stage 2 (2026-11-21), the implementer's calls:
 - **D28.** Explicit `client_id` and `tenant_id` win over those a
   `SupportsRefreshToken` supplies. Reason: §4.4's defaults apply "when not
   passed", and an explicit argument is what the fixture compares.
+
+Settled in Stage 3 (2026-11-21), the implementer's calls:
+
+- **D29.** The interactive credentials take
+  `allow_unencrypted_storage: bool = False`. Reason: §4.3.2 left the
+  value open, and the parent's default keeps the refresh token encrypted
+  unless the caller opts out.
+- **D30.** The cache lookup calls azure-identity's private
+  `_get_persistence()` rather than rebuilding each platform's
+  persistence by hand. Reason: one private call, checked by a test
+  against `_load_persistent_cache()`, follows azure-identity's layout
+  where a copy of its branches would drift.
 
 The author's calls, open until the package repository records them:
 
