@@ -1,0 +1,140 @@
+{
+  "generator": "tools/azr_json_body_fixture.R",
+  "azr_commit": "cca8ad53b4eeef138c10966c8deb264e33eefe5d",
+  "azr_dirty": false,
+  "azr_version": "0.3.7.9000",
+  "jsonlite_version": "2.0.0",
+  "r_version": "4.6.2",
+  "cases": [
+    {
+      "id": "object_10",
+      "input": "{\"k01\":1,\"k02\":2,\"k03\":3,\"k04\":4,\"k05\":5,\"k06\":6,\"k07\":7,\"k08\":8,\"k09\":9,\"k10\":10}",
+      "azr": "{\n  \"k01\": 1,\n  \"k02\": 2,\n  \"k03\": 3,\n  \"k04\": 4,\n  \"k05\": 5,\n  \"k06\": 6,\n  \"k07\": 7,\n  \"k08\": 8,\n  \"k09\": 9,\n  \"k10\": 10\n}"
+    },
+    {
+      "id": "object_11",
+      "input": "{\"k01\":1,\"k02\":2,\"k03\":3,\"k04\":4,\"k05\":5,\"k06\":6,\"k07\":7,\"k08\":8,\"k09\":9,\"k10\":10,\"k11\":11}",
+      "azr": "{\n  \"k01\": 1,\n  \"k02\": 2,\n  \"k03\": 3,\n  \"k04\": 4,\n  \"k05\": 5,\n  ...,\n  \"k07\": 7,\n  \"k08\": 8,\n  \"k09\": 9,\n  \"k10\": 10,\n  \"k11\": 11\n}"
+    },
+    {
+      "id": "object_15_mixed",
+      "input": "{\"k01\":\"a\",\"k02\":\"b\",\"k03\":\"c\",\"k04\":\"d\",\"k05\":\"e\",\"k06\":null,\"k07\":true,\"k08\":false,\"k09\":[],\"k10\":{},\"k11\":0.5,\"k12\":-7,\"k13\":\"x\",\"k14\":1,\"k15\":2}",
+      "azr": "{\n  \"k01\": \"a\",\n  \"k02\": \"b\",\n  \"k03\": \"c\",\n  \"k04\": \"d\",\n  \"k05\": \"e\",\n  ...,\n  \"k11\": 0.5,\n  \"k12\": -7,\n  \"k13\": \"x\",\n  \"k14\": 1,\n  \"k15\": 2\n}"
+    },
+    {
+      "id": "array_10",
+      "input": "[1,2,3,4,5,6,7,8,9,10]",
+      "azr": "[\n  1,\n  2,\n  3,\n  4,\n  5,\n  6,\n  7,\n  8,\n  9,\n  10\n]"
+    },
+    {
+      "id": "array_11",
+      "input": "[1,2,3,4,5,6,7,8,9,10,11]",
+      "azr": "[\n  1,\n  2,\n  3,\n  4,\n  5,\n  ...,\n  7,\n  8,\n  9,\n  10,\n  11\n]"
+    },
+    {
+      "id": "array_13",
+      "input": "[1,2,3,4,5,6,7,8,9,10,11,12,13]",
+      "azr": "[\n  1,\n  2,\n  3,\n  4,\n  5,\n  ...,\n  9,\n  10,\n  11,\n  12,\n  13\n]"
+    },
+    {
+      "id": "array_of_objects_10",
+      "input": "{\"value\":[{\"id\":1,\"ok\":true},{\"id\":2,\"ok\":false},{\"id\":3,\"ok\":true},{\"id\":4,\"ok\":false},{\"id\":5,\"ok\":true},{\"id\":6,\"ok\":false},{\"id\":7,\"ok\":true},{\"id\":8,\"ok\":false},{\"id\":9,\"ok\":true},{\"id\":10,\"ok\":false}]}",
+      "azr": "{\n  \"value\": [\n    {\n      \"id\": 1,\n      \"ok\": true\n    },\n    {\n      \"id\": 2,\n      \"ok\": false\n    },\n    {\n      \"id\": 3,\n      \"ok\": true\n    },\n    {\n      \"id\": 4,\n      \"ok\": false\n    },\n    {\n      \"id\": 5,\n      \"ok\": true\n    },\n    {\n      \"id\": 6,\n      \"ok\": false\n    },\n    {\n      \"id\": 7,\n      \"ok\": true\n    },\n    {\n      \"id\": 8,\n      \"ok\": false\n    },\n    {\n      \"id\": 9,\n      \"ok\": true\n    },\n    {\n      \"id\": 10,\n      \"ok\": false\n    }\n  ]\n}"
+    },
+    {
+      "id": "array_of_objects_11",
+      "input": "{\"value\":[{\"id\":1,\"ok\":true},{\"id\":2,\"ok\":false},{\"id\":3,\"ok\":true},{\"id\":4,\"ok\":false},{\"id\":5,\"ok\":true},{\"id\":6,\"ok\":false},{\"id\":7,\"ok\":true},{\"id\":8,\"ok\":false},{\"id\":9,\"ok\":true},{\"id\":10,\"ok\":false},{\"id\":11,\"ok\":true}]}",
+      "azr": "{\n  \"value\": [\n    {\n      \"id\": 1,\n      \"ok\": true\n    },\n    {\n      \"id\": 2,\n      \"ok\": false\n    },\n    {\n      \"id\": 3,\n      \"ok\": true\n    },\n    {\n      \"id\": 4,\n      \"ok\": false\n    },\n    {\n      \"id\": 5,\n      \"ok\": true\n    },\n    ...,\n    {\n      \"id\": 7,\n      \"ok\": true\n    },\n    {\n      \"id\": 8,\n      \"ok\": false\n    },\n    {\n      \"id\": 9,\n      \"ok\": true\n    },\n    {\n      \"id\": 10,\n      \"ok\": false\n    },\n    {\n      \"id\": 11,\n      \"ok\": true\n    }\n  ]\n}"
+    },
+    {
+      "id": "atomic_strings_11",
+      "input": "{\"x\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\"]}",
+      "azr": "{\n  \"x\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"g\", \"h\", \"i\", \"j\", \"k\"]\n}"
+    },
+    {
+      "id": "atomic_strings_12",
+      "input": "{\"x\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\"]}",
+      "azr": "{\n  \"x\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"g\", \"h\", \"i\", \"j\", \"k\", \"l\"]\n}"
+    },
+    {
+      "id": "atomic_strings_13",
+      "input": "{\"x\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]}",
+      "azr": "{\n  \"x\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n}"
+    },
+    {
+      "id": "atomic_numbers_12",
+      "input": "{\"x\":[1,2,3,4,5,6,7,8,9,10,11,12]}",
+      "azr": "{\n  \"x\": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]\n}"
+    },
+    {
+      "id": "atomic_numbers_13",
+      "input": "{\"x\":[1,2,3,4,5,6,7,8,9,10,11,12,13]}",
+      "azr": "{\n  \"x\": [\"1\", \"2\", \"3\", \"4\", \"5\", \"6\", ..., \"8\", \"9\", \"10\", \"11\", \"12\", \"13\"]\n}"
+    },
+    {
+      "id": "atomic_booleans_13",
+      "input": "{\"x\":[true,false,true,false,true,false,true,false,true,false,true,false,true]}",
+      "azr": "{\n  \"x\": [\"TRUE\", \"FALSE\", \"TRUE\", \"FALSE\", \"TRUE\", \"FALSE\", ..., \"FALSE\", \"TRUE\", \"FALSE\", \"TRUE\", \"FALSE\", \"TRUE\"]\n}"
+    },
+    {
+      "id": "nested_arrays",
+      "input": "{\"a\":[[1,2],[3,4],[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]]}",
+      "azr": "{\n  \"a\": [\n    [1, 2],\n    [3, 4],\n    [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n  ]\n}"
+    },
+    {
+      "id": "nested_deep",
+      "input": "{\"outer\":[{\"i\":1,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":2,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":3,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":4,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":5,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":6,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":7,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":8,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":9,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":10,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]},{\"i\":11,\"inner\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\",\"j\",\"k\",\"l\",\"m\"]}]}",
+      "azr": "{\n  \"outer\": [\n    {\n      \"i\": 1,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    },\n    {\n      \"i\": 2,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    },\n    {\n      \"i\": 3,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    },\n    {\n      \"i\": 4,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    },\n    {\n      \"i\": 5,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    },\n    ...,\n    {\n      \"i\": 7,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    },\n    {\n      \"i\": 8,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    },\n    {\n      \"i\": 9,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    },\n    {\n      \"i\": 10,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    },\n    {\n      \"i\": 11,\n      \"inner\": [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", ..., \"h\", \"i\", \"j\", \"k\", \"l\", \"m\"]\n    }\n  ]\n}"
+    },
+    {
+      "id": "nested_objects",
+      "input": "{\"a\":{\"k01\":{\"b\":[1,2,3]},\"k02\":{\"b\":[1,2,3]},\"k03\":{\"b\":[1,2,3]},\"k04\":{\"b\":[1,2,3]},\"k05\":{\"b\":[1,2,3]},\"k06\":{\"b\":[1,2,3]},\"k07\":{\"b\":[1,2,3]},\"k08\":{\"b\":[1,2,3]},\"k09\":{\"b\":[1,2,3]},\"k10\":{\"b\":[1,2,3]},\"k11\":{\"b\":[1,2,3]}}}",
+      "azr": "{\n  \"a\": {\n    \"k01\": {\n      \"b\": [1, 2, 3]\n    },\n    \"k02\": {\n      \"b\": [1, 2, 3]\n    },\n    \"k03\": {\n      \"b\": [1, 2, 3]\n    },\n    \"k04\": {\n      \"b\": [1, 2, 3]\n    },\n    \"k05\": {\n      \"b\": [1, 2, 3]\n    },\n    ...,\n    \"k07\": {\n      \"b\": [1, 2, 3]\n    },\n    \"k08\": {\n      \"b\": [1, 2, 3]\n    },\n    \"k09\": {\n      \"b\": [1, 2, 3]\n    },\n    \"k10\": {\n      \"b\": [1, 2, 3]\n    },\n    \"k11\": {\n      \"b\": [1, 2, 3]\n    }\n  }\n}"
+    },
+    {
+      "id": "empty_array",
+      "input": "[]",
+      "azr": "[]"
+    },
+    {
+      "id": "empty_object",
+      "input": "{}",
+      "azr": "{}"
+    },
+    {
+      "id": "empty_members",
+      "input": "{\"a\":[],\"b\":{}}",
+      "azr": "{\n  \"a\": [],\n  \"b\": {}\n}"
+    },
+    {
+      "id": "scalars",
+      "input": "{\"n\":null,\"t\":true,\"f\":false,\"i\":42,\"neg\":-7,\"half\":0.5,\"s\":\"plain\",\"u\":\"é ✓ 日本 😀\"}",
+      "azr": "{\n  \"n\": null,\n  \"t\": true,\n  \"f\": false,\n  \"i\": 42,\n  \"neg\": -7,\n  \"half\": 0.5,\n  \"s\": \"plain\",\n  \"u\": \"é ✓ 日本 😀\"\n}"
+    },
+    {
+      "id": "atomic_booleans_with_null",
+      "input": "{\"a\":[true,false,null]}",
+      "azr": "{\n  \"a\": [true, false, null]\n}"
+    },
+    {
+      "id": "escapes",
+      "input": "{\"a\":\"line\\nbreak \\\"q\\\" \\\\ / \\t tab\"}",
+      "azr": "{\n  \"a\": \"line\\nbreak \\\"q\\\" \\\\ / \\t tab\"\n}"
+    },
+    {
+      "id": "atomic_numbers_with_null",
+      "input": "{\"a\":[1,null,3]}",
+      "azr": "{\n  \"a\": [1, \"NA\", 3]\n}"
+    },
+    {
+      "id": "atomic_mixed",
+      "input": "{\"a\":[1,\"x\",true]}",
+      "azr": "{\n  \"a\": [\"1\", \"x\", \"TRUE\"]\n}"
+    },
+    {
+      "id": "arm_list",
+      "input": "{\"value\":[{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-01\",\"name\":\"rg-01\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-02\",\"name\":\"rg-02\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-03\",\"name\":\"rg-03\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-04\",\"name\":\"rg-04\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-05\",\"name\":\"rg-05\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-06\",\"name\":\"rg-06\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-07\",\"name\":\"rg-07\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-08\",\"name\":\"rg-08\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-09\",\"name\":\"rg-09\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-10\",\"name\":\"rg-10\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-11\",\"name\":\"rg-11\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-12\",\"name\":\"rg-12\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-13\",\"name\":\"rg-13\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-14\",\"name\":\"rg-14\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-15\",\"name\":\"rg-15\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-16\",\"name\":\"rg-16\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-17\",\"name\":\"rg-17\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-18\",\"name\":\"rg-18\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-19\",\"name\":\"rg-19\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-20\",\"name\":\"rg-20\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-21\",\"name\":\"rg-21\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-22\",\"name\":\"rg-22\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-23\",\"name\":\"rg-23\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-24\",\"name\":\"rg-24\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-25\",\"name\":\"rg-25\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-26\",\"name\":\"rg-26\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-27\",\"name\":\"rg-27\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-28\",\"name\":\"rg-28\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-29\",\"name\":\"rg-29\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"westeurope\",\"tags\":{},\"properties\":{\"provisioningState\":\"Succeeded\"}},{\"id\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-30\",\"name\":\"rg-30\",\"type\":\"Microsoft.Resources/resourceGroups\",\"location\":\"northeurope\",\"tags\":{\"env\":\"dev\"},\"properties\":{\"provisioningState\":\"Succeeded\"}}],\"nextLink\":null}",
+      "azr": "{\n  \"value\": [\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-01\",\n      \"name\": \"rg-01\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"westeurope\",\n      \"tags\": {},\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    },\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-02\",\n      \"name\": \"rg-02\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"northeurope\",\n      \"tags\": {},\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    },\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-03\",\n      \"name\": \"rg-03\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"westeurope\",\n      \"tags\": {\n        \"env\": \"dev\"\n      },\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    },\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-04\",\n      \"name\": \"rg-04\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"northeurope\",\n      \"tags\": {},\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    },\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-05\",\n      \"name\": \"rg-05\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"westeurope\",\n      \"tags\": {},\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    },\n    ...,\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-26\",\n      \"name\": \"rg-26\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"northeurope\",\n      \"tags\": {},\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    },\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-27\",\n      \"name\": \"rg-27\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"westeurope\",\n      \"tags\": {\n        \"env\": \"dev\"\n      },\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    },\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-28\",\n      \"name\": \"rg-28\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"northeurope\",\n      \"tags\": {},\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    },\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-29\",\n      \"name\": \"rg-29\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"westeurope\",\n      \"tags\": {},\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    },\n    {\n      \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-30\",\n      \"name\": \"rg-30\",\n      \"type\": \"Microsoft.Resources/resourceGroups\",\n      \"location\": \"northeurope\",\n      \"tags\": {\n        \"env\": \"dev\"\n      },\n      \"properties\": {\n        \"provisioningState\": \"Succeeded\"\n      }\n    }\n  ],\n  \"nextLink\": null\n}"
+    }
+  ]
+}
