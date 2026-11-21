@@ -3,8 +3,8 @@ name: CI
 # Profiles (see .agents/roadmap.md, "CI policy"):
 #   quick: lint + pytest on Ubuntu / Python 3.13. Pull requests.
 #   full:  lint + pytest on 3 OSes x Python 3.10-3.14 (the persisted MSAL
-#          cache differs by OS, design §7), lowest direct dependencies, and a
-#          packaging check. Pushes to main, manual runs, and pull requests
+#          cache differs by OS, design §7), lowest direct dependencies,
+#          coverage, and a packaging check. Pushes to main, manual runs, and pull requests
 #          labelled `full-ci`.
 
 on:
@@ -120,6 +120,30 @@ jobs:
           path: ~/.duckdb/extensions
           key: duckdb-extensions-${{ runner.os }}-${{ runner.arch }}-${{ steps.duckdb.outputs.version }}
       - run: uv run --resolution lowest-direct --isolated --all-extras pytest
+
+  coverage:
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      # DuckDB's azure extension is downloaded once per DuckDB version (the one
+      # uv.lock, or the lowest resolution, installs) and restored from the cache.
+      - name: DuckDB version
+        id: duckdb
+        shell: bash
+        run: echo "version=$(uv run --frozen --all-extras python -c 'import duckdb; print(duckdb.__version__)')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.duckdb/extensions
+          key: duckdb-extensions-${{ runner.os }}-${{ runner.arch }}-${{ steps.duckdb.outputs.version }}
+      # The floor is the level Stage 8 reached (99%), less a point of slack. What
+      # stays uncovered here: the Windows branch of killing az's process tree (run
+      # by the Windows test legs, not measured), and installing DuckDB's azure
+      # extension when the cache already has it.
+      - run: uv run --frozen --all-extras pytest --cov=dazure --cov-report=term-missing --cov-fail-under=98
 
   package:
     if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') }}

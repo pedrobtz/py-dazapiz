@@ -32,8 +32,10 @@ uv build                      # sdist and wheel into dist/
 `.github/workflows/ci.yml` has two profiles: `quick` on pull requests
 (lint, pytest on Ubuntu / 3.13) and `full` on pushes to `main`, manual
 runs, and pull requests labelled `full-ci`. Windows is in `full` for the
-platform branches (design §7). A release workflow
-with PyPI trusted publishing comes with 0.1.0, as in `py-dazdiff`.
+platform branches (design §7); `full` also has a coverage job (Ubuntu /
+3.13) whose `--cov-fail-under` floor is the level reached, less a point.
+A release workflow with PyPI trusted publishing comes with 0.1.0, as in
+`py-dazdiff`.
 
 ## Rules
 
