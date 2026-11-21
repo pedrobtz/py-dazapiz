@@ -1,0 +1,107 @@
+---
+title: DuckDB
+---
+
+`dazure.duckdb` registers Azure secrets with DuckDB's `azure` extension, so
+DuckDB can query ADLS Gen2 and Blob Storage as you or as a service
+principal. It needs the extra:
+
+```sh
+pip install "dazure[duckdb]"
+```
+
+`duckdb` is imported only when a helper runs; `import dazure` never needs
+it. Each helper takes a connection and runs `INSTALL azure; LOAD azure`
+first if the extension is not loaded yet.
+
+## Your `az login` in DuckDB
+
+DuckDB's own `credential_chain` cannot use the refresh token your
+`az login` left behind. `set_credential_secret()` can, through any
+`TokenCredential`: it asks the credential for a storage token and registers
+it.
+
+```python
+import duckdb
+from dazure import RefreshTokenCredential, refresh_token_from_az_cli
+from dazure.duckdb import set_credential_secret
+
+conn = duckdb.connect()
+expires_on = set_credential_secret(conn, RefreshTokenCredential(refresh_token_from_az_cli()))
+
+conn.sql("SELECT count(*) FROM 'abfss://data@myaccount.dfs.core.windows.net/sales/*.parquet'")
+```
+
+The token expires, typically after an hour, and is not refreshed in the
+background. The function returns its `expires_on` (seconds since the
+epoch); call it again before then to replace the secret. Keep the
+`RefreshTokenCredential` and pass the same one each time: it keeps the
+access token in memory until five minutes before expiry.
+
+Any other credential works the same way, such as
+`azure.identity.DefaultAzureCredential()`.
+
+## The other secrets
+
+| Function | DuckDB provider | Use |
+| --- | --- | --- |
+| `set_credential_secret(conn, credential)` | `access_token` | a token from any `TokenCredential` |
+| `set_token_secret(conn, token)` | `access_token` | an access token you already have |
+| `set_sp_secret(conn, tenant_id, client_id, client_secret)` | `service_principal` | DuckDB redeems the secret itself |
+| `set_chain_secret(conn, chain="default")` | `credential_chain` | DuckDB finds a credential itself (`"cli"`, `["managed_identity", "env"]`, ...) |
+
+`list_secrets(conn)` shows the registered Azure secrets (DuckDB redacts
+their values) and `azure_settings(conn)` the Azure settings, both as DuckDB
+relations: `.fetchall()`, `.df()` or print them.
+
+The functions are ports of `quak`'s `az_set_*_secret()`, `az_list_secrets()`,
+`az_conn_settings()` and `az_tune()`, and run the same SQL.
+
+## One secret per account
+
+Without `account`, the secret is named `dazure_default` and applies to every
+Azure URL. With `account`, it is named `dazure_<account>` and scoped to that
+account's hosts, so different accounts can use different credentials:
+
+```python
+set_credential_secret(conn, mine)                           # dazure_default
+set_sp_secret(conn, tenant, client_id, secret, account="shared")  # dazure_shared
+```
+
+The scope covers `abfss://` and `abfs://` on `<account>.dfs.core.windows.net`
+and `az://` and `azure://` on `<account>.blob.core.windows.net`; a name with
+a dot is taken as the host itself. DuckDB picks the secret whose scope is
+the longest prefix of the URL.
+
+::: {.callout-warning}
+## Delta tables need an unscoped secret
+
+Delta tables never match an account-scoped secret. Register an unscoped
+one (no `account`) for Delta tables; scoped secrets work for Parquet, CSV
+and JSON.
+:::
+
+`dazure_*` names never collide with `quak`'s `quak_*` secrets in a shared
+DuckDB file.
+
+## Tuning reads
+
+`tune()` sets the Azure transfer settings; arguments left `None` are left
+alone:
+
+```python
+from dazure.duckdb import tune
+
+tune(conn, concurrency=8, chunk_size=1_048_576, buffer_size=8_388_608)
+```
+
+| Argument | DuckDB setting |
+| --- | --- |
+| `concurrency` | `azure_read_transfer_concurrency` |
+| `chunk_size` | `azure_read_transfer_chunk_size` (bytes) |
+| `buffer_size` | `azure_read_buffer_size` (bytes) |
+| `transport` | `azure_transport_option_type` (`"default"`, `"curl"`) |
+| `metadata_cache` | `enable_http_metadata_cache` |
+| `context_cache` | `azure_context_caching` |
+
+It warns when the buffer size is not a multiple of the chunk size.
