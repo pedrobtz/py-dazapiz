@@ -202,3 +202,17 @@ def test_get_refresh_token_with_a_record_does_not_sign_in(cls, store, monkeypatc
     monkeypatch.setattr(cred, "_request_token", lambda *a, **k: pytest.fail("signed in"))
     info = cred.get_refresh_token()
     assert (info.token, info.tenant_id) == ("rt-alice-guest", GUEST)
+
+
+def test_lookup_skips_an_empty_cache(store):
+    (store.root / "dazure.nocae").write_text("", encoding="utf-8")
+    store.write("dazure.cae", [alice])
+    assert find_refresh_token(OPTIONS, record_of(alice)).token == "rt-alice"
+
+
+def test_lookup_refuses_a_cache_that_is_not_json(store):
+    (store.root / "dazure.nocae").write_text("{not json", encoding="utf-8")
+    store.write("dazure.cae", [alice])
+    with pytest.raises(RefreshTokenNotFoundError, match="not JSON") as err:
+        find_refresh_token(OPTIONS, record_of(alice))
+    assert "authenticate()" in str(err.value)

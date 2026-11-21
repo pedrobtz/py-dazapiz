@@ -251,3 +251,11 @@ def test_windows_refused_on_windows(tmp_path, monkeypatch):
     write_az_login(tmp_path, [ALICE], default=ALICE)
     with pytest.raises(UnsupportedPlatformError, match="DeviceCodeCredential"):
         refresh_token_from_az_cli(config_dir=tmp_path)
+
+
+def test_cache_that_is_not_utf8(tmp_path):
+    write_profile(tmp_path, [subscription(ALICE.username, CONTOSO, is_default=True)])
+    (tmp_path / "msal_token_cache.json").write_bytes(b'{"RefreshToken": "\xff\xfe"}')
+    with pytest.raises(RefreshTokenNotFoundError, match="could not be read") as err:
+        lookup(tmp_path)
+    assert "UnicodeDecodeError" in str(err.value)

@@ -536,3 +536,9 @@ def test_logged_non_json_bodies_are_unchanged(transport, caplog):
                 client.fetch("/x")
     bodies = [r.getMessage() for r in caplog.records if r.getMessage().startswith("[x")]
     assert bodies == [escape(text)] * 2
+
+
+@pytest.mark.parametrize("bad", [0, -1, 1.5, "3"])
+def test_max_tries_must_be_a_positive_integer(bad):
+    with pytest.raises(ValueError, match="max_tries"):
+        ApiClient(HOST, max_tries=bad)

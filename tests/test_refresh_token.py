@@ -107,3 +107,8 @@ def test_refusals():
 
     with pytest.raises(TypeError, match="RefreshTokenInfo"):
         as_refresh_token_info(Liar())
+
+
+def test_info_refuses_a_non_string_username():
+    with pytest.raises(TypeError, match="username"):
+        RefreshTokenInfo("rt", "cid", "tid", 42)

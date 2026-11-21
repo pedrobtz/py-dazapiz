@@ -226,3 +226,19 @@ def test_secrets_of_other_auth_types_are_ignored():
         refresh_token="rt", client_secret="s", account_key="k", token_file="/f"
     )
     assert set(conf.values()) & {"s", "k", "/f"} == set()
+
+
+def test_union_with_a_non_dict_follows_dict():
+    # As dict's own `|`: a non-dict operand gets its turn, and with none, TypeError.
+    conf = SparkStorageConf({"k": "v"})
+
+    class Other:
+        def __ror__(self, left):
+            return "other's result"
+
+    assert conf | Other() == "other's result"
+    with pytest.raises(TypeError, match="unsupported operand"):
+        conf | 1
+    with pytest.raises(TypeError, match="unsupported operand"):
+        1 | conf
+    assert type({"a": "b"} | conf) is SparkStorageConf

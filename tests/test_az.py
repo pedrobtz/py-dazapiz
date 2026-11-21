@@ -1,8 +1,10 @@
 """The az CLI helpers against the fake `az` of tests/fake_az/ (design §4.2)."""
 
 import json
+import subprocess
 import sys
 import time
+from typing import ClassVar
 
 import pytest
 
@@ -157,6 +159,18 @@ def test_login_without_clipboard_still_prints_the_code(fake_az, interactive, mon
     assert "clipboard" not in out
 
 
+def test_login_prints_only_the_device_code_line(fake_az, interactive, capsys):
+    # az writes other lines to stderr before its prompt; none of them is shown.
+    warning = "WARNING: A web browser has not been opened. Use the code below."
+    fake_az.script("account show", NOT_LOGGED_IN)
+    fake_az.script("login", login_reply([account()], stderr=[warning, PROMPT, "WARNING: later"]))
+    az_login()
+    out = capsys.readouterr().out
+    assert f"enter the code {CODE}" in out
+    assert "WARNING" not in out
+    assert fake_az.copied == [CODE]
+
+
 def test_login_no_tty_raises(fake_az, monkeypatch):
     monkeypatch.setattr(dazure._session, "is_interactive", lambda: False)
     fake_az.script("account show", NOT_LOGGED_IN)
@@ -173,9 +187,12 @@ def test_login_returns_the_default_account(fake_az, interactive):
     assert az_login()["name"] == "second"
 
 
-def test_login_without_listed_accounts_reads_account_show(fake_az, interactive):
+@pytest.mark.parametrize(
+    "stdout", ["[]", "not json", "{}", "42"], ids=["empty", "not-json", "object", "number"]
+)
+def test_login_without_listed_accounts_reads_account_show(fake_az, interactive, stdout):
     fake_az.script("account show", [NOT_LOGGED_IN, shown(account())])
-    fake_az.script("login", login_reply([]))
+    fake_az.script("login", {"stderr": [PROMPT], "stdout": stdout})
     assert az_login() == account()
     assert [c[0] for c in fake_az.calls] == ["account", "login", "account"]
 
@@ -239,6 +256,9 @@ def test_other_failure_is_not_not_logged_in(fake_az):
     fake_az.script("account show", {"stdout": "not json"})
     with pytest.raises(AzCliError, match="JSON"):
         az_account_show()
+    fake_az.script("account show", {"stdout": "[]"})
+    with pytest.raises(AzCliError, match="JSON object"):
+        az_account_show()
 
 
 def test_timeout(fake_az, interactive):
@@ -256,6 +276,63 @@ def test_timeout(fake_az, interactive):
         # The process tree is killed, not waited for (cmd.exe's child on Windows).
         assert time.monotonic() - start < 15
     assert az_is_login(timeout=0.5) is False
+
+
+class RecordingPopen(subprocess.Popen):
+    """subprocess.Popen, keeping each process it starts."""
+
+    started: ClassVar[list[subprocess.Popen]] = []
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        RecordingPopen.started.append(self)
+
+
+@pytest.fixture
+def popen(monkeypatch):
+    RecordingPopen.started = []
+    monkeypatch.setattr(subprocess, "Popen", RecordingPopen)
+    return RecordingPopen
+
+
+def assert_killed(proc):
+    # The fake sleeps 30 s: a process still running would time this wait out.
+    proc.wait(timeout=15)
+    for pipe in (proc.stdout, proc.stderr):
+        if pipe is not None:
+            pipe.close()
+
+
+def test_interrupt_kills_az(fake_az, popen, monkeypatch):
+    # Ctrl-C while waiting for az: az is killed, not left running, and the
+    # interrupt goes on.
+    fake_az.script("account show", {"sleep": 30, **shown(account())})
+
+    def interrupted(self, input=None, timeout=None):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(RecordingPopen, "communicate", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        az_account_show(timeout=None)
+    # On Windows the kill itself starts taskkill.exe, also recorded.
+    procs = [p for p in popen.started if "account" in p.args]
+    assert len(procs) == 1
+    assert_killed(procs[0])
+
+
+def test_interrupt_kills_az_login(fake_az, interactive, popen, monkeypatch):
+    fake_az.script("account show", NOT_LOGGED_IN)
+    fake_az.script("login", {"stderr": [PROMPT], "sleep": 30, "stdout": "[]"})
+
+    def interrupted(line):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(dazure._az, "_show_device_code", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        az_login()
+    login = [p for p in popen.started if "login" in p.args]
+    assert len(login) == 1
+    assert_killed(login[0])
 
 
 def test_default_timeouts():
@@ -293,3 +370,21 @@ def test_clipboard_fails_silently(monkeypatch, capsys):
     )
     assert dazure._az._copy_to_clipboard(CODE) is False
     assert capsys.readouterr() == ("", "")
+
+
+def test_clipboard_skips_a_tool_that_errors(monkeypatch, tmp_path):
+    # A tool that hangs (timeout) or cannot start is skipped for the next one.
+    target = tmp_path / "clip.txt"
+    writer = f"import sys; open({str(target)!r}, 'w').write(sys.stdin.read())"
+    hangs = (sys.executable, "-c", "pass  # hangs")
+    monkeypatch.setattr(dazure._az, "_CLIPBOARD_TOOLS", (hangs, (sys.executable, "-c", writer)))
+    real_run = subprocess.run
+
+    def run(argv, **kwargs):
+        if argv[-1] == hangs[-1]:
+            raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
+        return real_run(argv, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    assert dazure._az._copy_to_clipboard(CODE) is True
+    assert target.read_text() == CODE
