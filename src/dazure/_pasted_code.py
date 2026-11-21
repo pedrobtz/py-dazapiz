@@ -7,13 +7,14 @@ import binascii
 import json
 import re
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qsl, urlsplit
 
 from azure.core.exceptions import ClientAuthenticationError
 from azure.identity import CredentialUnavailableError
 
 from . import _session
+from ._json import json_object
 
 __all__ = ["is_localhost", "parse_reply", "request_token_by_pasted_code"]
 
@@ -38,17 +39,18 @@ def _base64_json(text: str) -> dict[str, Any] | None:
         value = json.loads(raw.decode("utf-8"))
     except (binascii.Error, ValueError):
         return None
-    return value if isinstance(value, dict) else None
+    return json_object(value)
 
 
-def _scalar(value: Any) -> Any:
+def _scalar(value: object) -> object:
     # jsonlite::toJSON() writes every value as a one-element array.
-    if isinstance(value, list) and len(value) == 1:
-        return value[0]
+    if isinstance(value, list):
+        items = cast("list[object]", value)
+        return items[0] if len(items) == 1 else items
     return value
 
 
-def parse_reply(reply: str, read_state: Callable[[], str]) -> dict[str, str]:
+def parse_reply(reply: str, read_state: Callable[[], str]) -> dict[str, Any]:
     """Turn what the user pasted into the auth response MSAL redeems.
 
     The three forms of httr2 1.3.0's `oauth_flow_auth_code_read()`: the full
@@ -99,7 +101,7 @@ def request_token_by_pasted_code(
     redirect_uri: str,
     login_hint: str | None,
     claims: str | None,
-) -> dict:
+) -> dict[str, Any]:
     """Sign in through a callback page, as httr2 does: print, paste, redeem.
 
     Wraps MSAL's `initiate_auth_code_flow()` (PKCE, state, nonce) and

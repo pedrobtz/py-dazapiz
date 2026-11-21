@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Protocol, cast, runtime_checkable
 
 from .errors import RefreshTokenNotFoundError
 
@@ -30,14 +30,15 @@ class RefreshTokenInfo:
 
     def __post_init__(self) -> None:
         for name in ("token", "client_id", "tenant_id"):
-            value = getattr(self, name)
+            value: object = getattr(self, name)
             if not isinstance(value, str):
                 raise TypeError(
                     f"RefreshTokenInfo.{name} must be a str, not {type(value).__name__}"
                 )
             if not value:
                 raise ValueError(f"RefreshTokenInfo.{name} must not be empty")
-        if self.username is not None and not isinstance(self.username, str):
+        username = cast(object, self.username)  # checked at run time: callers may be untyped
+        if username is not None and not isinstance(username, str):
             raise TypeError("RefreshTokenInfo.username must be a str or None")
 
     def __repr__(self) -> str:
@@ -58,7 +59,7 @@ class SupportsRefreshToken(Protocol):
     def get_refresh_token(self) -> RefreshTokenInfo: ...
 
 
-def _env(name: str) -> str | None:
+def env(name: str) -> str | None:
     # An empty variable counts as unset; azr passes "" on (design §4.3.4).
     return os.environ.get(name) or None
 
@@ -74,7 +75,7 @@ def as_refresh_token_info(refresh_token: str | SupportsRefreshToken | None) -> R
     Nothing here reads a cache or the disk (design D17).
     """
     if refresh_token is None:
-        refresh_token = _env("AZURE_REFRESH_TOKEN")
+        refresh_token = env("AZURE_REFRESH_TOKEN")
         if refresh_token is None:
             raise RefreshTokenNotFoundError(
                 "No refresh token: pass one, or a credential such as "
@@ -85,18 +86,19 @@ def as_refresh_token_info(refresh_token: str | SupportsRefreshToken | None) -> R
             raise ValueError("refresh_token must not be empty")
         return RefreshTokenInfo(
             token=refresh_token,
-            client_id=_env("AZURE_CLIENT_ID") or AZURE_CLI_CLIENT_ID,
-            tenant_id=_env("AZURE_TENANT_ID") or "common",
+            client_id=env("AZURE_CLIENT_ID") or AZURE_CLI_CLIENT_ID,
+            tenant_id=env("AZURE_TENANT_ID") or "common",
         )
-    if isinstance(refresh_token, SupportsRefreshToken):
-        info = refresh_token.get_refresh_token()
+    given = cast(object, refresh_token)  # checked at run time: callers may be untyped
+    if isinstance(given, SupportsRefreshToken):
+        # A runtime-checkable protocol checks the method's name only, not what it returns.
+        info = cast(object, given.get_refresh_token())
         if not isinstance(info, RefreshTokenInfo):
             raise TypeError(
-                f"{type(refresh_token).__name__}.get_refresh_token() returned "
+                f"{type(given).__name__}.get_refresh_token() returned "
                 f"{type(info).__name__}, not RefreshTokenInfo"
             )
         return info
     raise TypeError(
-        "refresh_token must be a str, a SupportsRefreshToken or None, "
-        f"not {type(refresh_token).__name__}"
+        f"refresh_token must be a str, a SupportsRefreshToken or None, not {type(given).__name__}"
     )

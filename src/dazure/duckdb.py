@@ -239,7 +239,7 @@ def set_chain_secret(
     hosts; Delta tables never match an account-scoped secret, so register an
     unscoped one for them.
     """
-    options = []
+    options: list[tuple[str, str]] = []
     if chain is not None:
         entries = [chain] if isinstance(chain, str) else list(chain)
         if not entries:

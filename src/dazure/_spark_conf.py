@@ -8,9 +8,9 @@ defaults differ from azr's where §4.4 says.
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import Literal, cast
 
-from ._refresh_token import SupportsRefreshToken, _env, as_refresh_token_info
+from ._refresh_token import SupportsRefreshToken, as_refresh_token_info, env
 
 __all__ = ["SparkStorageConf", "spark_storage_conf"]
 
@@ -84,15 +84,15 @@ class SparkStorageConf(dict[str, str]):
     def copy(self) -> SparkStorageConf:
         return type(self)(self)
 
-    def __or__(self, other):
+    def __or__(self, other: object) -> SparkStorageConf:
         if not isinstance(other, dict):
             return NotImplemented
-        return type(self)({**self, **other})
+        return type(self)({**self, **cast("dict[str, str]", other)})
 
-    def __ror__(self, other):
+    def __ror__(self, other: object) -> SparkStorageConf:
         if not isinstance(other, dict):
             return NotImplemented
-        return type(self)({**other, **self})
+        return type(self)({**cast("dict[str, str]", other), **self})
 
 
 def _check_str(name: str, value: object) -> None:
@@ -110,13 +110,13 @@ def _normalize_host(authority_host: str) -> str:
     return host
 
 
-def _check_tenant(tenant_id: str) -> None:
+def check_tenant(tenant_id: str) -> None:
     if not _TENANT_RE.fullmatch(tenant_id):
         raise ValueError(f"tenant_id {tenant_id!r} is not a valid tenant ID")
 
 
 def _required(value: str | None, arg: str, var: str, auth_type: str) -> str:
-    value = value if value is not None else _env(var)
+    value = value if value is not None else env(var)
     if value is None:
         raise ValueError(
             f"{arg} is required when auth_type is {auth_type!r}: pass it or set ${var}."
@@ -197,7 +197,7 @@ def spark_storage_conf(
         if value is not None:
             _check_str(name, value)
 
-    host = _normalize_host(authority_host or _env("AZURE_AUTHORITY_HOST") or _PUBLIC_CLOUD)
+    host = _normalize_host(authority_host or env("AZURE_AUTHORITY_HOST") or _PUBLIC_CLOUD)
 
     if storage_account is None:
         scope = ""
@@ -227,7 +227,7 @@ def spark_storage_conf(
         info = as_refresh_token_info(refresh_token)
         client_id = client_id if client_id is not None else info.client_id
         tenant_id = tenant_id if tenant_id is not None else info.tenant_id
-        _check_tenant(tenant_id)
+        check_tenant(tenant_id)
         return SparkStorageConf(
             {
                 key("auth.type"): "OAuth",
@@ -244,7 +244,7 @@ def spark_storage_conf(
         client_id = _required(client_id, "client_id", "AZURE_CLIENT_ID", auth_type)
         tenant_id = _required(tenant_id, "tenant_id", "AZURE_TENANT_ID", auth_type)
         client_secret = _required(client_secret, "client_secret", "AZURE_CLIENT_SECRET", auth_type)
-        _check_tenant(tenant_id)
+        check_tenant(tenant_id)
         return SparkStorageConf(
             {
                 key("auth.type"): "OAuth",
@@ -259,7 +259,7 @@ def spark_storage_conf(
         client_id = _required(client_id, "client_id", "AZURE_CLIENT_ID", auth_type)
         tenant_id = _required(tenant_id, "tenant_id", "AZURE_TENANT_ID", auth_type)
         token_file = _required(token_file, "token_file", "AZURE_FEDERATED_TOKEN_FILE", auth_type)
-        _check_tenant(tenant_id)
+        check_tenant(tenant_id)
         return SparkStorageConf(
             {
                 key("auth.type"): "OAuth",
@@ -272,9 +272,9 @@ def spark_storage_conf(
         )
 
     # managed_identity
-    client_id = client_id if client_id is not None else _env("AZURE_CLIENT_ID")
-    tenant_id = tenant_id if tenant_id is not None else (_env("AZURE_TENANT_ID") or "common")
-    _check_tenant(tenant_id)
+    client_id = client_id if client_id is not None else env("AZURE_CLIENT_ID")
+    tenant_id = tenant_id if tenant_id is not None else (env("AZURE_TENANT_ID") or "common")
+    check_tenant(tenant_id)
     conf = {
         key("auth.type"): "OAuth",
         key("oauth.provider.type"): _PROVIDER + "MsiTokenProvider",

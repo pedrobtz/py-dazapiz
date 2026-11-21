@@ -11,7 +11,7 @@ import threading
 import time
 import xml.etree.ElementTree as ET
 from collections.abc import Callable, Generator, Mapping
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 from urllib.parse import quote
 
 import httpx
@@ -122,7 +122,8 @@ class ApiClient:
             raise ValueError(
                 "host_url must be a non-empty string, as an argument or class attribute."
             )
-        if not isinstance(max_tries, int) or max_tries < 1:
+        tries = cast(object, max_tries)  # checked at run time: callers may be untyped
+        if not isinstance(tries, int) or tries < 1:
             raise ValueError("max_tries must be an integer >= 1.")
         self._host_url = host
         self._scope = scope or type(self).scope or f"{host.rstrip('/')}/.default"
@@ -299,7 +300,7 @@ class _Ellipsis:
 _ELLIPSIS = _Ellipsis()
 
 
-def _head_tail(items: list, n: int) -> list:
+def _head_tail(items: list[Any], n: int) -> list[Any]:
     half = max(n // 2, 1)
     return [*items[:half], _ELLIPSIS, *items[-half:]]
 
@@ -318,15 +319,15 @@ def _abbreviate_json(obj: Any, max_items: int = 10, max_size: int = 12) -> str:
     def scalar(x: Any) -> str:
         return "..." if x is _ELLIPSIS else jsonlib.dumps(x, ensure_ascii=False)
 
-    def is_atomic(x: list) -> bool:
+    def is_atomic(x: list[Any]) -> bool:
         return bool(x) and not any(isinstance(i, (dict, list)) for i in x)
 
-    def render(x: Any, level: int, top: bool = False) -> str:
+    def render(x: object, level: int, top: bool = False) -> str:
         pad, inner = "  " * level, "  " * (level + 1)
         if isinstance(x, dict):
             if not x:
                 return "{}"
-            items = list(x.items())
+            items: list[Any] = list(cast("dict[str, Any]", x).items())
             if len(items) > max_items:
                 items = _head_tail(items, max_items)
             lines = [
@@ -337,15 +338,18 @@ def _abbreviate_json(obj: Any, max_items: int = 10, max_size: int = 12) -> str:
             ]
             return "{\n" + ",\n".join(lines) + f"\n{pad}}}"
         if isinstance(x, list):
-            if not x:
+            values: list[Any] = cast("list[Any]", x)
+            if not values:
                 return "[]"
-            if not top and is_atomic(x):
-                if len(x) > max_size:
-                    x = _head_tail(x, max_size)
-                return "[" + ", ".join(scalar(i) for i in x) + "]"
-            if len(x) > max_items:
-                x = _head_tail(x, max_items)
-            lines = [f"{inner}..." if i is _ELLIPSIS else inner + render(i, level + 1) for i in x]
+            if not top and is_atomic(values):
+                if len(values) > max_size:
+                    values = _head_tail(values, max_size)
+                return "[" + ", ".join(scalar(i) for i in values) + "]"
+            if len(values) > max_items:
+                values = _head_tail(values, max_items)
+            lines = [
+                f"{inner}..." if i is _ELLIPSIS else inner + render(i, level + 1) for i in values
+            ]
             return "[\n" + ",\n".join(lines) + f"\n{pad}]"
         return scalar(x)
 

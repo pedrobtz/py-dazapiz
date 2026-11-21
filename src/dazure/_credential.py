@@ -100,7 +100,7 @@ class RefreshTokenCredential:
             key = (tenant, frozenset(scopes))
             cached = self._tokens.get(key)
             fresh = cached is not None and cached.expires_on - time.time() > _EXPIRY_MARGIN
-            if claims is None and fresh:
+            if claims is None and cached is not None and fresh:
                 return cached
 
             secret = self._info.token

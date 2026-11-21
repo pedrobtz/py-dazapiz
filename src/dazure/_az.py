@@ -16,10 +16,11 @@ import signal
 import subprocess
 import tempfile
 import threading
-from typing import Any
+from typing import Any, cast
 
 from . import _session
-from ._spark_conf import _check_tenant
+from ._json import json_object, json_objects
+from ._spark_conf import check_tenant
 from .errors import (
     AzCliError,
     AzCliNonInteractiveError,
@@ -61,10 +62,11 @@ def az_account_show(timeout: float | None = _TIMEOUT) -> dict[str, Any]:
     if code != 0:
         raise _failure(args, code, err)
     try:
-        account = json.loads(out)
+        parsed = json.loads(out)
     except ValueError:
         raise AzCliError("`az account show` did not return JSON.") from None
-    if not isinstance(account, dict):
+    account = json_object(parsed)
+    if account is None:
         raise AzCliError("`az account show` did not return a JSON object.")
     return account
 
@@ -103,10 +105,11 @@ def az_login(
     fails. Prints the device code and the account name, nothing else from
     the login (design §6).
     """
+    tenant = cast(object, tenant_id)  # checked at run time: callers may be untyped
     if tenant_id is not None:
-        if not isinstance(tenant_id, str):
+        if not isinstance(tenant, str):
             raise TypeError(f"tenant_id must be a string, not {type(tenant_id).__name__}")
-        _check_tenant(tenant_id)
+        check_tenant(tenant_id)
 
     if not force:
         account = _current_account(tenant_id)
@@ -176,7 +179,7 @@ def _popen_kwargs() -> dict[str, Any]:
     return {} if os.name == "nt" else {"start_new_session": True}
 
 
-def _kill_tree(proc: subprocess.Popen) -> None:
+def _kill_tree(proc: subprocess.Popen[Any]) -> None:
     if proc.poll() is not None:
         return
     if os.name == "nt":
@@ -300,12 +303,10 @@ def _default_account(out: str) -> dict[str, Any] | None:
     # `az login --output json` lists the accounts it found; the default one is what
     # `az account show` shows next.
     try:
-        accounts = json.loads(out)
+        parsed = json.loads(out)
     except ValueError:
         return None
-    if not isinstance(accounts, list):
-        return None
-    accounts = [a for a in accounts if isinstance(a, dict)]
+    accounts = json_objects(parsed)
     for a in accounts:
         if a.get("isDefault") is True:
             return a
@@ -313,8 +314,8 @@ def _default_account(out: str) -> dict[str, Any] | None:
 
 
 def _user_name(account: dict[str, Any]) -> str:
-    user = account.get("user")
-    name = user.get("name") if isinstance(user, dict) else None
+    user = json_object(account.get("user"))
+    name = user.get("name") if user is not None else None
     return str(name) if name else "an unnamed account"
 
 
