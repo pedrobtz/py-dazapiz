@@ -297,10 +297,15 @@ def popen(monkeypatch):
 
 def assert_killed(proc):
     # The fake sleeps 30 s: a process still running would time this wait out.
-    proc.wait(timeout=15)
-    for pipe in (proc.stdout, proc.stderr):
-        if pipe is not None:
-            pipe.close()
+    try:
+        proc.wait(timeout=15)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+        for pipe in (proc.stdout, proc.stderr):
+            if pipe is not None:
+                pipe.close()
 
 
 def test_interrupt_kills_az(fake_az, popen, monkeypatch):
@@ -308,8 +313,13 @@ def test_interrupt_kills_az(fake_az, popen, monkeypatch):
     # interrupt goes on.
     fake_az.script("account show", {"sleep": 30, **shown(account())})
 
+    real_communicate = subprocess.Popen.communicate
+
     def interrupted(self, input=None, timeout=None):
-        raise KeyboardInterrupt
+        # Only az's wait: on Windows the kill runs taskkill.exe, also a Popen.
+        if "account" in self.args:
+            raise KeyboardInterrupt
+        return real_communicate(self, input, timeout)
 
     monkeypatch.setattr(RecordingPopen, "communicate", interrupted)
     with pytest.raises(KeyboardInterrupt):
