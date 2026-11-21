@@ -8,6 +8,7 @@ from importlib.metadata import version
 from ._az_cli_token import refresh_token_from_az_cli
 from ._credential import RefreshTokenCredential
 from ._refresh_token import AZURE_CLI_CLIENT_ID, RefreshTokenInfo, SupportsRefreshToken
+from ._spark_conf import SparkStorageConf, spark_storage_conf
 from .errors import DazureError, RefreshTokenNotFoundError, UnsupportedPlatformError
 
 __version__ = version("dazure")
@@ -18,8 +19,10 @@ __all__ = [
     "RefreshTokenCredential",
     "RefreshTokenInfo",
     "RefreshTokenNotFoundError",
+    "SparkStorageConf",
     "SupportsRefreshToken",
     "UnsupportedPlatformError",
     "__version__",
     "refresh_token_from_az_cli",
+    "spark_storage_conf",
 ]
