@@ -2,6 +2,10 @@
 
 ## 0.1.0 (unreleased)
 
+- A documentation site, <https://pedrobtz.github.io/py-dazure/>, built with
+  Great Docs: a guide (get started, REST client with the Petstore example,
+  DuckDB, browser-hosted sign-in) and an API reference from NumPy
+  docstrings, now on every public name (#27).
 - `ApiClient.fetch(..., parse=f)` returns `f(body)`, typed as `f`'s result:
   `f` is applied to the parsed body of every successful response (an empty
   one as `None`) in place of `response_handler`, so

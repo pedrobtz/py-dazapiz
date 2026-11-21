@@ -52,10 +52,42 @@ _CLIPBOARD_TOOLS: tuple[tuple[str, ...], ...] = (
 def az_account_show(timeout: float | None = _TIMEOUT) -> dict[str, Any]:
     """The Azure CLI's current account, from `az account show --output json`.
 
-    Raises `AzCliNotLoggedInError` when the CLI is not logged in,
-    `AzCliNotFoundError` when there is no `az` on PATH, `AzCliTimeoutError`
-    when `az` does not finish within `timeout` seconds (`None` waits), and
-    `AzCliError` on any other failure.
+    Parameters
+    ----------
+    timeout
+        Seconds to wait for `az`; `None` waits as long as it takes.
+
+    Returns
+    -------
+    dict
+        The account as `az` prints it: `id` (the subscription), `name`,
+        `tenantId`, `user` (with `name` and `type`) and the rest.
+
+    Raises
+    ------
+    AzCliNotLoggedInError
+        The CLI is not logged in.
+    AzCliNotFoundError
+        There is no `az` on PATH.
+    AzCliTimeoutError
+        `az` did not finish within `timeout` seconds.
+    AzCliError
+        Any other failure, with what `az` wrote to stderr.
+
+    Notes
+    -----
+    Runs the `az` that `shutil.which("az")` finds, as a plain subprocess
+    (ported from `azr`'s `az_cli_*()` helpers). For tokens from the CLI, use
+    `azure.identity.AzureCliCredential`, which dazure does not wrap.
+
+    Examples
+    --------
+    ```python
+    from dazure import az_account_show
+
+    account = az_account_show()
+    account["user"]["name"], account["tenantId"]
+    ```
     """
     args = ["account", "show", "--output", "json"]
     code, out, err = _run(args, timeout)
@@ -74,8 +106,26 @@ def az_account_show(timeout: float | None = _TIMEOUT) -> dict[str, Any]:
 def az_is_login(timeout: float | None = _TIMEOUT) -> bool:
     """Whether the Azure CLI is logged in, by `az account show`.
 
-    False on any `AzCliError`, including no `az` on PATH and a timeout, as
-    `azr::az_cli_is_login()` returns `FALSE` on any error.
+    Parameters
+    ----------
+    timeout
+        Seconds to wait for `az`; `None` waits as long as it takes.
+
+    Returns
+    -------
+    bool
+        `True` when `az account show` succeeds; `False` on any `AzCliError`,
+        including no `az` on PATH and a timeout, as `azr::az_cli_is_login()`
+        returns `FALSE` on any error.
+
+    Examples
+    --------
+    ```python
+    from dazure import az_is_login, az_login
+
+    if not az_is_login():
+        az_login()
+    ```
     """
     try:
         az_account_show(timeout)
@@ -97,13 +147,52 @@ def az_login(
     `az login --use-device-code [--tenant <tenant_id>] --output json`, prints
     the device code and URL as soon as `az` streams them on stderr, copies the
     code to the clipboard when a clipboard tool is found, waits for `az` to
-    finish and returns the account it made the default.
+    finish and returns the account it made the default. Prints the device
+    code and the account name, nothing else from the login.
 
-    Raises `AzCliNonInteractiveError` when nobody can answer the prompt (no
-    TTY and no notebook kernel), `AzCliTimeoutError` when `timeout` seconds
-    pass first (`None`, the default, waits), and `AzCliError` when `az login`
-    fails. Prints the device code and the account name, nothing else from
-    the login (design §6).
+    Parameters
+    ----------
+    tenant_id
+        Log in to this tenant (GUID or domain); an account logged in to
+        another tenant counts as not logged in.
+    force
+        Log in again even when the CLI already is.
+    timeout
+        Seconds to wait for the whole login; `None`, the default, waits.
+
+    Returns
+    -------
+    dict
+        The account `az` made the default, as `az_account_show()` returns it.
+
+    Raises
+    ------
+    AzCliNonInteractiveError
+        Nobody can answer the prompt: no TTY and no notebook kernel.
+    AzCliTimeoutError
+        `timeout` seconds passed first; `az` is killed.
+    AzCliNotFoundError
+        There is no `az` on PATH.
+    AzCliError
+        `az login` failed.
+    TypeError
+        `tenant_id` is not a string.
+    ValueError
+        `tenant_id` is not a valid tenant ID.
+
+    Notes
+    -----
+    Runs `az login` (`azr::az_cli_login()`); the sign-in itself is the
+    Azure CLI's. Afterwards `refresh_token_from_az_cli()` finds the new
+    refresh token.
+
+    Examples
+    --------
+    ```python
+    from dazure import az_login
+
+    az_login()  # To sign in, open https://microsoft.com/devicelogin and enter the code ...
+    ```
     """
     tenant = cast(object, tenant_id)  # checked at run time: callers may be untyped
     if tenant_id is not None:
@@ -145,8 +234,34 @@ def az_login(
 def az_logout(timeout: float | None = _TIMEOUT) -> None:
     """Log the Azure CLI out, by `az logout`.
 
-    Raises `AzCliNotLoggedInError` when no account is logged in, and the other
-    errors as `az_account_show()`.
+    Parameters
+    ----------
+    timeout
+        Seconds to wait for `az`; `None` waits as long as it takes.
+
+    Raises
+    ------
+    AzCliNotLoggedInError
+        No account is logged in.
+    AzCliNotFoundError
+        There is no `az` on PATH.
+    AzCliTimeoutError
+        `az` did not finish within `timeout` seconds.
+    AzCliError
+        Any other failure.
+
+    Notes
+    -----
+    Runs `az logout` (ported from `azr`'s `az_cli_*()` helpers), which
+    removes the signed-in account and its tokens from the CLI's cache.
+
+    Examples
+    --------
+    ```python
+    from dazure import az_logout
+
+    az_logout()  # Logged out of the Azure CLI.
+    ```
     """
     args = ["logout"]
     code, _, err = _run(args, timeout)

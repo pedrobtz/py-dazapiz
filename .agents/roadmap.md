@@ -28,7 +28,9 @@ The full CI profile was green on the first push (15 jobs).
 | `full` | pytest on Ubuntu and Windows × Python 3.10–3.14, macOS × 3.10 and 3.14; lowest direct dependencies; coverage on Ubuntu, Python 3.13, with a floor of 98% (Stage 8 reached 99%, less a point); build sdist and wheel, `twine check`, import the installed wheel | — |
 
 Pull requests run `quick`; pushes to `main` and pull requests labelled
-`full-ci` run `full`. A pull request's superseded runs are cancelled; a
+`full-ci` run `full`. Separately, `docs.yml` lints the docstrings and
+builds the documentation site on every pull request and push, and deploys
+it from `main` (added by #27, 2026-11-21). A pull request's superseded runs are cancelled; a
 push to `main` never is. A stage earns `full` only when the full set
 checks something the stage introduces and later stages build on: in this
 package, a branch on the operating system. Azure itself is never in CI

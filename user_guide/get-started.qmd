@@ -1,0 +1,113 @@
+---
+title: Get started
+---
+
+`dazure` carries your `az login` into Spark, DuckDB and any Azure REST API,
+on top of `azure-identity` and `msal`. This page takes one login all the way
+to a Spark session that reads Azure Data Lake Storage Gen2.
+
+None of the code on these pages runs when the site is built: it needs an
+Azure account.
+
+## Install
+
+```sh
+pip install dazure            # Spark configuration, credentials, REST client, az helpers
+pip install "dazure[duckdb]"  # also the DuckDB secrets in dazure.duckdb
+```
+
+PySpark is never a dependency: `dazure` builds a plain `dict` of Spark
+settings, for whichever Spark you already have.
+
+## Log in once
+
+`az_login()` runs `az login --use-device-code` and prints the code to enter
+at <https://microsoft.com/devicelogin>. It does nothing when the Azure CLI is
+already logged in, so it is safe at the top of a notebook.
+
+```python
+from dazure import az_login
+
+az_login()
+```
+
+```
+To sign in, open https://microsoft.com/devicelogin and enter the code ABCD1234.
+Logged in to the Azure CLI as you@example.com.
+```
+
+`az_is_login()`, `az_account_show()` and `az_logout()` do the rest of what
+you would type at a terminal. They need the Azure CLI (`az`) on `PATH`.
+
+## Find the refresh token
+
+`refresh_token_from_az_cli()` reads the refresh token the Azure CLI keeps in
+`~/.azure/msal_token_cache.json`, for the account and tenant of its default
+subscription, without running `az`:
+
+```python
+from dazure import refresh_token_from_az_cli
+
+info = refresh_token_from_az_cli()
+info
+```
+
+```
+RefreshTokenInfo(token='<redacted>', client_id='04b07795-8ddb-461a-bbee-02f9e1bf7b46', tenant_id='...', username='you@example.com')
+```
+
+The token never prints. It belongs to the Azure CLI's own client ID, which
+`info` carries along, so whatever redeems it uses the right one. On Windows,
+where the Azure CLI keeps its tokens in the Windows broker, it raises
+`UnsupportedPlatformError`; sign in with `DeviceCodeCredential` instead (see
+[Browser-hosted sign-in](browser-sign-in.qmd)).
+
+## Spark
+
+`spark_storage_conf()` turns the token into the Hadoop ABFS settings that let
+Spark read and write ADLS Gen2 as you:
+
+```python
+from pyspark.sql import SparkSession
+from dazure import refresh_token_from_az_cli, spark_storage_conf
+
+conf = spark_storage_conf(refresh_token=refresh_token_from_az_cli())
+spark = SparkSession.builder.config(map=conf).getOrCreate()
+
+df = spark.read.parquet("abfss://data@myaccount.dfs.core.windows.net/sales/")
+```
+
+The keys start with `spark.hadoop.` so that `SparkSession.builder` passes
+them to Hadoop; `prefix=None` gives the bare `fs.azure.*` keys for
+`core-site.xml` or `spark.sparkContext._jsc.hadoopConfiguration().set()`.
+`storage_account="myaccount"` scopes every key to one account. Printing the
+result shows `<redacted>` in place of the token.
+
+## Other ways to authenticate
+
+`auth_type` picks the Hadoop token provider; values not passed come from the
+standard `AZURE_*` variables:
+
+| `auth_type` | Who | Reads |
+| --- | --- | --- |
+| `"refresh_token"` (default) | you, from a sign-in | `refresh_token`, else `$AZURE_REFRESH_TOKEN` |
+| `"client_secret"` | a service principal | `$AZURE_CLIENT_ID`, `$AZURE_TENANT_ID`, `$AZURE_CLIENT_SECRET` |
+| `"workload_identity"` | an AKS workload | `$AZURE_CLIENT_ID`, `$AZURE_TENANT_ID`, `$AZURE_FEDERATED_TOKEN_FILE` |
+| `"managed_identity"` | the VM or cluster's identity | `$AZURE_CLIENT_ID` for a user-assigned one |
+| `"shared_key"` | the storage account key | `storage_account`, `account_key` |
+
+```python
+conf = spark_storage_conf("client_secret", storage_account="myaccount")
+```
+
+The refresh token can also come from somewhere else:
+`spark_storage_conf(refresh_token=...)` takes a string, or anything with a
+`get_refresh_token()` method, such as `DeviceCodeCredential()` or
+`InteractiveBrowserCredential()`.
+
+## The same login elsewhere
+
+- `RefreshTokenCredential(refresh_token_from_az_cli())` is a
+  `TokenCredential`: pass it to any Azure SDK client.
+- [DuckDB](duckdb.qmd) registers it as an Azure secret.
+- [REST client](rest-client.qmd) builds a typed client for one API.

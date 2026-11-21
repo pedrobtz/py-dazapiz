@@ -1,0 +1,103 @@
+---
+title: Browser-hosted sign-in
+---
+
+Where the Azure CLI is not an option (Windows, where `az login` keeps its
+tokens in the Windows broker, or a machine without `az`), sign in with one
+of `dazure`'s two interactive credentials instead. Both are the
+`azure-identity` classes of the same name, with two additions: their tokens
+are cached in the platform's secret store under the name `"dazure"`, and
+`get_refresh_token()` hands over the refresh token, so they can feed
+`spark_storage_conf()` like `refresh_token_from_az_cli()` does.
+
+## Which flow
+
+| Where Python runs | Credential | How you sign in |
+| --- | --- | --- |
+| anywhere, including a remote or headless machine | `DeviceCodeCredential()` | open a URL on any device, enter a code |
+| your own machine, with a browser | `InteractiveBrowserCredential()` | the system browser opens; a local listener receives the code |
+| a browser-hosted IDE (code-server, RStudio Server, a cloud notebook) | `InteractiveBrowserCredential(redirect_uri=...)` | open the printed URL, sign in, paste back what the callback page shows |
+
+```python
+from dazure import DeviceCodeCredential, spark_storage_conf
+
+credential = DeviceCodeCredential(tenant_id="contoso.com")
+conf = spark_storage_conf(refresh_token=credential)  # signs in here, once
+```
+
+The first `get_refresh_token()` (or `get_token()`) signs in. Later calls in
+the same session are silent; in a later session, pass the
+`AuthenticationRecord` that `credential.authenticate()` returned as
+`authentication_record=` to sign in silently from the cache. On a headless
+Linux machine without a usable secret store, pass
+`allow_unencrypted_storage=True` to fall back to a plain file.
+
+## Signing in from a browser-hosted session
+
+In code-server or RStudio Server, Python runs on a server and your browser
+is on your laptop. The usual browser flow starts a listener on
+`localhost` of the machine running Python, which your browser never
+reaches, and `azure-identity` refuses a redirect URI that is not on
+localhost. `dazure.InteractiveBrowserCredential` does what `httr2` does in
+R for such a redirect URI: it prints the sign-in URL, and you paste back
+what the callback page shows.
+
+```python
+from dazure import InteractiveBrowserCredential
+
+credential = InteractiveBrowserCredential(
+    tenant_id="11111111-2222-3333-4444-555555555555",
+    client_id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    redirect_uri="https://your-domain.example/azure-callback",
+)
+token = credential.get_token("User.Read").token  # prompts once, then silent
+```
+
+```
+Open this URL in a browser to sign in:
+
+https://login.microsoftonline.com/11111111-.../oauth2/v2.0/authorize?client_id=...
+
+Enter authorization code or URL:
+```
+
+After you sign in, Entra sends your browser to the redirect URI with
+`?code=...&state=...`. Paste any of:
+
+- the whole callback URL, from the address bar;
+- base64-encoded JSON with `code` and `state`, as `httr2`'s callback page
+  shows it;
+- the bare code, and then the state when asked (`Enter state parameter:`).
+
+MSAL checks the state and redeems the code with PKCE; a state that does not
+match, an error in the callback URL, or a reply without a code raises
+`ClientAuthenticationError`. The prompt needs an interactive session, a
+terminal or a notebook kernel; elsewhere the credential raises
+`CredentialUnavailableError` instead of waiting. No browser is opened, since
+it would open on the server.
+
+A redirect URI on `localhost` or `127.0.0.1`, or none, keeps
+`azure-identity`'s own listener and browser.
+
+## The app registration
+
+The flow works with any Entra app registration, redirect URI and callback
+page; `dazure` hard-codes none of them.
+
+- **The app.** Its redirect URI must be registered under **Mobile and
+  desktop applications** (a public client), because the code is redeemed
+  without a client secret. A **Web** redirect needs a client secret, and an
+  **SPA** one must be redeemed from the browser, so neither works.
+- **The redirect URI.** Any URL your browser can load. MSAL never contacts
+  it; it only has to match the registration exactly. The code-server URL
+  itself works, as does a static page on any host.
+- **The callback page.** It only has to let you copy the code. A page that
+  shows the query string, or `httr2`'s page that shows it as base64 JSON, is
+  convenient; a page that does not exist works too, since you can paste the
+  URL from the address bar.
+
+Scopes are the resource's own, such as `"User.Read"` or
+`"https://storage.azure.com/.default"`. MSAL adds `offline_access`, `openid`
+and `profile` itself and refuses them if you pass them. Tenant (a GUID, a
+domain, `organizations` or `common`) and `authority` for sovereign clouds
+are `azure-identity`'s arguments, unchanged.

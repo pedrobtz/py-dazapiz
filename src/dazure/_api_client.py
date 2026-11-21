@@ -99,7 +99,81 @@ class ApiClient:
     the `credential` argument, else `app_credential()` with the class's
     variable names and `mode` when `client_id_env` and `client_secret_env`
     are set, else none (requests go unauthenticated). Wraps one
-    `httpx.Client`; also a context manager.
+    `httpx.Client`; also a context manager, typed as the subclass.
+
+    Parameters
+    ----------
+    host_url
+        The API's base URL; default the class's `host_url`.
+    credential
+        Any `TokenCredential`, such as `DefaultAzureCredential()` or
+        `RefreshTokenCredential`; default chosen as above.
+    scope
+        The token scope; default the class's `scope`, else
+        `f"{host_url}/.default"`.
+    timeout
+        Seconds for the whole request.
+    connect_timeout
+        Seconds to connect.
+    max_tries
+        Attempts per request, the first included, for 429, 503 and
+        connection failures.
+    verbose
+        Log each request and response on the `dazure.http` logger at `INFO`,
+        in azr's coloured format through `rich`: method and URL, status, time
+        and size, and the JSON request body and failed response body,
+        abbreviated. Headers are never logged.
+    response_handler
+        Called with every non-empty parsed body; `fetch()` returns what it
+        returns. `fetch(parse=...)` replaces it for one call.
+
+    Attributes
+    ----------
+    host_url : str or None
+        Class attribute: the API's base URL.
+    scope : str or None
+        Class attribute: the token scope.
+    client_id_env : str or None
+        Class attribute: the variable holding the API's service principal
+        client ID, for `app_credential()`.
+    client_secret_env : str or None
+        Class attribute: the variable holding its client secret.
+    tenant_id_env : str
+        Class attribute: the variable holding its tenant; `"AZURE_TENANT_ID"`.
+    mode : str or None
+        Class attribute: `app_credential()`'s mode.
+
+    Raises
+    ------
+    ValueError
+        No `host_url`, or `max_tries` below 1; and what `app_credential()`
+        raises.
+
+    Notes
+    -----
+    Tokens come from `credential.get_token(scope)` through an `httpx.Auth`
+    that keeps each token until five minutes before it expires. A 401 is not
+    replayed (`get_token()` cannot be forced to refresh); the token is
+    dropped, so the next request asks the credential again. A port of
+    `azr::api_client` without its service and resource layers.
+
+    Examples
+    --------
+    ```python
+    from dazure import ApiClient
+
+    class AppApiClient(ApiClient):
+        host_url = "https://app-api.example.com"
+        scope = "api://00000000-0000-0000-0000-000000000000/.default"
+        client_id_env = "APP_API_CLIENT_ID"
+        client_secret_env = "APP_API_SECRET"
+
+        def get_item(self, item_id: str) -> dict:
+            return self.fetch("/items/{item_id}", item_id=item_id)
+
+    with AppApiClient() as client:
+        item = client.get_item("42")
+    ```
     """
 
     host_url: ClassVar[str | None] = None
@@ -157,17 +231,23 @@ class ApiClient:
         )
 
     def __repr__(self) -> str:
+        """The class, host URL and credential class; never a token."""
         cred = type(self._credential).__name__ if self._credential is not None else None
         return f"{type(self).__name__}(host_url={self._host_url!r}, credential={cred})"
 
     def __enter__(self: _Client) -> _Client:
+        """Return the client itself, typed as the subclass."""
         return self
 
     def __exit__(self, *exc: object) -> None:
+        """Close the client."""
         self.close()
 
     def close(self) -> None:
-        """Close the underlying `httpx.Client`."""
+        """Close the underlying `httpx.Client`.
+
+        Called on leaving a `with` block.
+        """
         self._http.close()
 
     @overload
@@ -212,28 +292,71 @@ class ApiClient:
     ) -> Any:
         """Send one request to `path` under the host URL and return the parsed body.
 
-        `{name}` placeholders in `path` are filled from `path_params`,
-        URL-encoded; a missing or unused parameter is a `ValueError`. 429, 503
-        and connection failures are retried up to `max_tries` attempts,
-        waiting `Retry-After` or `backoff_default()`. The body is parsed by
-        `content_type`, else the response's: JSON to Python objects, XML to an
-        `ElementTree.Element`, anything else to `str`, an empty body to `None`;
-        a non-empty result goes through `response_handler`. A non-2xx response
-        raises `ApiError`; a JSON or XML body that does not parse raises
-        `ResponseParseError`.
+        429, 503 and connection failures are retried up to `max_tries`
+        attempts, waiting `Retry-After` or `backoff_default()` (uniform in
+        1 to 2.5**attempt seconds, at most 60). A read timeout is not
+        retried, since the server may have acted. The body is parsed by
+        `content_type`, else the response's: JSON to Python objects, XML to
+        an `ElementTree.Element`, anything else to `str`, an empty body to
+        `None`; a non-empty result goes through `response_handler`.
 
-        `json` is sent as JSON. A pydantic model (anything with `model_dump()`)
-        is sent as `model_dump(mode="json", by_alias=True, exclude_unset=True)`,
-        a dataclass instance field by field as `dataclasses.asdict()`, also when
-        nested in lists, tuples, dict values or dataclass fields; logging shows
-        the body as sent.
+        Parameters
+        ----------
+        path
+            The path under the host URL, with `{name}` placeholders filled
+            from `path_params`, URL-encoded.
+        method
+            The HTTP method, any case.
+        query
+            Query parameters.
+        json
+            The body, sent as JSON. A pydantic model (anything with
+            `model_dump()`) is sent as
+            `model_dump(mode="json", by_alias=True, exclude_unset=True)`, a
+            dataclass instance field by field as `dataclasses.asdict()`, also
+            when nested in lists, tuples, dict values or dataclass fields;
+            logging shows the body as sent.
+        headers
+            Extra request headers.
+        content_type
+            Parse the body as this media type instead of the response's
+            `Content-Type`.
+        parse
+            Replaces `response_handler` for this call: called with the parsed
+            body of every 2xx response, `None` for an empty one, and
+            `fetch()` returns what it returns (typed so).
+            `Model.model_validate` or
+            `TypeAdapter(list[Model]).validate_python` validate the body.
+        **path_params
+            Values for the placeholders in `path`.
 
-        `parse`, when given, replaces `response_handler` for this call: it is
-        called with the parsed body of every 2xx response, `None` for an empty
-        one, and `fetch()` returns what it returns (typed so).
-        `TypeAdapter(list[Model]).validate_python` or `Model.model_validate`
-        validate the body. An exception from `parse` raises
-        `ResponseParseError`, chained to it.
+        Returns
+        -------
+        Any
+            The parsed body, or what `parse` or `response_handler` made of it.
+
+        Raises
+        ------
+        ApiError
+            A non-2xx response, after any retries.
+        ResponseParseError
+            A JSON or XML body that does not parse, or an exception from
+            `parse`, chained to it.
+        ValueError
+            A placeholder without a value, or a value without a placeholder.
+        httpx.HTTPError
+            A connection failure after the last attempt, or a timeout.
+
+        Examples
+        --------
+        ```python
+        sub = client.fetch("/subscriptions/{subscription_id}", subscription_id=sub_id)
+        pets = client.fetch(
+            "/pet/findByStatus",
+            query={"status": "sold"},
+            parse=TypeAdapter(list[Pet]).validate_python,
+        )
+        ```
         """
         url = _fill_path(path, path_params)
         method = method.upper()

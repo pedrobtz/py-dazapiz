@@ -1,0 +1,95 @@
+# Great Docs configuration: https://posit-dev.github.io/great-docs/
+# The site's home page is README.md; guide pages live in user_guide/.
+
+display_name: dazure
+parser: numpy
+# Static analysis (griffe) only: dynamic introspection imports `dazure`, which
+# does not import its `duckdb` submodule, so `dazure:duckdb.tune` would fail and
+# the build would retry statically anyway.
+dynamic: false
+site_url: https://pedrobtz.github.io/py-dazure/
+github_style: icon
+
+authors:
+  - name: pedrobtz
+    role: Author
+    github: pedrobtz
+
+user_guide:
+  - section: Guide
+    contents:
+      - get-started.qmd
+      - rest-client.qmd
+      - duckdb.qmd
+      - browser-sign-in.qmd
+
+# Groups follow design §5. The `dazure.duckdb` submodule's members are listed
+# by their submodule-qualified names (`duckdb.tune`), which Great Docs
+# resolves relative to the package (`dazure:duckdb.tune`). `members` lists
+# keep the dunder methods (documented for `great-docs lint`) off the pages.
+reference:
+  - title: Refresh tokens and credentials
+    desc: Find the `az login` refresh token, or sign in for one, and redeem it.
+    contents:
+      - refresh_token_from_az_cli
+      - name: RefreshTokenInfo
+        members:
+          - get_refresh_token
+      - SupportsRefreshToken
+      - AZURE_CLI_CLIENT_ID
+      - name: RefreshTokenCredential
+        members:
+          - get_token
+          - get_refresh_token
+      - name: DeviceCodeCredential
+        members:
+          - get_refresh_token
+      - name: InteractiveBrowserCredential
+        members:
+          - get_refresh_token
+  - title: Spark
+    desc: Hadoop ABFS configuration for PySpark.
+    contents:
+      - spark_storage_conf
+      - name: SparkStorageConf
+        members:
+          - copy
+  - title: REST client
+    desc: A small httpx client for one Azure-protected REST API, and its credentials.
+    contents:
+      - name: ApiClient
+        members:
+          - fetch
+          - close
+      - app_credential
+  - title: az CLI
+    desc: Log the Azure CLI in and out, and read its current account.
+    contents:
+      - az_login
+      - az_logout
+      - az_is_login
+      - az_account_show
+  - title: DuckDB
+    desc: "Azure secrets and settings for DuckDB, in `dazure.duckdb` (needs `dazure[duckdb]`)."
+    contents:
+      - duckdb.set_credential_secret
+      - duckdb.set_token_secret
+      - duckdb.set_sp_secret
+      - duckdb.set_chain_secret
+      - duckdb.list_secrets
+      - duckdb.azure_settings
+      - duckdb.tune
+      - duckdb.STORAGE_SCOPE
+  - title: Errors
+    desc: Everything dazure raises derives from `DazureError`.
+    contents:
+      - DazureError
+      - RefreshTokenNotFoundError
+      - UnsupportedPlatformError
+      - AzCliError
+      - AzCliNotFoundError
+      - AzCliNotLoggedInError
+      - AzCliNonInteractiveError
+      - AzCliTimeoutError
+      - ApiError
+      - ResponseParseError

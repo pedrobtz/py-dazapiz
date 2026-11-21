@@ -34,6 +34,7 @@ duckdb = ["duckdb>=1.1"]
 
 [project.urls]
 Homepage = "https://github.com/pedrobtz/py-dazure"
+Documentation = "https://pedrobtz.github.io/py-dazure/"
 Issues = "https://github.com/pedrobtz/py-dazure/issues"
 Changelog = "https://github.com/pedrobtz/py-dazure/blob/main/CHANGELOG.md"
 
@@ -44,6 +45,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.sdist]
 exclude = [
     ".agents", ".github", "CLAUDE.md", "uv.lock", ".python-version", "typings",
+    # The documentation site's sources (design §7), and the test that reads them.
+    "great-docs.yml", "user_guide", "tests/test_docs_snippets.py",
     # The Petstore example, its OpenAPI fixture and their CI test: repository-only
     # (design §7). The opt-in live test stays: it is collected and skipped.
     "examples", "tests/fixtures/petstore-openapi.*", "tests/test_petstore_example.py",

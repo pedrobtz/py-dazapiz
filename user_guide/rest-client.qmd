@@ -1,0 +1,218 @@
+---
+title: REST client
+---
+
+`ApiClient` is a small `httpx` client for one REST API behind Entra ID. You
+subclass it once per API: the class says where the API is and where its
+credentials come from, and its methods call `fetch()`.
+
+## A client for one API
+
+```python
+from dazure import ApiClient
+
+
+class AppApiClient(ApiClient):
+    host_url = "https://app-api.example.com"
+    scope = "api://00000000-0000-0000-0000-000000000000/.default"
+    client_id_env = "APP_API_CLIENT_ID"     # this API's service principal
+    client_secret_env = "APP_API_SECRET"
+    # tenant_id_env = "APP_API_TENANT"      # only if not AZURE_TENANT_ID
+
+    def get_item(self, item_id: str) -> dict:
+        return self.fetch("/items/{item_id}", item_id=item_id)
+
+
+with AppApiClient() as client:
+    item = client.get_item("42")
+```
+
+`fetch(path, method="GET", *, query, json, headers, content_type, parse,
+**path_params)` fills the `{name}` placeholders from keyword arguments,
+URL-encoded, sends the request and returns the parsed body: JSON as Python
+objects, XML as an `ElementTree.Element`, anything else as text, an empty
+body as `None`. A non-2xx response raises `ApiError`, which is also an
+`httpx.HTTPStatusError`. `scope` defaults to `f"{host_url}/.default"`, and
+`__init__` arguments (`host_url`, `credential`, `scope`, timeouts) override
+the class attributes per instance.
+
+## Where the credential comes from
+
+`credential=` wins: any `TokenCredential`, such as `DefaultAzureCredential()`
+or `RefreshTokenCredential(refresh_token_from_az_cli())`. Otherwise, when the
+class names `client_id_env` and `client_secret_env`, `app_credential()`
+chooses one when the client is created, by `mode` (the class attribute),
+else `$AZURE_TOKEN_CREDENTIALS`, else automatically:
+
+| Mode | Credential |
+| --- | --- |
+| automatic | the API's service principal when both of its variables are set, else `"dev"` |
+| `"dev"` | `AzureCliCredential`, then `dazure.DeviceCodeCredential` in an interactive session |
+| `"prod"` | the API's service principal if set, else `WorkloadIdentityCredential` when `$AZURE_FEDERATED_TOKEN_FILE` is set, else `ManagedIdentityCredential` |
+| `"client_secret"`, `"workload_identity"`, `"managed_identity"`, `"azure_cli"`, `"device_code"` | that credential alone |
+
+So a developer with neither variable set gets their own `az login`, and a
+deployment that sets them gets the service principal. A client ID without
+its secret, or the reverse, is a `ValueError` naming the missing variable,
+never a silent fall-back. A class with no credential variables and no
+`credential=` sends requests unauthenticated.
+
+Tokens are kept until five minutes before they expire. A 401 is not
+retried, since the credential would hand back the same token; the token is
+dropped so the next request asks for a new one.
+
+## Typed results and model bodies
+
+`parse=` validates the body and types the result:
+
+```python
+from pydantic import TypeAdapter
+
+pets = client.fetch("/pets", parse=TypeAdapter(list[Pet]).validate_python)  # list[Pet]
+pet = client.fetch("/pets/{pet_id}", parse=Pet.model_validate, pet_id="7")  # Pet
+```
+
+`parse` is called with the parsed body of every successful response (`None`
+for an empty one). If it raises, `fetch()` raises `ResponseParseError`, with
+the method and URL but not the body (a validation error can quote it), and
+the original error as `__cause__`. The same error is raised when a body
+labelled JSON or XML does not parse.
+
+`json=` takes a pydantic model (sent as
+`model_dump(mode="json", by_alias=True, exclude_unset=True)`) or a dataclass,
+also nested in lists and dicts. `dazure` does not depend on pydantic: any
+object with a `model_dump()` method is treated as a model.
+
+## Logging and retries
+
+`verbose=True` logs each call on the `dazure.http` logger, in `azr`'s format:
+
+```
+ℹ >>> POST https://petstore3.swagger.io/api/v3/pet
+ℹ >>> body:
+{
+  "id": 4711,
+  "name": "dazure-example",
+  "photoUrls": ["https://example.com/dazure.png"],
+  "tags": [
+    {
+      "id": 1,
+      "name": "dazure"
+    }
+  ],
+  "status": "available"
+}
+✔ <<< status = 200 | time = 0.412 secs. | size = 0.13 Kb
+```
+
+JSON bodies (the request's, and the response's on failure) are abbreviated:
+an object or array of more than 10 items keeps the first and last 5, an
+array of more than 12 numbers or strings the first and last 6, with `...`
+between. Headers are never logged, so neither is the bearer token; a secret
+you put in a body is logged as sent.
+
+429, 503 and connection failures are retried, up to `max_tries=5` attempts,
+waiting for `Retry-After` when the server sends it, else a random 1 to
+2.5^attempt seconds (at most 60). A read timeout is not retried: the server
+may already have acted.
+
+```
+⚠ Request failed. Retrying in 2.1 secs. (attempt 1 of 5).
+```
+
+## Example: the Swagger Petstore
+
+`examples/petstore.py` in the repository is a complete, typed client for the
+public [Swagger Petstore v3](https://petstore3.swagger.io), with pydantic
+models for every body. It needs no Azure, so you can run it:
+
+```sh
+uv run python examples/petstore.py
+```
+
+The code below is included from that file when the site is built, so it is
+the code that runs. These are the choices it makes, and why.
+
+### One base, two kinds of model
+
+<!-- snippet: class _Model(BaseModel): -->
+{{< include examples/petstore.py lines="61-81" >}}
+
+- **Aliases.** The API is camelCase (`photoUrls`), Python is snake_case
+  (`photo_urls`). `alias_generator=to_camel` maps one to the other, and
+  `validate_by_name` with `validate_by_alias` accept either when validating.
+  `fetch()` sends models `by_alias=True`, so the wire format is the API's.
+- **Frozen.** A validated object cannot be changed behind the validator's
+  back; `pet.model_copy(update={"status": "sold"})` makes a changed copy
+  (pydantic does not validate `update`, so give it values of the right
+  type).
+- **Strict requests, tolerant responses.** A request model forbids unknown
+  fields, so a typo (`photoUrl=`) fails in Python, before anything is sent.
+  A response model ignores fields it does not know, so the server adding one
+  does not break the client; a missing required field or a wrong type still
+  fails, as `ResponseParseError`.
+
+### Separate input and output models
+
+<!-- snippet: class PetCreate(_Request): -->
+{{< include examples/petstore.py lines="98-127" >}}
+
+What you send and what you get back are different contracts. `PetCreate`
+checks what the store needs on the way in: a non-empty name and real URLs.
+`Pet` always has an `id`, since the store assigned one, and types the photo
+URLs as the schema does, as plain strings. Request models are sent with only
+the fields you set (`exclude_unset=True`), so an optional field you left out
+is not sent as `null`.
+
+### Where the live store differs from its schema
+
+An example client meets the real server, not only its OpenAPI document. The
+public store differs in ways the models and methods account for, each noted
+in the code:
+
+- The schema leaves a new pet's `id` optional, but the store answers 500 to
+  a pet without one: pass your own (as `PetCreate`'s docstring says).
+- The store holds pets whose photo URL is the string `"string"`, so `Pet`
+  checks the schema's contract (`list[str]`), not a stricter one; only
+  `PetCreate` checks for URLs.
+- It answers XML unless asked for JSON, so every call sends
+  `Accept: application/json`.
+- Its `status` query takes one value, so `find_pets_by_status()` makes one
+  request per status.
+- Its delete reply is plain text labelled as JSON, which would not parse,
+  so the delete calls read it as text:
+
+<!-- snippet: # The store labels its plain-text reply ("Pet deleted") as JSON, which would -->
+{{< include examples/petstore.py lines="289-293" >}}
+
+### Build validators once
+
+<!-- snippet: # The store answers XML unless asked for JSON. -->
+{{< include examples/petstore.py lines="152-157" >}}
+
+A `TypeAdapter` compiles its validator when it is created, so the module
+builds each one once and the methods reuse it:
+
+<!-- snippet: if isinstance(status, str): -->
+{{< include examples/petstore.py lines="250-263" >}}
+
+### Domain errors
+
+A 404 from `get_pet()` means "no such pet", which callers want to catch by
+name, not by status code. The client turns that one case into its own error,
+chained to the `ApiError`, and lets every other failure through:
+
+<!-- snippet: class PetNotFoundError(LookupError): -->
+{{< include examples/petstore.py lines="160-161" >}}
+
+<!-- snippet: def get_pet(self, pet_id: int) -> Pet: -->
+{{< include examples/petstore.py lines="199-223" >}}
+
+### Putting it together
+
+<!-- snippet: def main() -> None: -->
+{{< include examples/petstore.py lines="355-382" >}}
+
+`tests/test_petstore_example.py` checks the models against the store's
+OpenAPI document and the requests the client sends; a live test against the
+public store runs by hand.

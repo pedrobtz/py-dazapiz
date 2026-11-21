@@ -12,7 +12,8 @@ and manual tiers (D23), with §4.3.2, §7, §9, D16 and D22 following;
 answered; #22), 2026-11-21;
 §4.1 `fetch(parse=...)` and model bodies, §5 `ResponseParseError` and the
 Petstore example, §7 and §8 type checking, real-HTTP tests and the Petstore
-item (D49 to D58; #26), 2026-11-21.
+item (D49 to D58; #26), 2026-11-21;
+§7 documentation site (#27), 2026-11-21.
 
 - **Status:** Proposed. The decisions in §10 marked "maintainer" were
   settled in conversation on 2026-11-19 (D21 on 2026-11-21); the rest
@@ -1111,6 +1112,19 @@ config and cache paths); the real persisted cache of §4.3.2 is checked
 by hand on each OS (§8.2). Published
 to PyPI by a release workflow with trusted publishing, as `py-dazdiff`
 does.
+
+Documentation site built with great-docs (Quarto) from `great-docs.yml`,
+`user_guide/` and the NumPy docstrings, deployed to GitHub Pages
+(`https://pedrobtz.github.io/py-dazure/`) by `.github/workflows/docs.yml`
+on pushes to `main`, and built and linted (`great-docs lint`) on every
+pull request; great-docs 0.17.0 and Quarto 1.11.9 pinned, as `py-dazdiff`
+does. The reference groups follow §5; `dazure.duckdb` is listed by
+submodule-qualified names (`duckdb.tune`) and read by static analysis
+(`dynamic: false`), since `import dazure` does not import it. Guide code
+is never executed (it needs Azure); the Petstore walkthrough includes
+`examples/petstore.py` by line range, checked by a test. `great-docs.yml`
+and `user_guide/` are left out of the sdist (decided 2026-11-21, #27: the
+maintainer asked for the site as `py-dazdiff` has it).
 
 ## 8. Testing and validation
 

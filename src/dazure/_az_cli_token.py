@@ -159,12 +159,49 @@ def refresh_token_from_az_cli(
     An encrypted cache (`msal_token_cache.bin`, from
     `az config set core.encrypt_token_cache=true`) is not read.
 
-    Raises:
-        RefreshTokenNotFoundError: no profile, no default subscription, no cache
-            or no matching token. The message names the file and the username,
-            never a token.
-        UnsupportedPlatformError: on Windows, where the Azure CLI signs in
-            through the Windows broker and encrypts its cache.
+    Parameters
+    ----------
+    username
+        The account to look up, matched case-insensitively; default the
+        default subscription's user.
+    tenant_id
+        The tenant the token is for; default the default subscription's
+        tenant, or, with `username`, that user's default (else first)
+        subscription's tenant.
+    config_dir
+        The Azure CLI's config directory; default `$AZURE_CONFIG_DIR`, else
+        `~/.azure`. `~` is expanded.
+
+    Returns
+    -------
+    RefreshTokenInfo
+        The token, `AZURE_CLI_CLIENT_ID`, the tenant and the username. Pass it
+        to `spark_storage_conf(refresh_token=...)` or `RefreshTokenCredential`.
+
+    Raises
+    ------
+    RefreshTokenNotFoundError
+        No profile, no default subscription, no cache or no matching token.
+        The message names the file and the username, never a token.
+    UnsupportedPlatformError
+        On Windows, where the Azure CLI signs in through the Windows broker
+        and encrypts its cache.
+
+    Notes
+    -----
+    Uses `msal.SerializableTokenCache` to read and search the cache; the
+    lookup (which file, which entry) is what dazure adds. Nothing is
+    redeemed here: the token is returned as found, and may have expired if
+    the CLI has not been used for a long time (run `az login` again).
+
+    Examples
+    --------
+    ```python
+    from dazure import refresh_token_from_az_cli
+
+    info = refresh_token_from_az_cli()
+    info.username, info.tenant_id
+    ```
     """
     if _is_windows():
         raise UnsupportedPlatformError(

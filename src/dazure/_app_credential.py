@@ -56,27 +56,57 @@ def app_credential(
     """The credential an API's client uses, chosen from the environment now.
 
     `client_id_env`, `client_secret_env` and `tenant_id_env` name the variables
-    that hold this API's service principal. The mode is `mode`, else
-    `$AZURE_TOKEN_CREDENTIALS`, else automatic, matched case-insensitively:
+    that hold this API's service principal, so it can live in variables of
+    its own (`APP_API_CLIENT_ID`, ...) rather than the machine's
+    `AZURE_CLIENT_ID`. The mode is `mode`, else `$AZURE_TOKEN_CREDENTIALS`,
+    else automatic, matched case-insensitively:
 
-    - `"prod"`: `azure.identity.ClientSecretCredential` from the named
-      variables when they are set, else `WorkloadIdentityCredential()` when
-      `$AZURE_FEDERATED_TOKEN_FILE` is set, else `ManagedIdentityCredential()`
-      with `client_id=$AZURE_CLIENT_ID` (user-assigned) when that is set.
-    - `"dev"`: `ChainedTokenCredential(AzureCliCredential(),
-      dazure.DeviceCodeCredential())`, the device code only in an interactive
-      session (a TTY or a notebook kernel).
-    - One of `"client_secret"`, `"workload_identity"`, `"managed_identity"`,
-      `"azure_cli"`, `"device_code"` (or the azure-identity class name):
-      that credential alone.
-    - Automatic: the named service principal when its client ID and secret
-      variables are set, otherwise `"dev"`.
+    | Mode | Credential |
+    | --- | --- |
+    | `"prod"` | `ClientSecretCredential` from the named variables when they are set, else `WorkloadIdentityCredential()` when `$AZURE_FEDERATED_TOKEN_FILE` is set, else `ManagedIdentityCredential()` (user-assigned with `client_id=$AZURE_CLIENT_ID` when that is set) |
+    | `"dev"` | `ChainedTokenCredential(AzureCliCredential(), dazure.DeviceCodeCredential())`, the device code only in an interactive session (a TTY or a notebook kernel) |
+    | `"client_secret"`, `"workload_identity"`, `"managed_identity"`, `"azure_cli"`, `"device_code"` (or the azure-identity class name) | that credential alone |
+    | automatic | the named service principal when its client ID and secret variables are set, otherwise `"dev"` |
 
-    A client ID without its secret, or the reverse, raises `ValueError`
-    naming the missing variable, as does a service principal with no tenant.
-    The mode and credential class chosen (never a value) are logged on the
-    `dazure.http` logger at `INFO`. Every credential is an azure-identity
-    class, unchanged; no token is fetched here.
+    Parameters
+    ----------
+    client_id_env
+        The variable holding the service principal's client ID.
+    client_secret_env
+        The variable holding its client secret.
+    tenant_id_env
+        The variable holding its tenant ID.
+    mode
+        One of the modes above; default `$AZURE_TOKEN_CREDENTIALS`, else
+        automatic.
+
+    Returns
+    -------
+    azure.core.credentials.TokenCredential
+        An azure-identity credential, unchanged; no token is fetched here.
+
+    Raises
+    ------
+    ValueError
+        An unknown mode; a client ID without its secret, or the reverse
+        (naming the missing variable); a service principal with no tenant; or
+        `"client_secret"` with neither variable set.
+
+    Notes
+    -----
+    Every credential is an `azure-identity` class, built and returned as is;
+    the choice is what dazure adds. Variables are read once, now; an empty
+    variable counts as unset. The mode and credential class chosen (never a
+    value) are logged on the `dazure.http` logger at `INFO`.
+
+    Examples
+    --------
+    ```python
+    from dazure import app_credential
+
+    credential = app_credential("APP_API_CLIENT_ID", "APP_API_SECRET")
+    token = credential.get_token("api://my-api/.default")
+    ```
     """
     if mode is not None:
         source, raw = "mode", mode

@@ -10,8 +10,13 @@ from .errors import RefreshTokenNotFoundError
 
 __all__ = ["AZURE_CLI_CLIENT_ID", "RefreshTokenInfo", "SupportsRefreshToken"]
 
-#: The Azure CLI's public client ID, to which `az login` refresh tokens are issued.
 AZURE_CLI_CLIENT_ID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
+"""The Azure CLI's public client ID, to which `az login` refresh tokens are issued.
+
+A refresh token can only be redeemed by the client it was issued to, so an
+`az login` token is redeemed with this ID. It is also the default client ID
+for a refresh token given as a plain string when `$AZURE_CLIENT_ID` is unset.
+"""
 
 _REDACTED = "<redacted>"
 
@@ -20,7 +25,39 @@ _REDACTED = "<redacted>"
 class RefreshTokenInfo:
     """A refresh token with the client ID and tenant it belongs to.
 
-    `repr()` and `str()` never show `token`.
+    What `refresh_token_from_az_cli()` and every credential's
+    `get_refresh_token()` return, and what `spark_storage_conf()` and
+    `RefreshTokenCredential` take. It is itself a `SupportsRefreshToken`.
+    Frozen; `repr()` and `str()` never show `token`.
+
+    Parameters
+    ----------
+    token
+        The refresh token. A secret.
+    client_id
+        The client (application) ID the token was issued to, which must
+        redeem it.
+    tenant_id
+        The tenant to redeem it in: a GUID, a domain, `"organizations"` or
+        `"common"`.
+    username
+        The signed-in user, when known.
+
+    Raises
+    ------
+    TypeError
+        A field is not a string (`username` may be `None`).
+    ValueError
+        `token`, `client_id` or `tenant_id` is empty.
+
+    Examples
+    --------
+    ```python
+    from dazure import AZURE_CLI_CLIENT_ID, RefreshTokenInfo
+
+    info = RefreshTokenInfo(token=token, client_id=AZURE_CLI_CLIENT_ID, tenant_id="contoso.com")
+    info  # RefreshTokenInfo(token='<redacted>', client_id='04b07795-...', ...)
+    ```
     """
 
     token: str
@@ -29,6 +66,7 @@ class RefreshTokenInfo:
     username: str | None = None
 
     def __post_init__(self) -> None:
+        """Check the fields' types and that the required ones are not empty."""
         for name in ("token", "client_id", "tenant_id"):
             value: object = getattr(self, name)
             if not isinstance(value, str):
@@ -42,21 +80,57 @@ class RefreshTokenInfo:
             raise TypeError("RefreshTokenInfo.username must be a str or None")
 
     def __repr__(self) -> str:
+        """The fields with the token shown as `<redacted>`."""
         return (
             f"RefreshTokenInfo(token={_REDACTED!r}, client_id={self.client_id!r}, "
             f"tenant_id={self.tenant_id!r}, username={self.username!r})"
         )
 
     def get_refresh_token(self) -> RefreshTokenInfo:
-        """Return itself, so a `RefreshTokenInfo` is a `SupportsRefreshToken`."""
+        """Return itself, so a `RefreshTokenInfo` is a `SupportsRefreshToken`.
+
+        Returns
+        -------
+        RefreshTokenInfo
+            This object.
+        """
         return self
 
 
 @runtime_checkable
 class SupportsRefreshToken(Protocol):
-    """Anything that can hand over a refresh token with its client ID and tenant."""
+    """Anything that can hand over a refresh token with its client ID and tenant.
 
-    def get_refresh_token(self) -> RefreshTokenInfo: ...
+    A runtime-checkable protocol with one method, `get_refresh_token()`,
+    returning a `RefreshTokenInfo`. `RefreshTokenInfo` itself,
+    `RefreshTokenCredential`, `DeviceCodeCredential` and
+    `InteractiveBrowserCredential` implement it; `spark_storage_conf()` and
+    `RefreshTokenCredential` accept any of them where a refresh token is
+    expected. `azure-identity` credentials do not: they keep refresh tokens
+    private.
+
+    Examples
+    --------
+    ```python
+    from dazure import RefreshTokenInfo, SupportsRefreshToken
+
+    class FromVault:
+        def get_refresh_token(self) -> RefreshTokenInfo:
+            return RefreshTokenInfo(token=read_secret(), client_id=CLIENT, tenant_id=TENANT)
+
+    isinstance(FromVault(), SupportsRefreshToken)  # True
+    ```
+    """
+
+    def get_refresh_token(self) -> RefreshTokenInfo:
+        """Return the refresh token with its client ID and tenant.
+
+        Returns
+        -------
+        RefreshTokenInfo
+            The token and what it belongs to.
+        """
+        ...
 
 
 def env(name: str) -> str | None:
