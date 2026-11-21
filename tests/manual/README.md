@@ -17,8 +17,9 @@ least one OS each, as the table says. Record each run with the
 Two kinds of item:
 
 - **Scripted** items are pytest modules here, `test_live_*.py`. They are
-  skipped unless `DAZURE_LIVE=1`, so a plain `uv run pytest` reports them
-  skipped (`tests/test_manual_checklist.py` checks that). With
+  skipped unless `DAZURE_LIVE=1` (item 8, which needs no Azure, unless
+  `DAZURE_LIVE_HTTP=1`), so a plain `uv run pytest` reports them skipped
+  (`tests/test_manual_checklist.py` checks that). With
   `DAZURE_LIVE=1`, a test whose environment variable is unset is skipped
   with the variable's name, so a partial run says what it left out.
 - **Interactive** items need a person at a browser. `interactive.py` here
@@ -47,6 +48,7 @@ A skipped item is recorded as `not run`, never as a pass.
 | 5. `az` helpers | any | `az` installed; a clipboard tool (`pbcopy`, `clip`, `wl-copy`, `xclip` or `xsel`) |
 | 6. Spark | macOS or Linux | PySpark, Java 17+, Maven Central reachable; the storage account; the service principal |
 | 7. DuckDB | any | the `duckdb` extra; the storage account; the service principal |
+| 8. Petstore example (optional, no Azure) | any | the internet; nothing else |
 
 Azure resources, created once:
 
@@ -69,7 +71,8 @@ Environment variables:
 
 | Variable | Used by | Value |
 | --- | --- | --- |
-| `DAZURE_LIVE` | all scripted items | `1` to run them; anything else skips |
+| `DAZURE_LIVE` | scripted items 1, 4–7 | `1` to run them; anything else skips |
+| `DAZURE_LIVE_HTTP` | item 8 | `1` to run it; anything else skips. `DAZURE_LIVE` does not turn it on |
 | `DAZURE_TEST_STORAGE_ACCOUNT` | 6, 7 | the storage account's short name |
 | `DAZURE_TEST_CONTAINER` | 6, 7 | the container |
 | `DAZURE_TEST_PATH` | 6, 7 | the test file's path in the container |
@@ -290,6 +293,30 @@ Pass: all four pass; the count is `DAZURE_TEST_ROWS` when set.
 
 Record: DuckDB version, pass/fail per test.
 
+## 8. Petstore example (optional, no Azure)
+
+Design §4.1, §8.1 (#26). `examples/petstore.py` against the public Swagger
+Petstore v3 (`https://petstore3.swagger.io/api/v3`). It needs no Azure
+and no account, so it is optional: run it when `ApiClient`'s `parse=` or
+`json=` handling, or the example, changes. CI checks the same client
+against recorded Petstore-shaped responses and the store's OpenAPI
+document; this checks the real server agrees.
+
+```sh
+DAZURE_LIVE_HTTP=1 uv run pytest tests/manual/test_live_petstore.py -ra -v
+uv run python examples/petstore.py           # the example's own demo, verbose
+```
+
+Pass: `test_pet_and_order_lifecycle` passes. With an id of its own it adds
+a pet, reads it back, finds it by status, sells it, places, reads and
+deletes an order for it, deletes it, and checks both are then
+`PetNotFoundError` / `OrderNotFoundError` chained to a 404 `ApiError`.
+The store is shared and writable: the test tolerates other people's pets
+in the status list (if one of theirs fails validation, it checks its own
+pet in the raw list instead) and deletes what it created even on failure.
+
+Record: pass/fail, or `not run`.
+
 ## Record
 
 Paste one block per OS into the release pull request:
@@ -323,6 +350,7 @@ Paste one block per OS into the release pull request:
 | 6 Hadoop note (`WorkloadIdentityTokenProvider` iff 3.4.1+) | | |
 | 7 DuckDB credential secret, scoped / unscoped | | |
 | 7 DuckDB SP secret, scoped / unscoped | | |
+| 8 Petstore example (optional) | pass / fail / not run | |
 ```
 
 The versions come from:

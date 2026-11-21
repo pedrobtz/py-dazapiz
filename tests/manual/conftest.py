@@ -1,8 +1,9 @@
 """The live tests of the manual checklist (README.md here; design §8.2).
 
-Every test under this directory is skipped unless `DAZURE_LIVE=1`. The
-guard is a collection hook, not a marker each module must remember, so a
-new `test_live_*.py` is skipped too. The modules import nothing beyond
+Every test under this directory is skipped unless `DAZURE_LIVE=1`, except
+the modules in `LIVE_HTTP_MODULES`, which need no Azure and are skipped
+unless `DAZURE_LIVE_HTTP=1`. The guard is a collection hook, not a marker
+each module must remember, so a new `test_live_*.py` is skipped too. The modules import nothing beyond
 `dazure`, `azure-identity` and the standard library at import time;
 DuckDB and PySpark are imported inside the tests that need them.
 """
@@ -18,18 +19,32 @@ from live_helpers import jwt_claims
 
 HERE = Path(__file__).parent
 LIVE_REASON = "live Azure test of the manual checklist: set DAZURE_LIVE=1 (tests/manual/README.md)"
+LIVE_HTTP_REASON = (
+    "live HTTP test against a public service, no Azure: set DAZURE_LIVE_HTTP=1 "
+    "(tests/manual/README.md)"
+)
+# Modules that reach only a public non-Azure service (item 8).
+LIVE_HTTP_MODULES = frozenset({"test_live_petstore.py"})
 
 
 def live_enabled() -> bool:
     return os.environ.get("DAZURE_LIVE") == "1"
 
 
+def live_http_enabled() -> bool:
+    return os.environ.get("DAZURE_LIVE_HTTP") == "1"
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    if live_enabled():
-        return
     skip = pytest.mark.skip(reason=LIVE_REASON)
+    skip_http = pytest.mark.skip(reason=LIVE_HTTP_REASON)
     for item in items:
-        if HERE in item.path.parents:
+        if HERE not in item.path.parents:
+            continue
+        if item.path.name in LIVE_HTTP_MODULES:
+            if not live_http_enabled():
+                item.add_marker(skip_http)
+        elif not live_enabled():
             item.add_marker(skip)
 
 
