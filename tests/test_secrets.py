@@ -220,3 +220,90 @@ def test_az_login_prints_only_the_code_and_account_name(fake_az, monkeypatch, ca
     assert SENTINEL not in out + err
     assert "F7GH2K9QX" in out
     assert out.count("alice@contoso.com") == 2
+
+
+def test_api_client_never_logs_or_shows_the_bearer_token(monkeypatch, caplog, capsys):
+    # verbose=True, a body posted, a failure with a body: no Authorization value anywhere.
+    import logging
+    import time
+
+    import httpx
+    from azure.core.credentials import AccessToken
+    from recording_transport import RecordingTransport, json_response
+
+    import dazure._api_client
+    from dazure import ApiClient, ApiError
+    from dazure._api_client import BearerAuth
+
+    class Credential:
+        def get_token(self, *scopes, **kwargs):
+            return AccessToken(SENTINEL, int(time.time()) + 3600)
+
+    transport = RecordingTransport(
+        [
+            json_response(200, {"ok": True}),
+            httpx.Response(503),
+            json_response(401, {"error": "unauthorized"}),
+        ]
+    )
+    monkeypatch.setattr(dazure._api_client, "_transport", lambda: transport)
+    monkeypatch.setattr(dazure._api_client, "_sleep", lambda s: None)
+    log = logging.getLogger("dazure.http")
+    monkeypatch.setattr(log, "handlers", [])
+    monkeypatch.setattr(log, "level", logging.NOTSET)
+    client = ApiClient("https://api.example.com", credential=Credential(), verbose=True)
+    with caplog.at_level(logging.DEBUG):
+        client.fetch("/x", "POST", json={"a": 1})
+        with pytest.raises(ApiError) as err:
+            client.fetch("/y")
+    assert all(r.headers["authorization"] == f"Bearer {SENTINEL}" for r in transport.requests)
+    assert caplog.records
+    for record in caplog.records:
+        assert SENTINEL not in record.getMessage()
+    out, errout = capsys.readouterr()
+    assert SENTINEL not in out + errout
+    assert SENTINEL not in shown(err.value)
+    assert SENTINEL not in shown(client)
+    assert SENTINEL not in shown(client._http.auth)
+    assert SENTINEL not in shown(BearerAuth(Credential(), "s"))
+
+
+def test_app_credential_never_logs_or_shows_the_client_secret(monkeypatch, caplog, capsys):
+    import logging
+
+    from dazure import ApiClient, app_credential
+
+    for name in ("AZURE_TOKEN_CREDENTIALS", "AZURE_CLIENT_SECRET"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("APP_ID", "cid")
+    monkeypatch.setenv("APP_SECRET", SENTINEL)
+    monkeypatch.setenv("APP_TENANT", "tid")
+    log = logging.getLogger("dazure.http")
+    monkeypatch.setattr(log, "handlers", [])
+    monkeypatch.setattr(log, "level", logging.NOTSET)
+
+    class Api(ApiClient):
+        host_url = "https://api.example.com"
+        client_id_env = "APP_ID"
+        client_secret_env = "APP_SECRET"
+        tenant_id_env = "APP_TENANT"
+
+    with caplog.at_level(logging.DEBUG):
+        client = Api(verbose=True)
+        cred = app_credential("APP_ID", "APP_SECRET", tenant_id_env="APP_TENANT", mode="prod")
+    assert any("ClientSecretCredential" in r.getMessage() for r in caplog.records)
+    for record in caplog.records:
+        assert SENTINEL not in record.getMessage()
+    out, errout = capsys.readouterr()
+    assert SENTINEL not in out + errout
+    assert SENTINEL not in shown(client)
+    assert SENTINEL not in shown(cred)
+
+    # The partly set and unknown-mode errors name variables, never values.
+    for env, mode in (("APP_ID", None), ("APP_TENANT", "client_secret"), (None, "bogus")):
+        with pytest.MonkeyPatch.context() as mp:
+            if env:
+                mp.delenv(env)
+            with pytest.raises(ValueError) as err:
+                app_credential("APP_ID", "APP_SECRET", tenant_id_env="APP_TENANT", mode=mode)
+        assert SENTINEL not in shown(err.value)

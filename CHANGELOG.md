@@ -43,6 +43,22 @@
   the sign-in URL and reads back the callback URL, base64 JSON, or the
   code and state shown by the callback page, so it works from
   code-server and notebooks in the cloud.
+- `ApiClient`, a small `httpx` client for one REST API, meant to be
+  subclassed: `fetch()` fills `{name}` path placeholders (URL-encoded),
+  retries 429, 503 and connection failures up to `max_tries` with
+  `Retry-After` or `azr`'s backoff, parses JSON, XML or text by content
+  type, and raises `ApiError` (an `httpx.HTTPStatusError`) with the
+  method, URL, status and body. The bearer token is fetched from the
+  credential once and renewed five minutes before expiry. `verbose=True`
+  logs requests and responses in `azr`'s format on the `dazure.http`
+  logger, through `rich`; headers are never logged.
+- `app_credential()` chooses an API's credential from its own service
+  principal variables (`client_id_env`, `client_secret_env`,
+  `tenant_id_env`) and the mode (`prod`, `dev`, a single credential
+  name, or automatic), from the argument or `$AZURE_TOKEN_CREDENTIALS`;
+  a partly set service principal raises `ValueError` naming the missing
+  variable. `ApiClient` subclasses call it when they set `client_id_env`
+  and `client_secret_env`.
 - `dazure.errors`: `DazureError`, `RefreshTokenNotFoundError`,
-  `UnsupportedPlatformError`. No token appears in a `repr`, `str` or error
-  message.
+  `UnsupportedPlatformError`, `ApiError`. No token appears in a `repr`,
+  `str` or error message.
