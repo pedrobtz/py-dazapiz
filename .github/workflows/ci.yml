@@ -1,6 +1,6 @@
 name: CI
 
-# Profiles (see .agents/roadmap.md once it exists):
+# Profiles (see .agents/roadmap.md, "CI policy"):
 #   quick: lint + pytest on Ubuntu / Python 3.13. Pull requests.
 #   full:  lint + pytest on 3 OSes x Python 3.10-3.14 (the persisted MSAL
 #          cache differs by OS, design §7), lowest direct dependencies, and a
