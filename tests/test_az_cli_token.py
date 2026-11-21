@@ -192,6 +192,37 @@ def test_no_default_subscription(tmp_path):
         lookup(tmp_path)
 
 
+@pytest.mark.parametrize(
+    "profile",
+    [
+        [1, 2],  # not an object
+        {"subscriptions": "nope"},
+        {"subscriptions": [{"isDefault": True, "user": {"name": 7}, "tenantId": CONTOSO}]},
+        {"subscriptions": [{"isDefault": True, "user": "alice", "tenantId": CONTOSO}]},
+        {"subscriptions": [{"isDefault": True, "user": {"name": "alice"}, "tenantId": 5}]},
+    ],
+    ids=["array", "subscriptions-not-a-list", "name-not-str", "user-not-object", "tenant-not-str"],
+)
+def test_malformed_profile_is_no_default_subscription(tmp_path, profile):
+    # (#26) A profile of the wrong shape is "no default subscription", never a
+    # non-string username or tenant passed on, nor an AttributeError.
+    import json
+
+    write_token_cache(tmp_path, [ALICE])
+    (tmp_path / "azureProfile.json").write_text(json.dumps(profile), encoding="utf-8-sig")
+    with pytest.raises(RefreshTokenNotFoundError, match="default subscription"):
+        lookup(tmp_path)
+
+
+def test_override_ignores_a_non_string_tenant(tmp_path):
+    # (#26) With a username given, a subscription whose tenantId is not a string is skipped.
+    write_token_cache(tmp_path, [ALICE])
+    sub = subscription(ALICE.username, CONTOSO, is_default=True)
+    write_profile(tmp_path, [{**sub, "tenantId": 5}])
+    with pytest.raises(RefreshTokenNotFoundError, match="No subscription of"):
+        lookup(tmp_path, username=ALICE.username)
+
+
 def test_unreadable_profile(tmp_path):
     (tmp_path / "azureProfile.json").write_text("{not json", encoding="utf-8")
     with pytest.raises(RefreshTokenNotFoundError, match=re.escape("azureProfile.json")):

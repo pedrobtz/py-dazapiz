@@ -2,6 +2,28 @@
 
 ## 0.1.0 (unreleased)
 
+- `ApiClient.fetch(..., parse=f)` returns `f(body)`, typed as `f`'s result:
+  `f` is applied to the parsed body of every successful response (an empty
+  one as `None`) in place of `response_handler`, so
+  `parse=Model.model_validate` or `TypeAdapter(list[Model]).validate_python`
+  validates it. An exception from `f` raises the new
+  `ResponseParseError`, which names the method and URL but not the body
+  and is chained to the original (#26).
+- A response body whose content type says JSON or XML but which does not
+  parse raises `ResponseParseError` instead of the parser's own exception
+  (#26).
+- `fetch(json=...)` sends a pydantic model as
+  `model_dump(mode="json", by_alias=True, exclude_unset=True)` and a
+  dataclass as `dataclasses.asdict()`, also when nested in lists, tuples,
+  dict values or dataclass fields; `dazure` does not depend on pydantic
+  (#26).
+- `with SomeApiClient() as client:` types `client` as the subclass (#26).
+- `refresh_token_from_az_cli()` reports an `azureProfile.json` whose user
+  name or tenant is not a string as having no default subscription,
+  instead of returning it (#26).
+- `examples/petstore.py` (in the repository): a typed Swagger Petstore v3
+  client on `ApiClient` with pydantic models for request and response
+  bodies (#26).
 - `ApiClient(verbose=True)` abbreviates logged JSON bodies (request and
   failed response) as `azr`'s `format_json_body()`: more than 10 items keep
   the first and last 5, a nested array of more than 12 scalars the first

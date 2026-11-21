@@ -18,6 +18,7 @@ __all__ = [
     "AzCliTimeoutError",
     "DazureError",
     "RefreshTokenNotFoundError",
+    "ResponseParseError",
     "UnsupportedPlatformError",
 ]
 
@@ -63,3 +64,18 @@ class ApiError(DazureError, httpx.HTTPStatusError):
     The message carries the method, URL, status and response body, never a
     request header. `request` and `response` are the `httpx` objects.
     """
+
+
+class ResponseParseError(DazureError):
+    """`ApiClient.fetch(..., parse=...)`'s `parse` raised on a successful response.
+
+    The message names the method, the URL and the exception's type, never the
+    body or a header: a validation error can quote the body. The exception
+    `parse` raised is `__cause__`. `request` and `response` are the `httpx`
+    objects.
+    """
+
+    def __init__(self, message: str, *, request: httpx.Request, response: httpx.Response) -> None:
+        super().__init__(message)
+        self.request = request
+        self.response = response

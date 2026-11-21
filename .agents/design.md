@@ -9,7 +9,10 @@ and manual tiers (D23), with §4.3.2, §7, §9, D16 and D22 following;
 §4.1 and §4.1.1 detailed by Stage 5 (D36 to D43), 2026-11-21;
 §4.5 detailed by Stage 6 (D44 to D48), 2026-11-21;
 §4.1's logged bodies abbreviated as `azr`'s (D43 replaced, §11 Q5
-answered; #22), 2026-11-21.
+answered; #22), 2026-11-21;
+§4.1 `fetch(parse=...)` and model bodies, §5 `ResponseParseError` and the
+Petstore example, §7 and §8 type checking, real-HTTP tests and the Petstore
+item (D49 to D58; #26), 2026-11-21.
 
 - **Status:** Proposed. The decisions in §10 marked "maintainer" were
   settled in conversation on 2026-11-19 (D21 on 2026-11-21); the rest
@@ -187,10 +190,12 @@ class ApiClient:
         json: Any = None,
         headers: Mapping[str, str] | None = None,
         content_type: str | None = None,   # override parsing
+        parse: Callable[[Any], T] | None = None,  # D49: typed result
         **path_params: str,
-    ) -> Any: ...
+    ) -> T | Any: ...                      # overloads: T with parse, Any without
 
     def close(self) -> None: ...           # also a context manager
+    def __enter__(self: C) -> C: ...       # the subclass's own type
 ```
 
 The client holds one `httpx.Client(base_url=host_url,
@@ -438,6 +443,64 @@ Details settled in Stage 5 (2026-11-21):
 - The tests send through a recording `httpx.MockTransport` by patching
   the module's `_transport()`, and patch its `_sleep`, `_uniform`, `_now`
   and `_clock`, so the public signatures stay as above.
+
+**Typed results: `parse=`** (D49, maintainer, 2026-11-21; #26). `parse` is
+any callable `Any -> T`: `Model.model_validate`,
+`TypeAdapter(list[Model]).validate_python`, or a function. It is applied to
+the body as content-type parsing left it (the `content_type` override
+included), and when given it replaces `response_handler` for that call.
+Two `@overload`s type `fetch()`: with `parse` it returns `T`, without it
+`Any`, as before. `parse` is a keyword, so `{parse}` cannot be a path
+placeholder (as `query`, `json` and the others cannot).
+
+- An empty 2xx body reaches `parse` as `None` (D50), unlike
+  `response_handler`, which an empty body skips (D41). A non-2xx response
+  raises `ApiError` before `parse` is called; a retried response is not
+  parsed.
+- An `Exception` from `parse` raises `ResponseParseError` (§5) `from` it
+  (D54): `"<METHOD> <URL>: the response body was rejected by parse=
+  (<exception type>)."`. So does a body whose media type (the
+  `content_type` override, else the response's) is JSON or XML but which
+  does not parse: `"... the response body is not valid application/json
+  (JSONDecodeError)."`, before `response_handler` or `parse` sees it
+  (D57). The message never carries the body or a header,
+  because pydantic's message quotes the input it rejected; that detail
+  stays on `__cause__`. `request` and `response` are the `httpx` objects.
+
+**Model bodies: `json=`** (D49). A pydantic v2 model is sent as
+`model_dump(mode="json", by_alias=True, exclude_unset=True)`, a dataclass
+instance field by field as `dataclasses.asdict()` does, anything else as
+before (D52). Models and dataclasses are converted wherever they sit: at
+the top, in lists and tuples (sent as lists), in dict values and in
+dataclass fields; dict keys are left alone (D58). The
+check is duck-typed (a non-class with a callable `model_dump`), so
+`dazure` neither imports nor depends on pydantic. `mode="json"` makes
+dates, URLs and enums JSON values; `by_alias` sends the wire names;
+`exclude_unset` leaves out the fields the caller did not set, but keeps a
+field explicitly set to `None` (D51). The conversion happens before httpx
+encodes the body, so the verbose log shows the body as sent.
+
+**Example.** `examples/petstore.py` (repository only, D53) is a
+`PetStoreClient(ApiClient)` for the Swagger Petstore v3 with pydantic
+models for every request and response, run as
+`uv run python examples/petstore.py`:
+
+- one base, `ConfigDict(alias_generator=to_camel, validate_by_name=True,
+  validate_by_alias=True, frozen=True)` (pydantic 2.11's names); request
+  models `extra="forbid"`, response models `extra="ignore"`;
+- `PetCreate` / `Pet` and `OrderCreate` / `Order`, the response models
+  with a required `id`; `Category` and `Tag` shared, so they ignore
+  extras; `Literal` statuses; ids `Annotated[int, Field(ge=0, le=2**63 -
+  1)]` (int64); request photo URLs `HttpUrl`, response ones `str` as the
+  schema has them;
+- `TypeAdapter(list[Pet])` built once at module level;
+- typed methods `add_pet`, `get_pet`, `find_pets_by_status`,
+  `update_pet`, `delete_pet`, `place_order`, `get_order` (and
+  `delete_order`, for the demo to clean up), NumPy-style docstrings;
+  a 404 from `get_pet` / `get_order` raises `PetNotFoundError` /
+  `OrderNotFoundError`, chained to the `ApiError`;
+- `main()`, guarded by `if __name__ == "__main__":`, uses the client as a
+  context manager against the public store.
 
 ### 4.2 `az` CLI helpers
 
@@ -1008,8 +1071,13 @@ from dazure.duckdb import (
 ```
 
 Errors derive from `dazure.DazureError`; `dazure.ApiError` also derives
-from `httpx.HTTPStatusError`. `ClientAuthenticationError` from a
-credential passes through unwrapped.
+from `httpx.HTTPStatusError`. `dazure.ResponseParseError` is what
+`fetch(..., parse=...)` raises when `parse` fails on a successful response
+(§4.1, D54); it is not an `ApiError`, since the request succeeded.
+`ClientAuthenticationError` from a credential passes through unwrapped.
+
+`examples/petstore.py` (§4.1) shows an `ApiClient` subclass with pydantic
+models; it is in the repository, not the package.
 Names are snake_case Python names; `azr`'s `az_cli_` prefix is shortened
 to `az_` because the module already says Azure.
 
@@ -1033,7 +1101,10 @@ to `az_` because the module already says Azure.
 
 Repository `pedrobtz/py-dazure`, laid out like `py-dazdiff`: `src/dazure/`,
 `tests/`, `pyproject.toml` (hatchling), `uv.lock`, `CHANGELOG.md`,
-`ruff` with the same rule set, typed (`py.typed`). Python 3.10 to 3.14,
+`ruff` with the same rule set, typed (`py.typed`) and type-checked by
+pyright in strict mode (D55). `examples/`, `typings/` and the Petstore
+fixture and its tests are repository-only: left out of the sdist, never in
+the wheel. Python 3.10 to 3.14,
 matching `azure-identity`'s floor. CI on Ubuntu, macOS and Windows,
 for the platform branches (`UnsupportedPlatformError` on Windows, the
 config and cache paths); the real persisted cache of §4.3.2 is checked
@@ -1090,7 +1161,35 @@ not simple, and is manual instead.
   content-type parsing, retry rules and `Retry-After`, no
   `Authorization` value in captured log records, `ApiError` body. Logged
   JSON bodies against a fixture of `azr`'s `format_json_body()` output,
-  generated by `tools/azr_json_body_fixture.R` (§4.1).
+  generated by `tools/azr_json_body_fixture.R` (§4.1). `parse=` and model
+  bodies against the bytes the recording transport received
+  (`tests/test_fetch_typed.py`).
+- **`ApiClient` over real HTTP** (D56). `pytest-httpbin` serves httpbin on
+  loopback, so `tests/test_api_client_httpbin.py` sees what arrived: the
+  bearer token on `/bearer` (and a 401 without a credential), path
+  parameters percent-encoded on the request line (the server's own log;
+  httpbin's echo decodes `%2F`), query and JSON bodies on `/anything`,
+  parsing of `/json`, `/xml`, `/html` and `/status/204`, 429 and 503
+  retried (counted from the retry warnings, sleep patched to nothing) and
+  500 not, `/delay/2` under a 0.5 s timeout sent once, and timing and size
+  in the log records with no `Authorization` value.
+- **The Petstore example** (D53). `tests/test_petstore_example.py`, with
+  Petstore-shaped responses on the recording transport: each method's
+  method, path, query and body as recorded; responses missing `name`,
+  `id` or `photoUrls`, with an unknown status or a negative id raise
+  `ResponseParseError`; an unknown field is ignored; an invalid
+  `PetCreate` or `OrderCreate` fails at construction and nothing is sent;
+  a 404 is the domain error with the `ApiError` as `__cause__`. The spec
+  oracle is the store's OpenAPI document, committed as
+  `tests/fixtures/petstore-openapi.json` (Apache-2.0, provenance in
+  `petstore-openapi.md`): every model's aliases are its schema's property
+  names, its required fields the schema's `required` plus the listed
+  deliberate additions, the status `Literal`s the schema's `enum`s, and
+  every property `example` validates and dumps back unchanged.
+- **Types.** pyright (strict, Python 3.10) runs in the lint job over
+  `src/`, `examples/` and `tests/typing/` (D55), whose `assert_type`
+  checks pin `fetch()`'s overloads and `__enter__`'s return type; pytest
+  runs the same file against a mock transport.
 - **`az` helpers.** A fake `az` script on `PATH` that emits recorded
   outputs, including a device-code login that streams its prompt.
 - **DuckDB.** A real in-memory DuckDB with the `azure` extension: the
@@ -1142,6 +1241,9 @@ loading `hadoop-azure` and looking for `WorkloadIdentityTokenProvider`.
   version note of §12 for `WorkloadIdentityTokenProvider`.
 - **DuckDB**: one read with `set_credential_secret()` and one with
   `set_sp_secret()`, account-scoped and unscoped.
+- **Petstore example** (optional, no Azure; D56): the example's pet and
+  order lifecycle against the public store, skipped unless
+  `DAZURE_LIVE_HTTP=1` (`DAZURE_LIVE` does not turn it on).
 
 ## 9. Roadmap
 
@@ -1283,6 +1385,78 @@ Settled in Stage 6 (2026-11-21), the implementer's calls:
   secret value replaced by `<redacted>` and the original unchained;
   `tune()` prefixes the setting's name. Reason: DuckDB errors can quote the
   statement (§6), and callers keep catching `duckdb.Error`.
+
+Settled for #26 (2026-11-21):
+
+- **D49.** `fetch(..., parse=...)` returns a typed result, `json=` takes
+  pydantic models and dataclasses, and `examples/petstore.py` shows a
+  Petstore client with pydantic models for bodies and responses. Reason
+  (maintainer, 2026-11-21): typed bodies and responses for `ApiClient`,
+  with validation enforced both ways, the example to "implement the
+  current best practices" (#26).
+- **D50.** An empty 2xx body is passed to `parse` as `None`, where it
+  skips `response_handler` (D41). Reason: the overload promises `T`;
+  skipping `parse` would return `None` typed as the model, the hole the
+  maintainer's validation is meant to close. A caller expecting an empty
+  body gives no `parse`, or one that accepts `None`.
+- **D51.** Models are dumped with `exclude_unset=True`, not
+  `exclude_none=True`. Reason: unset optional fields stay off the wire (no
+  `null` the API did not ask for), while a field the caller set to `None`
+  is sent, so an API that clears a field on `null` can still be told to;
+  `exclude_none` cannot express that.
+- **D52.** A model is anything that is not a class and has a callable
+  `model_dump`; a dataclass is `dataclasses.is_dataclass()` of a
+  non-class. Reason: `dazure` does not depend on pydantic (#26).
+  (Converting the top-level value only was replaced by D58.)
+- **D53.** The Petstore example's models differ from a literal reading of
+  the schema where the real store does: `PetCreate` and `OrderCreate`
+  take an optional `id` (the public store, 1.0.27, answers 500 to a pet
+  without one, probed 2026-11-21); `Pet.photo_urls` is `list[str]` as the
+  schema types it (no `format: uri`; the store holds pets whose URL is
+  `"string"`), while `PetCreate` checks `HttpUrl`; the response models
+  require `id`, `OrderCreate` requires `petId` and `quantity` (at least
+  1); `find_pets_by_status()` sends one request per distinct status,
+  because the store's `status` parameter takes one value (a repeated one
+  is ignored, a comma list refused). Reason: an example of best practice
+  validates against the API's contract and works against the real server.
+- **D54.** `ResponseParseError` derives from `DazureError` only, carries
+  `request` and `response`, and wraps any `Exception` from `parse` (not
+  `BaseException`). Reason: the HTTP exchange succeeded, so it is not an
+  `httpx.HTTPStatusError`; keeping the response lets a caller look at
+  what was rejected without the message quoting it.
+- **D55.** pyright strict (Python 3.10) over `src/`, `examples/` and
+  `tests/typing/`, configured in `[tool.pyright]`. `msal` and
+  `msal_extensions` ship no types, so `typings/` holds partial stubs of
+  the names `dazure` uses (type checking only, not packaged); the only
+  ignores are on azure-identity's private API (`_persistent_cache`, D16;
+  `_request_token`, D22), each with its reason. Runtime checks of
+  arguments an untyped caller could get wrong stay, written so strict
+  mode does not call them unnecessary. Strict mode also made the
+  `azureProfile.json` reader treat a user name or tenant that is not a
+  string, or a profile that is not an object, as no default subscription
+  (`RefreshTokenNotFoundError`) instead of passing it on. Reason: the maintainer asked for
+  typing enforced in CI, and silencing whole rules would enforce nothing.
+- **D56.** Real-HTTP tests use `pytest-httpbin` on loopback in every CI
+  leg; the Petstore live test is a separate opt-in, `DAZURE_LIVE_HTTP=1`.
+  Reason: httpbin is local, so CI stays offline (D23); the public store
+  is shared and on the internet, so it is never in CI, and needing no
+  Azure it should not need `DAZURE_LIVE`.
+- **D57.** A JSON or XML body that does not parse (`ValueError`, which
+  covers `JSONDecodeError` and a body that is not UTF-8, or
+  `ET.ParseError`) raises `ResponseParseError` from the parser's error,
+  with the same message rules as D54. Reason (coordinator, 2026-11-21, on
+  #28): the caller asked for parsed content and the exchange succeeded,
+  so it is the same failure as a `parse` that rejects the body, and the
+  parser's own message can quote the body. The Petstore example still
+  reads its `DELETE` reply with `content_type="text/plain"`: the store
+  labels the text `Pet deleted` as JSON.
+- **D58.** `json=` converts models and dataclass instances recursively,
+  in lists, tuples, dict values and dataclass fields, with D51's dump
+  options; dict keys are never converted. Reason (coordinator,
+  2026-11-21, on #28): a list of models is a common body, and a model
+  inside a dataclass would otherwise be deep-copied, not dumped. Keys
+  stay as given: a converted key would be an unhashable dict, and JSON
+  keys are strings anyway.
 
 The author's calls, open until the package repository records them:
 

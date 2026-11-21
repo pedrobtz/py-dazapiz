@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import email.utils
 import json as jsonlib
 import logging
@@ -11,7 +12,7 @@ import threading
 import time
 import xml.etree.ElementTree as ET
 from collections.abc import Callable, Generator, Mapping
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeVar, cast, overload
 from urllib.parse import quote
 
 import httpx
@@ -20,7 +21,7 @@ from rich.logging import RichHandler
 from rich.markup import escape
 
 from ._app_credential import app_credential
-from .errors import ApiError
+from .errors import ApiError, ResponseParseError
 
 __all__ = ["ApiClient", "BearerAuth", "backoff_default"]
 
@@ -42,6 +43,9 @@ _sleep = time.sleep
 _uniform = random.uniform
 _now = time.time  # token expiry
 _clock = time.perf_counter  # request timing
+
+_T = TypeVar("_T")
+_Client = TypeVar("_Client", bound="ApiClient")
 
 
 def _transport() -> httpx.BaseTransport | None:
@@ -122,7 +126,8 @@ class ApiClient:
             raise ValueError(
                 "host_url must be a non-empty string, as an argument or class attribute."
             )
-        if not isinstance(max_tries, int) or max_tries < 1:
+        tries = cast(object, max_tries)  # checked at run time: callers may be untyped
+        if not isinstance(tries, int) or tries < 1:
             raise ValueError("max_tries must be an integer >= 1.")
         self._host_url = host
         self._scope = scope or type(self).scope or f"{host.rstrip('/')}/.default"
@@ -155,7 +160,7 @@ class ApiClient:
         cred = type(self._credential).__name__ if self._credential is not None else None
         return f"{type(self).__name__}(host_url={self._host_url!r}, credential={cred})"
 
-    def __enter__(self) -> ApiClient:
+    def __enter__(self: _Client) -> _Client:
         return self
 
     def __exit__(self, *exc: object) -> None:
@@ -164,6 +169,34 @@ class ApiClient:
     def close(self) -> None:
         """Close the underlying `httpx.Client`."""
         self._http.close()
+
+    @overload
+    def fetch(
+        self,
+        path: str,
+        method: str = "GET",
+        *,
+        query: Mapping[str, Any] | None = None,
+        json: Any = None,
+        headers: Mapping[str, str] | None = None,
+        content_type: str | None = None,
+        parse: None = None,
+        **path_params: str,
+    ) -> Any: ...
+
+    @overload
+    def fetch(
+        self,
+        path: str,
+        method: str = "GET",
+        *,
+        query: Mapping[str, Any] | None = None,
+        json: Any = None,
+        headers: Mapping[str, str] | None = None,
+        content_type: str | None = None,
+        parse: Callable[[Any], _T],
+        **path_params: str,
+    ) -> _T: ...
 
     def fetch(
         self,
@@ -174,6 +207,7 @@ class ApiClient:
         json: Any = None,
         headers: Mapping[str, str] | None = None,
         content_type: str | None = None,
+        parse: Callable[[Any], Any] | None = None,
         **path_params: str,
     ) -> Any:
         """Send one request to `path` under the host URL and return the parsed body.
@@ -185,14 +219,34 @@ class ApiClient:
         `content_type`, else the response's: JSON to Python objects, XML to an
         `ElementTree.Element`, anything else to `str`, an empty body to `None`;
         a non-empty result goes through `response_handler`. A non-2xx response
-        raises `ApiError`.
+        raises `ApiError`; a JSON or XML body that does not parse raises
+        `ResponseParseError`.
+
+        `json` is sent as JSON. A pydantic model (anything with `model_dump()`)
+        is sent as `model_dump(mode="json", by_alias=True, exclude_unset=True)`,
+        a dataclass instance field by field as `dataclasses.asdict()`, also when
+        nested in lists, tuples, dict values or dataclass fields; logging shows
+        the body as sent.
+
+        `parse`, when given, replaces `response_handler` for this call: it is
+        called with the parsed body of every 2xx response, `None` for an empty
+        one, and `fetch()` returns what it returns (typed so).
+        `TypeAdapter(list[Model]).validate_python` or `Model.model_validate`
+        validate the body. An exception from `parse` raises
+        `ResponseParseError`, chained to it.
         """
         url = _fill_path(path, path_params)
         method = method.upper()
-        response = self._send(method, url, params=query, json=json, headers=headers)
+        body = _to_json(json)
+        response = self._send(method, url, params=query, json=body, headers=headers)
         if not response.is_success:
             raise ApiError(_error_message(response), request=response.request, response=response)
         result = _parse(response, content_type)
+        if parse is not None:
+            try:
+                return parse(result)
+            except Exception as exc:
+                raise _parse_error(response, "was rejected by parse=", exc) from exc
         if result is not None and self._response_handler is not None:
             result = self._response_handler(result)
         return result
@@ -220,6 +274,32 @@ class ApiClient:
                 self._max_tries,
             )
             _sleep(wait)
+
+
+def _to_json(value: Any) -> Any:
+    """What `fetch(json=...)` sends: pydantic models and dataclass instances as dicts.
+
+    Duck-typed, so pydantic is not imported: anything (not a class) with a
+    callable `model_dump` is a pydantic v2 model (D51, D52). Models and
+    dataclasses are converted wherever they are: at the top, in lists and
+    tuples (sent as lists), in dict values and in dataclass fields. Dict keys
+    are left alone; anything else is sent as given.
+    """
+    if isinstance(value, type):
+        return value  # a class, not an instance: httpx refuses it as before
+    dump = getattr(value, "model_dump", None)
+    if callable(dump):
+        return dump(mode="json", by_alias=True, exclude_unset=True)
+    if dataclasses.is_dataclass(value):
+        # As dataclasses.asdict(), field by field, so a model in a field is dumped too.
+        return {f.name: _to_json(getattr(value, f.name)) for f in dataclasses.fields(value)}
+    if isinstance(value, (list, tuple)):
+        items = cast("list[Any] | tuple[Any, ...]", value)
+        return [_to_json(item) for item in items]
+    if isinstance(value, dict):
+        mapping = cast("dict[Any, Any]", value)
+        return {key: _to_json(item) for key, item in mapping.items()}
+    return value
 
 
 def _fill_path(path: str, params: Mapping[str, Any]) -> str:
@@ -259,11 +339,24 @@ def _parse(response: httpx.Response, content_type: str | None) -> Any:
     if not response.content:
         return None
     media = _media_type(response, content_type)
-    if media == "application/json":
-        return response.json()
-    if media == "application/xml":
-        return ET.fromstring(response.content)
+    try:
+        if media == "application/json":
+            return response.json()
+        if media == "application/xml":
+            return ET.fromstring(response.content)
+    except (ValueError, ET.ParseError) as exc:  # JSONDecodeError and UnicodeDecodeError too
+        raise _parse_error(response, f"is not valid {media}", exc) from exc
     return response.text
+
+
+def _parse_error(response: httpx.Response, what: str, exc: Exception) -> ResponseParseError:
+    """`ResponseParseError` naming the method, URL and exception type, never the body (D54)."""
+    request = response.request
+    return ResponseParseError(
+        f"{request.method} {request.url}: the response body {what} ({type(exc).__name__}).",
+        request=request,
+        response=response,
+    )
 
 
 def _error_message(response: httpx.Response) -> str:
@@ -299,7 +392,7 @@ class _Ellipsis:
 _ELLIPSIS = _Ellipsis()
 
 
-def _head_tail(items: list, n: int) -> list:
+def _head_tail(items: list[Any], n: int) -> list[Any]:
     half = max(n // 2, 1)
     return [*items[:half], _ELLIPSIS, *items[-half:]]
 
@@ -318,15 +411,15 @@ def _abbreviate_json(obj: Any, max_items: int = 10, max_size: int = 12) -> str:
     def scalar(x: Any) -> str:
         return "..." if x is _ELLIPSIS else jsonlib.dumps(x, ensure_ascii=False)
 
-    def is_atomic(x: list) -> bool:
+    def is_atomic(x: list[Any]) -> bool:
         return bool(x) and not any(isinstance(i, (dict, list)) for i in x)
 
-    def render(x: Any, level: int, top: bool = False) -> str:
+    def render(x: object, level: int, top: bool = False) -> str:
         pad, inner = "  " * level, "  " * (level + 1)
         if isinstance(x, dict):
             if not x:
                 return "{}"
-            items = list(x.items())
+            items: list[Any] = list(cast("dict[str, Any]", x).items())
             if len(items) > max_items:
                 items = _head_tail(items, max_items)
             lines = [
@@ -337,15 +430,18 @@ def _abbreviate_json(obj: Any, max_items: int = 10, max_size: int = 12) -> str:
             ]
             return "{\n" + ",\n".join(lines) + f"\n{pad}}}"
         if isinstance(x, list):
-            if not x:
+            values: list[Any] = cast("list[Any]", x)
+            if not values:
                 return "[]"
-            if not top and is_atomic(x):
-                if len(x) > max_size:
-                    x = _head_tail(x, max_size)
-                return "[" + ", ".join(scalar(i) for i in x) + "]"
-            if len(x) > max_items:
-                x = _head_tail(x, max_items)
-            lines = [f"{inner}..." if i is _ELLIPSIS else inner + render(i, level + 1) for i in x]
+            if not top and is_atomic(values):
+                if len(values) > max_size:
+                    values = _head_tail(values, max_size)
+                return "[" + ", ".join(scalar(i) for i in values) + "]"
+            if len(values) > max_items:
+                values = _head_tail(values, max_items)
+            lines = [
+                f"{inner}..." if i is _ELLIPSIS else inner + render(i, level + 1) for i in values
+            ]
             return "[\n" + ",\n".join(lines) + f"\n{pad}]"
         return scalar(x)
 

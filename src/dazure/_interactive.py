@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 
 import azure.identity
 import msal
@@ -44,11 +45,13 @@ def find_refresh_token(
     `.cae`, and only loads them: nothing is written or copied (design §6).
     """
     import msal_extensions
-    from azure.identity import _persistent_cache  # private: the layout guard is §8.2
+
+    # Private azure-identity API (D16); the layout guard is the manual check of §8.2.
+    from azure.identity import _persistent_cache  # pyright: ignore[reportPrivateUsage]
 
     tokens: list[dict[str, Any]] = []
     for suffix in _SUFFIXES:
-        persistence = _persistent_cache._get_persistence(
+        persistence = _persistent_cache._get_persistence(  # pyright: ignore[reportPrivateUsage]
             allow_unencrypted=options.allow_unencrypted_storage,
             account_name=_ACCOUNT_NAME,
             cache_name=options.name + suffix,
@@ -90,8 +93,10 @@ def find_refresh_token(
 
 
 class _RefreshTokenFromCache:
+    # Declared, not defined: the azure-identity parent provides them.
     _auth_record: AuthenticationRecord | None
     _cache_options: TokenCachePersistenceOptions
+    authenticate: Callable[..., AuthenticationRecord]
 
     def get_refresh_token(self) -> RefreshTokenInfo:
         """The signed-in user's refresh token, signing in first if nobody has.
@@ -100,7 +105,7 @@ class _RefreshTokenFromCache:
         yet, then reads the token from the persisted cache azure-identity wrote,
         with the record's client ID, tenant and username.
         """
-        record = self._auth_record or self.authenticate()  # type: ignore[attr-defined]
+        record = self._auth_record or self.authenticate()
         return find_refresh_token(self._cache_options, record)
 
 
@@ -141,9 +146,11 @@ class InteractiveBrowserCredential(
         _cache_options(kwargs, allow_unencrypted_storage)
         super().__init__(**kwargs)
 
-    def _request_token(self, *scopes: str, **kwargs: Any) -> dict:
+    def _request_token(self, *scopes: str, **kwargs: Any) -> dict[str, Any]:
         if self._pasted_redirect_uri is None:
-            return super()._request_token(*scopes, **kwargs)
+            # azure-identity's private method (D22) is annotated `-> Dict` with untyped kwargs.
+            result = super()._request_token(*scopes, **kwargs)  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+            return cast("dict[str, Any]", result)
         return request_token_by_pasted_code(
             self._get_app(**kwargs),
             list(scopes),

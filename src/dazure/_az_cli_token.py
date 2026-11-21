@@ -10,6 +10,7 @@ from typing import Any
 
 import msal
 
+from ._json import json_object, json_objects
 from ._refresh_token import AZURE_CLI_CLIENT_ID, RefreshTokenInfo
 from .errors import RefreshTokenNotFoundError, UnsupportedPlatformError
 
@@ -53,30 +54,38 @@ def _current_account(
     if not path.is_file():
         raise RefreshTokenNotFoundError(f"No Azure CLI profile at {path}: run `az login`.")
     # The Azure CLI writes this file with a UTF-8 byte order mark.
-    profile = _read_json(path, "utf-8-sig")
-    subscriptions = [s for s in (profile.get("subscriptions") or []) if isinstance(s, dict)]
+    profile = json_object(_read_json(path, "utf-8-sig")) or {}
+    subscriptions = json_objects(profile.get("subscriptions"))
 
-    def user_of(s: dict) -> str | None:
-        user = s.get("user")
-        return user.get("name") if isinstance(user, dict) else None
+    def user_of(s: dict[str, Any]) -> str | None:
+        user = json_object(s.get("user"))
+        name = user.get("name") if user is not None else None
+        return name if isinstance(name, str) else None
+
+    def tenant_of(s: dict[str, Any]) -> str | None:
+        tenant = s.get("tenantId")
+        return tenant if isinstance(tenant, str) and tenant else None
 
     if username is None:
         default = next((s for s in subscriptions if s.get("isDefault") is True), None)
-        if default is None or not user_of(default) or not default.get("tenantId"):
+        user = user_of(default) if default is not None else None
+        tenant = tenant_of(default) if default is not None else None
+        if not user or tenant is None:
             raise RefreshTokenNotFoundError(f"No default subscription in {path}: run `az login`.")
-        return user_of(default), tenant_id or default["tenantId"]
+        return user, tenant_id or tenant
 
     # Prefer the default subscription when it is the given user's, else any of theirs.
     wanted = username.lower()
     theirs = sorted(
-        (s for s in subscriptions if (user_of(s) or "").lower() == wanted and s.get("tenantId")),
+        (s for s in subscriptions if (user_of(s) or "").lower() == wanted and tenant_of(s)),
         key=lambda s: s.get("isDefault") is not True,
     )
-    if not theirs:
+    tenant = tenant_of(theirs[0]) if theirs else None
+    if tenant is None:
         raise RefreshTokenNotFoundError(
             f"No subscription of {username!r} in {path}: run `az login`, or pass tenant_id."
         )
-    return username, theirs[0]["tenantId"]
+    return username, tenant
 
 
 def _find_refresh_token(config_dir: Path, username: str) -> str:
@@ -123,7 +132,8 @@ def _find_refresh_token(config_dir: Path, username: str) -> str:
             f"No Azure CLI refresh token for {username!r} in {path}: run `az login`."
         )
     newest = max(tokens, key=lambda rt: int(rt.get("last_modification_time") or 0))
-    return newest["secret"]
+    secret: str = newest["secret"]
+    return secret
 
 
 def refresh_token_from_az_cli(

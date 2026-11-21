@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Literal, overload
 
 from azure.core.credentials import TokenCredential
 from azure.identity import (
@@ -94,16 +95,18 @@ def app_credential(
             raise ValueError(f"Unknown credential mode {raw!r} (from {source}); use {_VALID}.")
 
     def service_principal() -> TokenCredential:
-        _check_service_principal(names, client_id, secret, tenant, required=True)
-        return ClientSecretCredential(tenant_id=tenant, client_id=client_id, client_secret=secret)
+        sp_id, sp_secret, sp_tenant = _service_principal(
+            names, client_id, secret, tenant, required=True
+        )
+        return ClientSecretCredential(tenant_id=sp_tenant, client_id=sp_id, client_secret=sp_secret)
 
     if chosen == "auto":
-        if _check_service_principal(names, client_id, secret, tenant, required=False):
+        if _service_principal(names, client_id, secret, tenant, required=False):
             chosen, credential = "client_secret", service_principal()
         else:
             chosen, credential = "dev", _dev()
     elif chosen == "prod":
-        if _check_service_principal(names, client_id, secret, tenant, required=False):
+        if _service_principal(names, client_id, secret, tenant, required=False):
             credential = service_principal()
         elif _env("AZURE_FEDERATED_TOKEN_FILE"):
             credential = WorkloadIdentityCredential()
@@ -129,31 +132,49 @@ def app_credential(
     return credential
 
 
-def _check_service_principal(
+@overload
+def _service_principal(
+    names: tuple[str, str, str],
+    client_id: str | None,
+    secret: str | None,
+    tenant: str | None,
+    *,
+    required: Literal[True],
+) -> tuple[str, str, str]: ...
+@overload
+def _service_principal(
     names: tuple[str, str, str],
     client_id: str | None,
     secret: str | None,
     tenant: str | None,
     *,
     required: bool,
-) -> bool:
-    """Whether the named service principal is set; raise if it is set in part.
+) -> tuple[str, str, str] | None: ...
+def _service_principal(
+    names: tuple[str, str, str],
+    client_id: str | None,
+    secret: str | None,
+    tenant: str | None,
+    *,
+    required: bool,
+) -> tuple[str, str, str] | None:
+    """The named service principal's (client ID, secret, tenant), or None if unset.
 
-    With `required`, nothing set is an error too. The message names the
-    variables, never their values.
+    A service principal set in part raises; with `required`, nothing set
+    raises too. The message names the variables, never their values.
     """
     id_name, secret_name, tenant_name = names
     if client_id is None and secret is None:
         if required:
             raise ValueError(f"No service principal: {id_name} and {secret_name} are not set.")
-        return False
+        return None
     if client_id is None:
         raise ValueError(f"{secret_name} is set but {id_name} is not.")
     if secret is None:
         raise ValueError(f"{id_name} is set but {secret_name} is not.")
     if tenant is None:
         raise ValueError(f"{id_name} and {secret_name} are set but {tenant_name} is not.")
-    return True
+    return client_id, secret, tenant
 
 
 def _managed_identity() -> TokenCredential:
