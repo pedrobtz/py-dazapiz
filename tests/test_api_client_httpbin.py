@@ -84,13 +84,31 @@ def test_no_credential_no_bearer(httpbin):
 # What arrives ----------------------------------------------------------------------------
 
 
+def _request_lines(capsys, prefix: str, timeout: float = 5.0) -> list[str]:
+    """The request lines starting with `prefix` that wsgiref logged to stderr.
+
+    The server thread logs a request after sending its response, so the line
+    can come after the client has its answer (it is waited for here), and a
+    previous test's line can arrive in this test's capture (it is filtered).
+    """
+    err, deadline = "", time.monotonic() + timeout
+    while True:
+        err += capsys.readouterr().err
+        lines = re.findall(r'"([A-Z]+ \S+ HTTP/1\.1)"', err)
+        found = [line for line in lines if line.startswith(prefix)]
+        if found or time.monotonic() > deadline:
+            return found
+        time.sleep(0.01)
+
+
 def test_path_parameters_arrive_encoded(httpbin, capsys):
     with ApiClient(httpbin.url) as client:
         echo = client.fetch("/anything/{a}/{b}", a="a b/c?d#e", b="ü%")
-    # The request line as the server read it (wsgiref logs it to stderr): every
-    # reserved character percent-encoded, so each value stays one segment.
-    request_lines = re.findall(r'"(GET \S+ HTTP/1\.1)"', capsys.readouterr().err)
-    assert request_lines == ["GET /anything/a%20b%2Fc%3Fd%23e/%C3%BC%25 HTTP/1.1"]
+    # The request line as the server read it: every reserved character
+    # percent-encoded, so each value stays one segment.
+    assert _request_lines(capsys, "GET /anything/") == [
+        "GET /anything/a%20b%2Fc%3Fd%23e/%C3%BC%25 HTTP/1.1"
+    ]
     # httpbin decodes the path (%2F included) before echoing it; nothing went to
     # the query or the fragment.
     assert echo["url"].endswith("/anything/a%20b/c%3Fd%23e/ü%")
