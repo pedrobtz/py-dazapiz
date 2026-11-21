@@ -2,6 +2,10 @@
 
 ## 0.1.0 (unreleased)
 
+- `ApiClient(verbose=True)` abbreviates logged JSON bodies (request and
+  failed response) as `azr`'s `format_json_body()`: more than 10 items keep
+  the first and last 5, a nested array of more than 12 scalars the first
+  and last 6, with a bare `...` between (#22).
 - `refresh_token_from_az_cli()` returns the refresh token of the account
   the Azure CLI is signed in as, read from `azureProfile.json` and
   `msal_token_cache.json` without running `az` (macOS and Linux; Windows

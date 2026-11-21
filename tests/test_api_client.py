@@ -3,19 +3,23 @@
 from __future__ import annotations
 
 import email.utils
+import json
 import logging
+import re
 import time
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import httpx
 import pytest
 from azure.core.credentials import AccessToken
 from recording_transport import RecordingTransport, json_response
 from rich.logging import RichHandler
+from rich.markup import escape
 
 import dazure._api_client
 from dazure import ApiClient, ApiError, DazureError
-from dazure._api_client import BearerAuth, backoff_default
+from dazure._api_client import BearerAuth, _abbreviate_json, backoff_default
 
 INFO = "\N{INFORMATION SOURCE}"
 HOST = "https://api.example.com"
@@ -424,3 +428,111 @@ def test_bearer_auth_repr_and_markup_escaped(transport, caplog):
     bodies = [r.getMessage() for r in caplog.records if r.getMessage().startswith("{")]
     # Rich markup in a body is escaped, so it prints as sent.
     assert bodies == ['{\n  "f": "\\[red]x\\[/red]"\n}', '{\n  "why": "\\[bold]x\\[/bold]"\n}']
+
+
+# Abbreviated JSON bodies (design §4.1, #22) ---------------------------------------
+#
+# The oracle is `tests/fixtures/azr_json_body.json`, written by
+# `tools/azr_json_body_fixture.R` from azr's `format_json_body()`.
+
+AZR_BODIES = json.loads(
+    (Path(__file__).parent / "fixtures" / "azr_json_body.json").read_text(encoding="utf-8")
+)
+# Cases where jsonlite coerces an atomic vector's scalars to strings: a number,
+# boolean or null in a truncated or mixed array prints as "1", "TRUE" or "NA".
+# For these cases only, azr's text is normalised by unquoting quoted numerals,
+# "TRUE", "FALSE" and "NA" (to true, false, null). Their inputs hold no string
+# that looks like one, so the normalisation cannot hide a real difference.
+JSONLITE_COERCES = {
+    "atomic_numbers_13",
+    "atomic_booleans_13",
+    "atomic_numbers_with_null",
+    "atomic_mixed",
+}
+_COERCED = re.compile(r'"(-?\d+(?:\.\d+)?|TRUE|FALSE|NA)"')
+_UNCOERCE = {"TRUE": "true", "FALSE": "false", "NA": "null"}
+
+
+def _uncoerce(text: str) -> str:
+    return _COERCED.sub(lambda m: _UNCOERCE.get(m[1], m[1]), text)
+
+
+def test_azr_fixture_is_from_a_clean_checkout():
+    assert AZR_BODIES["generator"] == "tools/azr_json_body_fixture.R"
+    assert re.fullmatch(r"[0-9a-f]{40}", AZR_BODIES["azr_commit"])
+    assert AZR_BODIES["azr_dirty"] is False
+    assert len(AZR_BODIES["cases"]) >= 20
+
+
+@pytest.mark.parametrize("case", AZR_BODIES["cases"], ids=lambda c: c["id"])
+def test_abbreviate_json_matches_azr(case):
+    expected = case["azr"]
+    if case["id"] in JSONLITE_COERCES:
+        expected = _uncoerce(expected)
+    assert _abbreviate_json(json.loads(case["input"])) == expected
+
+
+def test_abbreviate_json_object_boundary():
+    ten = {f"k{i}": i for i in range(10)}
+    assert _abbreviate_json(ten) == json.dumps(ten, indent=2)
+    eleven = {f"k{i}": i for i in range(11)}
+    lines = _abbreviate_json(eleven).splitlines()
+    assert lines[1:6] == [f'  "k{i}": {i},' for i in range(5)]
+    assert lines[6] == "  ...,"
+    assert lines[7:12] == [f'  "k{i}": {i},' for i in range(6, 10)] + ['  "k10": 10']
+    assert "k5" not in _abbreviate_json(eleven)
+
+
+def test_abbreviate_json_array_boundary():
+    assert _abbreviate_json([{"a": i} for i in range(10)]).count("{") == 10
+    eleven = _abbreviate_json([{"a": i} for i in range(11)])
+    assert eleven.count("{") == 10
+    assert '"a": 5' not in eleven
+    assert "  ...," in eleven
+
+
+def test_abbreviate_json_atomic_boundary():
+    twelve = _abbreviate_json({"x": list(range(12))})
+    assert twelve == '{\n  "x": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]\n}'
+    thirteen = _abbreviate_json({"x": list(range(13))})
+    assert thirteen == '{\n  "x": [0, 1, 2, 3, 4, 5, ..., 7, 8, 9, 10, 11, 12]\n}'
+
+
+def test_abbreviate_json_keeps_scalars_and_ellipsis_strings():
+    # Unlike azr, a top-level scalar is not boxed and a "..." string stays quoted.
+    assert _abbreviate_json(5) == "5"
+    assert _abbreviate_json(None) == "null"
+    assert _abbreviate_json({"x": [5], "s": "..."}) == '{\n  "x": [5],\n  "s": "..."\n}'
+
+
+def test_logged_bodies_are_abbreviated(transport, caplog):
+    transport.add(json_response(400, {"error": {"details": list(range(13))}}))
+    client = ApiClient(HOST, verbose=True)
+    body = {f"k{i:02d}": [str(j) for j in range(13)] for i in range(11)}
+    with caplog.at_level(logging.INFO, logger="dazure.http"), pytest.raises(ApiError):
+        client.fetch("/x", "POST", json=body)
+    messages = [r.getMessage() for r in caplog.records]
+    sent = messages[messages.index(f"{INFO} >>> body:") + 1]
+    assert sent == _abbreviate_json(body)
+    assert sent.count("...") == 1 + 10  # the object, and each kept array
+    assert '"k05"' not in sent
+    failed = messages[messages.index("[red]✖ <<< body:[/red]") + 1]
+    assert (
+        failed
+        == '{\n  "error": {\n    "details": [0, 1, 2, 3, 4, 5, ..., 7, 8, 9, 10, 11, 12]\n  }\n}'
+    )
+
+
+def test_logged_non_json_bodies_are_unchanged(transport, caplog):
+    text = "[" + ", ".join(["x"] * 50)  # long, and not valid JSON
+    transport.add(
+        httpx.Response(500, text=text, headers={"content-type": "text/plain"}),
+        httpx.Response(500, text=text, headers={"content-type": "application/json"}),
+    )
+    client = ApiClient(HOST, verbose=True)
+    with caplog.at_level(logging.INFO, logger="dazure.http"):
+        for _ in range(2):
+            with pytest.raises(ApiError):
+                client.fetch("/x")
+    bodies = [r.getMessage() for r in caplog.records if r.getMessage().startswith("[x")]
+    assert bodies == [escape(text)] * 2
