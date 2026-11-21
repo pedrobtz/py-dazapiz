@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import logging
+import xml.etree.ElementTree as ET
 
 import httpx
 import pytest
@@ -160,6 +161,62 @@ def test_parse_is_not_a_path_parameter(transport):
     assert transport.requests == []
 
 
+@pytest.mark.parametrize(
+    ("content_type", "body", "media", "cause"),
+    [
+        (
+            "application/json; charset=utf-8",
+            b'{"secret": "' + SENTINEL.encode(),
+            "application/json",
+            json.JSONDecodeError,
+        ),
+        (
+            "application/json",
+            b"Pet deleted " + SENTINEL.encode(),
+            "application/json",
+            json.JSONDecodeError,
+        ),
+        ("application/json", b'"\xff' + SENTINEL.encode() + b'"', "application/json", ValueError),
+        (
+            "application/xml",
+            b"<a><b>" + SENTINEL.encode() + b"</a>",
+            "application/xml",
+            ET.ParseError,
+        ),
+    ],
+    ids=["truncated-json", "text-labelled-json", "not-utf8-json", "bad-xml"],
+)
+def test_content_that_does_not_parse_is_a_parse_error(transport, content_type, body, media, cause):
+    # (#26) A body whose content type says JSON or XML but does not parse is a
+    # ResponseParseError, not the parser's own exception; the body stays out.
+    transport.add(httpx.Response(200, content=body, headers={"content-type": content_type}))
+    client = ApiClient(HOST, response_handler=lambda c: pytest.fail("handler called"))
+    with pytest.raises(ResponseParseError) as err:
+        client.fetch("/x/{id}", "delete", id="7", parse=lambda c: pytest.fail("parse called"))
+    e = err.value
+    assert str(e) == (
+        f"DELETE {HOST}/x/7: the response body is not valid {media} ({type(e.__cause__).__name__})."
+    )
+    assert isinstance(e.__cause__, cause)
+    assert SENTINEL not in str(e)
+    assert e.response.content == body
+    assert len(transport.requests) == 1
+
+
+def test_content_type_override_also_wraps_parse_failures(transport):
+    transport.add(httpx.Response(200, text="<html>", headers={"content-type": "text/html"}))
+    with pytest.raises(ResponseParseError, match=r"not valid application/xml \(ParseError\)\.$"):
+        ApiClient(HOST).fetch("/x", content_type="application/xml")
+
+
+def test_text_content_type_avoids_the_json_parse(transport):
+    # The Petstore labels its plain-text DELETE reply as JSON; content_type= reads it as text.
+    transport.add(
+        httpx.Response(200, content=b"Pet deleted", headers={"content-type": "application/json"})
+    )
+    assert ApiClient(HOST).fetch("/x", "DELETE", content_type="text/plain") == "Pet deleted"
+
+
 # json= models ----------------------------------------------------------------------
 
 
@@ -206,6 +263,52 @@ def test_json_other_values_are_unchanged(transport, body):
         assert sent == b""  # json=None sends no body, as before
     else:
         assert json.loads(sent) == body
+
+
+def test_json_models_nested_in_lists_tuples_and_dicts(transport):
+    transport.add(httpx.Response(204), httpx.Response(204), httpx.Response(204))
+    client = ApiClient(HOST)
+    client.fetch("/l", "POST", json=[Thing(thing_id=1, display_name="a"), Point(x_value=2), 3])
+    client.fetch(
+        "/d",
+        "POST",
+        json={
+            "thing_key": Thing(thing_id=1, display_name="a", note=None),
+            "nested": {"items": (Thing(thing_id=2, display_name="b"), "s")},
+            "point": Point(x_value=1, label="p"),
+            "plain": [1, {"k": None}],
+        },
+    )
+    client.fetch("/p", "POST", json=Point(x_value=1, tags=[Thing(thing_id=3, display_name="c")]))
+    lists, dicts, dataclass = (json.loads(r.body) for r in transport.requests)
+    assert lists == [
+        {"thingId": 1, "displayName": "a"},
+        {"x_value": 2, "label": None, "tags": []},
+        3,
+    ]
+    # Dict keys are left alone (not aliased); values are converted with the same options.
+    assert dicts == {
+        "thing_key": {"thingId": 1, "displayName": "a", "note": None},
+        "nested": {"items": [{"thingId": 2, "displayName": "b"}, "s"]},
+        "point": {"x_value": 1, "label": "p", "tags": []},
+        "plain": [1, {"k": None}],
+    }
+    # A model in a dataclass field is dumped too.
+    assert dataclass == {"x_value": 1, "label": None, "tags": [{"thingId": 3, "displayName": "c"}]}
+
+
+def test_dict_keys_are_left_alone():
+    # A key could only be converted into an unhashable dict; keys are never touched.
+    # (A non-string key cannot be sent as JSON anyway, so this is checked on the converter.)
+    @dataclasses.dataclass(frozen=True)
+    class Key:
+        k: int
+
+    key = Key(1)
+    converted = dazure._api_client._to_json({key: Point(x_value=1), (1, 2): [Point(x_value=2)]})
+    assert list(converted) == [key, (1, 2)]
+    assert converted[key] == {"x_value": 1, "label": None, "tags": []}
+    assert converted[(1, 2)] == [{"x_value": 2, "label": None, "tags": []}]
 
 
 def test_logging_sees_the_converted_body(transport, caplog):

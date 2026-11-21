@@ -12,7 +12,7 @@ and manual tiers (D23), with §4.3.2, §7, §9, D16 and D22 following;
 answered; #22), 2026-11-21;
 §4.1 `fetch(parse=...)` and model bodies, §5 `ResponseParseError` and the
 Petstore example, §7 and §8 type checking, real-HTTP tests and the Petstore
-item (D49 to D56; #26), 2026-11-21.
+item (D49 to D58; #26), 2026-11-21.
 
 - **Status:** Proposed. The decisions in §10 marked "maintainer" were
   settled in conversation on 2026-11-19 (D21 on 2026-11-21); the rest
@@ -459,13 +459,20 @@ placeholder (as `query`, `json` and the others cannot).
   parsed.
 - An `Exception` from `parse` raises `ResponseParseError` (§5) `from` it
   (D54): `"<METHOD> <URL>: the response body was rejected by parse=
-  (<exception type>)."`. The message never carries the body or a header,
+  (<exception type>)."`. So does a body whose media type (the
+  `content_type` override, else the response's) is JSON or XML but which
+  does not parse: `"... the response body is not valid application/json
+  (JSONDecodeError)."`, before `response_handler` or `parse` sees it
+  (D57). The message never carries the body or a header,
   because pydantic's message quotes the input it rejected; that detail
   stays on `__cause__`. `request` and `response` are the `httpx` objects.
 
 **Model bodies: `json=`** (D49). A pydantic v2 model is sent as
 `model_dump(mode="json", by_alias=True, exclude_unset=True)`, a dataclass
-instance as `dataclasses.asdict()`, anything else as before (D52). The
+instance field by field as `dataclasses.asdict()` does, anything else as
+before (D52). Models and dataclasses are converted wherever they sit: at
+the top, in lists and tuples (sent as lists), in dict values and in
+dataclass fields; dict keys are left alone (D58). The
 check is duck-typed (a non-class with a callable `model_dump`), so
 `dazure` neither imports nor depends on pydantic. `mode="json"` makes
 dates, URLs and enums JSON values; `by_alias` sends the wire names;
@@ -1399,10 +1406,8 @@ Settled for #26 (2026-11-21):
   `exclude_none` cannot express that.
 - **D52.** A model is anything that is not a class and has a callable
   `model_dump`; a dataclass is `dataclasses.is_dataclass()` of a
-  non-class. Only the top-level value is converted: a list of models is
-  sent as given (httpx refuses it). Reason: `dazure` does not depend on
-  pydantic (#26), and the issue asks for a model or a dataclass, not
-  containers of them.
+  non-class. Reason: `dazure` does not depend on pydantic (#26).
+  (Converting the top-level value only was replaced by D58.)
 - **D53.** The Petstore example's models differ from a literal reading of
   the schema where the real store does: `PetCreate` and `OrderCreate`
   take an optional `id` (the public store, 1.0.27, answers 500 to a pet
@@ -1436,6 +1441,22 @@ Settled for #26 (2026-11-21):
   Reason: httpbin is local, so CI stays offline (D23); the public store
   is shared and on the internet, so it is never in CI, and needing no
   Azure it should not need `DAZURE_LIVE`.
+- **D57.** A JSON or XML body that does not parse (`ValueError`, which
+  covers `JSONDecodeError` and a body that is not UTF-8, or
+  `ET.ParseError`) raises `ResponseParseError` from the parser's error,
+  with the same message rules as D54. Reason (coordinator, 2026-11-21, on
+  #28): the caller asked for parsed content and the exchange succeeded,
+  so it is the same failure as a `parse` that rejects the body, and the
+  parser's own message can quote the body. The Petstore example still
+  reads its `DELETE` reply with `content_type="text/plain"`: the store
+  labels the text `Pet deleted` as JSON.
+- **D58.** `json=` converts models and dataclass instances recursively,
+  in lists, tuples, dict values and dataclass fields, with D51's dump
+  options; dict keys are never converted. Reason (coordinator,
+  2026-11-21, on #28): a list of models is a common body, and a model
+  inside a dataclass would otherwise be deep-copied, not dumped. Keys
+  stay as given: a converted key would be an unhashable dict, and JSON
+  keys are strings anyway.
 
 The author's calls, open until the package repository records them:
 

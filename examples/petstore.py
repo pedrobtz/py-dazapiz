@@ -286,7 +286,8 @@ class PetStoreClient(ApiClient):
         pet_id : int
             The pet's id.
         """
-        # The store labels its plain-text reply ("Pet deleted") as JSON.
+        # The store labels its plain-text reply ("Pet deleted") as JSON, which would
+        # not parse (ResponseParseError): read it as the text it is.
         self.fetch(
             "/pet/{pet_id}", "DELETE", headers=_JSON, content_type="text/plain", pet_id=str(pet_id)
         )

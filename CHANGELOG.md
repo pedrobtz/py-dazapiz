@@ -9,10 +9,14 @@
   validates it. An exception from `f` raises the new
   `ResponseParseError`, which names the method and URL but not the body
   and is chained to the original (#26).
+- A response body whose content type says JSON or XML but which does not
+  parse raises `ResponseParseError` instead of the parser's own exception
+  (#26).
 - `fetch(json=...)` sends a pydantic model as
   `model_dump(mode="json", by_alias=True, exclude_unset=True)` and a
-  dataclass as `dataclasses.asdict()`; `dazure` does not depend on
-  pydantic (#26).
+  dataclass as `dataclasses.asdict()`, also when nested in lists, tuples,
+  dict values or dataclass fields; `dazure` does not depend on pydantic
+  (#26).
 - `with SomeApiClient() as client:` types `client` as the subclass (#26).
 - `refresh_token_from_az_cli()` reports an `azureProfile.json` whose user
   name or tenant is not a string as having no default subscription,

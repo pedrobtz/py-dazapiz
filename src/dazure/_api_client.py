@@ -219,12 +219,14 @@ class ApiClient:
         `content_type`, else the response's: JSON to Python objects, XML to an
         `ElementTree.Element`, anything else to `str`, an empty body to `None`;
         a non-empty result goes through `response_handler`. A non-2xx response
-        raises `ApiError`.
+        raises `ApiError`; a JSON or XML body that does not parse raises
+        `ResponseParseError`.
 
         `json` is sent as JSON. A pydantic model (anything with `model_dump()`)
         is sent as `model_dump(mode="json", by_alias=True, exclude_unset=True)`,
-        a dataclass instance as `dataclasses.asdict()`; logging shows the body
-        as sent.
+        a dataclass instance field by field as `dataclasses.asdict()`, also when
+        nested in lists, tuples, dict values or dataclass fields; logging shows
+        the body as sent.
 
         `parse`, when given, replaces `response_handler` for this call: it is
         called with the parsed body of every 2xx response, `None` for an empty
@@ -244,13 +246,7 @@ class ApiClient:
             try:
                 return parse(result)
             except Exception as exc:
-                request = response.request
-                raise ResponseParseError(
-                    f"{request.method} {request.url}: the response body was rejected by "
-                    f"parse= ({type(exc).__name__}).",
-                    request=request,
-                    response=response,
-                ) from exc
+                raise _parse_error(response, "was rejected by parse=", exc) from exc
         if result is not None and self._response_handler is not None:
             result = self._response_handler(result)
         return result
@@ -281,16 +277,28 @@ class ApiClient:
 
 
 def _to_json(value: Any) -> Any:
-    """What `fetch(json=...)` sends: a pydantic model or a dataclass instance as a dict.
+    """What `fetch(json=...)` sends: pydantic models and dataclass instances as dicts.
 
     Duck-typed, so pydantic is not imported: anything (not a class) with a
-    callable `model_dump` is a pydantic v2 model (D51, D52).
+    callable `model_dump` is a pydantic v2 model (D51, D52). Models and
+    dataclasses are converted wherever they are: at the top, in lists and
+    tuples (sent as lists), in dict values and in dataclass fields. Dict keys
+    are left alone; anything else is sent as given.
     """
+    if isinstance(value, type):
+        return value  # a class, not an instance: httpx refuses it as before
     dump = getattr(value, "model_dump", None)
     if callable(dump):
         return dump(mode="json", by_alias=True, exclude_unset=True)
-    if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        return dataclasses.asdict(value)
+    if dataclasses.is_dataclass(value):
+        # As dataclasses.asdict(), field by field, so a model in a field is dumped too.
+        return {f.name: _to_json(getattr(value, f.name)) for f in dataclasses.fields(value)}
+    if isinstance(value, (list, tuple)):
+        items = cast("list[Any] | tuple[Any, ...]", value)
+        return [_to_json(item) for item in items]
+    if isinstance(value, dict):
+        mapping = cast("dict[Any, Any]", value)
+        return {key: _to_json(item) for key, item in mapping.items()}
     return value
 
 
@@ -331,11 +339,24 @@ def _parse(response: httpx.Response, content_type: str | None) -> Any:
     if not response.content:
         return None
     media = _media_type(response, content_type)
-    if media == "application/json":
-        return response.json()
-    if media == "application/xml":
-        return ET.fromstring(response.content)
+    try:
+        if media == "application/json":
+            return response.json()
+        if media == "application/xml":
+            return ET.fromstring(response.content)
+    except (ValueError, ET.ParseError) as exc:  # JSONDecodeError and UnicodeDecodeError too
+        raise _parse_error(response, f"is not valid {media}", exc) from exc
     return response.text
+
+
+def _parse_error(response: httpx.Response, what: str, exc: Exception) -> ResponseParseError:
+    """`ResponseParseError` naming the method, URL and exception type, never the body (D54)."""
+    request = response.request
+    return ResponseParseError(
+        f"{request.method} {request.url}: the response body {what} ({type(exc).__name__}).",
+        request=request,
+        response=response,
+    )
 
 
 def _error_message(response: httpx.Response) -> str:
