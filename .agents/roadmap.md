@@ -43,7 +43,7 @@ package, a branch on the operating system. Azure itself is never in CI
 | 2 | [Spark config](#stage-2--spark-config) | quick | [#5](https://github.com/pedrobtz/py-dazure/issues/5) | [#17](https://github.com/pedrobtz/py-dazure/pull/17) | 2026-11-21 |
 | 3 | [Interactive credentials](#stage-3--interactive-credentials) | full | [#6](https://github.com/pedrobtz/py-dazure/issues/6) | [#18](https://github.com/pedrobtz/py-dazure/pull/18) | 2026-11-21 |
 | 4 | [az CLI helpers](#stage-4--az-cli-helpers) | full | [#7](https://github.com/pedrobtz/py-dazure/issues/7) | [#19](https://github.com/pedrobtz/py-dazure/pull/19) | 2026-11-21 |
-| 5 | [REST client](#stage-5--rest-client) | quick | [#8](https://github.com/pedrobtz/py-dazure/issues/8) | | |
+| 5 | [REST client](#stage-5--rest-client) | quick | [#8](https://github.com/pedrobtz/py-dazure/issues/8) | | 2026-11-21 |
 | 6 | [DuckDB](#stage-6--duckdb) | quick | [#9](https://github.com/pedrobtz/py-dazure/issues/9) | | |
 | 7 | [Manual checklist](#stage-7--manual-checklist) | quick | [#10](https://github.com/pedrobtz/py-dazure/issues/10) | | |
 | 8 | [Full CI](#stage-8--full-ci) | full | [#11](https://github.com/pedrobtz/py-dazure/issues/11) | | |
@@ -288,6 +288,9 @@ class chooses, retry as `azr` does, parse by content type and log in
   §4.1.1), the logging hooks and `verbose`.
 - A recording `httpx.MockTransport` that keeps every whole request
   (method, URL, headers, body) and serves scripted responses.
+  (2026-11-21: `RecordingTransport` in `tests/recording_transport.py`,
+  which also raises scripted exceptions, tested in
+  `tests/test_recording_transport.py`.)
 
 **Tests.**
 

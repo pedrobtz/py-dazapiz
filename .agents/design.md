@@ -5,7 +5,8 @@ on 2026-11-21. This file is the single source of truth for the design; the
 RFC is now a pointer here. Changed since adoption: §8 split into automated
 and manual tiers (D23), with §4.3.2, §7, §9, D16 and D22 following;
 §9's outline moved to [roadmap.md](roadmap.md) on 2026-11-21;
-§4.3.1, §4.3.4 and §4.3.5 detailed by Stage 1 (D24 to D26), 2026-11-21.
+§4.3.1, §4.3.4 and §4.3.5 detailed by Stage 1 (D24 to D26), 2026-11-21;
+§4.1 and §4.1.1 detailed by Stage 5 (D36 to D43), 2026-11-21.
 
 - **Status:** Proposed. The decisions in §10 marked "maintainer" were
   settled in conversation on 2026-11-19 (D21 on 2026-11-21); the rest
@@ -356,6 +357,53 @@ logger is left alone so its line does not duplicate `>>>`. The hooks
 never log headers, so the bearer token cannot appear; bodies are logged
 as sent, so a caller posting secrets in a body should leave `verbose`
 off.
+
+Details settled in Stage 5 (2026-11-21):
+
+- `app_credential()`'s mode also takes the azure-identity class names that
+  `AZURE_TOKEN_CREDENTIALS` takes for the five credentials (D36);
+  `EnvironmentCredential` means the named service principal, as in `azr`.
+  Any other value, and the names of credentials `dazure` does not build
+  (`AzurePowerShellCredential`, `InteractiveBrowserCredential`, ...),
+  raise `ValueError`. Surrounding spaces are ignored.
+- A partly set service principal raises `ValueError` naming the missing
+  variable in every mode that reads it, automatic included (D37); so does
+  an unknown mode (D39). An empty variable counts as unset (D25).
+- `dev` asks `_session.is_interactive()` when the credential is built:
+  outside a TTY or kernel the chain is `ChainedTokenCredential(AzureCliCredential())`
+  alone (D38). The single name `device_code` is built wherever asked for.
+- The log line is `ℹ Credential: <class>, mode <mode> (<source>).`, the
+  source `from mode`, `from AZURE_TOKEN_CREDENTIALS` or `automatic`; a
+  chain lists its members' classes.
+- `ManagedIdentityCredential()` is built with no arguments, as written
+  above, so it is the system-assigned identity: unlike
+  `DefaultAzureCredential`, it does not read `$AZURE_CLIENT_ID` for a
+  user-assigned one (checked in azure-identity 1.27.0,
+  `_credentials/managed_identity.py`).
+- Retried connection failures are `httpx.ConnectError` and
+  `httpx.ConnectTimeout`, where the request cannot have reached the
+  server (D40). After the last attempt the `httpx` exception is raised
+  as is; a 429 or 503 after the last attempt raises `ApiError`.
+  `Retry-After` is delay-seconds or an HTTP date, not capped (httr2 does
+  not cap it); an invalid one falls back to the backoff. The warning's
+  attempt number is the attempt that failed, as httr2 passes it to
+  `azr`'s backoff.
+- `ApiError`'s message is `<METHOD> <URL> failed: HTTP <status> <reason>`,
+  then the response body on the next line when there is one.
+- An empty body returns `None` without calling `response_handler`, as
+  `azr` returns before its handler (D41). The media type is the
+  content type before any `;`, lower-cased.
+- Logging: the `>>>` and `<<<` records are `INFO`, failures too; the retry
+  warning is `WARNING` and logged whether or not `verbose` is set, as
+  `azr`'s alert is. Records carry `rich` markup for colour (`[green]`,
+  `[red]`, `[yellow]`), and logged bodies and URLs are markup-escaped
+  (D42). The size is the body's bytes / 1024 with two decimals; the time
+  three significant digits. `verbose=True` also lowers the logger's level
+  to `INFO` when its effective level is higher. JSON bodies are logged
+  whole, without `azr`'s `format_json_body()` truncation (D43).
+- The tests send through a recording `httpx.MockTransport` by patching
+  the module's `_transport()`, and patch its `_sleep`, `_uniform`, `_now`
+  and `_clock`, so the public signatures stay as above.
 
 ### 4.2 `az` CLI helpers
 
@@ -1119,6 +1167,31 @@ Settled in Stage 4 (2026-11-21), the implementer's calls:
 - **D35.** A timeout kills `az`'s process tree (a new session on POSIX,
   `taskkill /T` on Windows). Reason: `az` is a script that starts Python,
   and killing the script alone leaves its child holding the pipes.
+
+Settled in Stage 5 (2026-11-21), the implementer's calls:
+
+- **D36.** `app_credential()` accepts azure-identity's class names as well
+  as its own. Reason: `AZURE_TOKEN_CREDENTIALS` is shared with
+  `DefaultAzureCredential`, so a value valid there must not break a client.
+- **D37.** In automatic mode a client ID without its secret, or the
+  reverse, is an error, not `dev`. Reason: a half-configured deployment
+  silently using a developer login is the fall-through `prod` forbids.
+- **D38.** `dev` decides on the device code when the credential is built.
+  Reason: §4.1 makes the choice in `__init__`, from the session as it is.
+- **D39.** `app_credential()`'s configuration errors are `ValueError`.
+  Reason: they are bad input, as a missing path parameter is, and
+  azure-identity's constructors raise the same.
+- **D40.** Only `ConnectError` and `ConnectTimeout` are retried among
+  transport errors. Reason: they alone guarantee the server never saw the
+  request, which is §4.1's rule for resending a `POST`.
+- **D41.** An empty body skips `response_handler`. Reason: `azr` returns
+  `NULL` before its handler, and a handler need not accept `None`.
+- **D42.** Log records carry `rich` markup, with bodies and URLs escaped.
+  Reason: §4.1's `RichHandler(markup=True)` colours from the message, and
+  unescaped `[...]` in a body would be read as markup.
+- **D43.** Request bodies are logged whole. Reason: §4.1 asks for the body
+  pretty-printed; `azr`'s truncation can follow if long bodies are a
+  problem.
 
 The author's calls, open until the package repository records them:
 
