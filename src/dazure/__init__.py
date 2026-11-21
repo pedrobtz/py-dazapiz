@@ -30,6 +30,7 @@ from .errors import (
 )
 
 __version__ = version("dazure")
+"""The installed version of dazure, from the package metadata."""
 
 __all__ = [
     "AZURE_CLI_CLIENT_ID",

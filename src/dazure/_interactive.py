@@ -181,10 +181,9 @@ class DeviceCodeCredential(_RefreshTokenFromCache, azure.identity.DeviceCodeCred
 class InteractiveBrowserCredential(
     _RefreshTokenFromCache, azure.identity.InteractiveBrowserCredential
 ):
-    """`azure.identity.InteractiveBrowserCredential` with a persisted cache,
-    `get_refresh_token()`, and httr2's sign-in through a callback page.
+    """`azure.identity.InteractiveBrowserCredential` with a persisted cache and `get_refresh_token()`.
 
-    With no `redirect_uri` or a localhost one, the parent's local listener and
+    It also signs in through a callback page, as httr2 does. With no `redirect_uri` or a localhost one, the parent's local listener and
     system browser sign in. Any other `redirect_uri` (a page the user's browser
     can load, such as a code-server URL) prints MSAL's authorize URL and reads
     back what the callback page shows: the callback URL, base64 JSON with `code`

@@ -87,19 +87,23 @@ class SparkStorageConf(dict[str, str]):
         return {k: _REDACTED if _is_secret_key(k, v) else v for k, v in self.items()}
 
     def __repr__(self) -> str:
+        """The keys with the client secret, refresh token and account key redacted."""
         return f"{type(self).__name__}({self._redacted()!r})"
 
     __str__ = __repr__
 
     def copy(self) -> SparkStorageConf:
+        """A shallow copy, still a `SparkStorageConf`."""
         return type(self)(self)
 
     def __or__(self, other: object) -> SparkStorageConf:
+        """Merge with a dict, the dict's keys winning, into a `SparkStorageConf`."""
         if not isinstance(other, dict):
             return NotImplemented
         return type(self)({**self, **cast("dict[str, str]", other)})
 
     def __ror__(self, other: object) -> SparkStorageConf:
+        """Merge a dict with this, this one's keys winning, into a `SparkStorageConf`."""
         if not isinstance(other, dict):
             return NotImplemented
         return type(self)({**cast("dict[str, str]", other), **self})

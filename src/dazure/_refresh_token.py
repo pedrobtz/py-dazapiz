@@ -66,6 +66,7 @@ class RefreshTokenInfo:
     username: str | None = None
 
     def __post_init__(self) -> None:
+        """Check the fields' types and that the required ones are not empty."""
         for name in ("token", "client_id", "tenant_id"):
             value: object = getattr(self, name)
             if not isinstance(value, str):
@@ -79,6 +80,7 @@ class RefreshTokenInfo:
             raise TypeError("RefreshTokenInfo.username must be a str or None")
 
     def __repr__(self) -> str:
+        """The fields with the token shown as `<redacted>`."""
         return (
             f"RefreshTokenInfo(token={_REDACTED!r}, client_id={self.client_id!r}, "
             f"tenant_id={self.tenant_id!r}, username={self.username!r})"

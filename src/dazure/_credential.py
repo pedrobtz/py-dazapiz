@@ -95,6 +95,7 @@ class RefreshTokenCredential:
         self._tokens: dict[tuple[str, frozenset[str]], AccessToken] = {}
 
     def __repr__(self) -> str:
+        """The client ID, tenant and username; never a token."""
         info = self._info
         return (
             f"RefreshTokenCredential(client_id={info.client_id!r}, "

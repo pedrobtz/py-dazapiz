@@ -231,13 +231,16 @@ class ApiClient:
         )
 
     def __repr__(self) -> str:
+        """The class, host URL and credential class; never a token."""
         cred = type(self._credential).__name__ if self._credential is not None else None
         return f"{type(self).__name__}(host_url={self._host_url!r}, credential={cred})"
 
     def __enter__(self: _Client) -> _Client:
+        """Return the client itself, typed as the subclass."""
         return self
 
     def __exit__(self, *exc: object) -> None:
+        """Close the client."""
         self.close()
 
     def close(self) -> None:
