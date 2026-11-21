@@ -33,8 +33,9 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv run --frozen ruff check .
       - run: uv run --frozen ruff format --check .
-      # Strict type checking of src/, examples/ and tests/typing/ ([tool.pyright], design §8.1).
-      - run: uv run --frozen pyright
+      # Strict type checking of src/, examples/ and tests/typing/ ([tool.pyright], design D55),
+      # with the duckdb extra installed so dazure.duckdb is checked against its types.
+      - run: uv run --frozen --all-extras pyright
 
   quick:
     if: ${{ !(github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')) }}
