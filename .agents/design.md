@@ -3,7 +3,8 @@
 Adopted from [RFC 0078](https://github.com/pedrobtz/packages/blob/c2a33fa70cbfe8a2b6d79c4fc70d036caf682d56/rfcs/not-started/0078-dazure-azure-helpers-for-python.md)
 on 2026-11-21. This file is the single source of truth for the design; the
 RFC is now a pointer here. Changed since adoption: §8 split into automated
-and manual tiers (D23), with §4.3.2, §7, §9, D16 and D22 following.
+and manual tiers (D23), with §4.3.2, §7, §9, D16 and D22 following;
+§9's outline moved to [roadmap.md](roadmap.md) on 2026-11-21.
 
 - **Status:** Proposed. The decisions in §10 marked "maintainer" were
   settled in conversation on 2026-11-19 (D21 on 2026-11-21); the rest
@@ -890,13 +891,7 @@ date, OS and versions in the release's pull request.
 
 ## 9. Roadmap
 
-1. **0.0.1, Spark and the refresh token.** §4.3 and §4.4, with the
-   `azr` oracle. This alone answers the motivating use.
-2. **0.0.2, `az` helpers.** §4.2.
-3. **0.0.3, REST client.** §4.1.
-4. **0.0.4, DuckDB.** §4.5.
-5. **0.1.0.** Docs (README in `py-dazdiff`'s style), the manual
-   checklist of §8.2 run on Windows, macOS and Linux, first PyPI release.
+The order of work is in [roadmap.md](roadmap.md).
 
 ## 10. Decisions
 

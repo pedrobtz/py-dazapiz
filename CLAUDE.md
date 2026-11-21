@@ -13,9 +13,9 @@ already do.
   questions. Adopted from RFC 0078 in `pedrobtz/packages` on 2026-11-21;
   edits go here, never to the RFC. A decision changes the design, with a
   dated one-line reason.
-- `.agents/roadmap.md`, once written, owns the order of work: stages,
-  exit criteria, CI tiers, issue links. Until then design §9 is the
-  outline.
+- `.agents/roadmap.md` owns the order of work: stages, exit criteria,
+  CI tiers, issue links. Each stage is a sub-issue of `v0.1.0` (#2),
+  closed by one pull request titled like the stage, with `Closes #<n>`.
 
 ## Commands
 
