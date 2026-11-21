@@ -672,7 +672,7 @@ def spark_storage_conf(
     refresh_token: str | SupportsRefreshToken | None = None,  # §4.3.4
     account_key: str | None = None,
     token_file: str | None = None,       # $AZURE_FEDERATED_TOKEN_FILE
-    authority_host: str = "login.microsoftonline.com",  # $AZURE_AUTHORITY_HOST
+    authority_host: str | None = None,   # $AZURE_AUTHORITY_HOST, else the public cloud
     prefix: str | None = "spark.hadoop",
 ) -> SparkStorageConf: ...
 ```
@@ -723,6 +723,32 @@ Defaults when `client_id` or `tenant_id` is not passed:
   the AKS webhook sets; missing either is a `ValueError`. (`azr` falls
   back to the CLI client ID, which the federated token cannot match.)
 
+`client_id` and `tenant_id`, when passed, win over a
+`SupportsRefreshToken`'s own (D28). Arguments another `auth_type` uses
+are accepted and ignored, as in `azr`. Missing `client_secret`
+(`$AZURE_CLIENT_SECRET`), `token_file` (`$AZURE_FEDERATED_TOKEN_FILE`) or
+`account_key` is a `ValueError`, as `azr` refuses them; a missing refresh
+token is `RefreshTokenNotFoundError` (§4.3.4).
+
+Found while porting, 2026-11-21 (Stage 2), checked against the `azr`
+fixture or `azr`'s source:
+
+- `authority_host` may be given as a URL: a trailing `/` and then an
+  `http(s)://` scheme are stripped, in that order, before it is used, as
+  `azr`'s `normalize_authority_host()` does. The fixture has variants for
+  it.
+- A trailing `.` in `prefix` is dropped (`"spark.hadoop."` gives the same
+  keys as `"spark.hadoop"`), as in `azr`.
+- `azr` checks the tenant against `^[A-Za-z0-9.-]+$` only where it builds
+  a token URL (`client_secret`, `refresh_token`); `dazure` checks it for
+  every type that uses one, since Hadoop concatenates `msi.tenant` into a
+  URL too. Reason: a tenant with `/` builds a wrong URL silently.
+- An empty string passed for any argument is a `ValueError`, where `azr`
+  would write it out; an empty environment variable counts as unset (D25).
+  Reason: an empty ID or key only fails later, inside an executor.
+- `shared_key` without `storage_account` is refused by `azr` too, so the
+  fixture records those six cases as expected errors.
+
 A refresh token used with the wrong client ID fails only later, inside
 a Spark executor with a Hadoop-shaped error; returning the client ID
 with the token is what prevents that.
@@ -732,7 +758,11 @@ with the token is what prevents that.
 `*.oauth2.refresh.token` and `*.key` with `"<redacted>"`; the dict
 itself holds the real values so it can be passed to
 `SparkSession.builder.config(map=...)` or `spark.conf.set`.
-`workload_identity` notes in its docstring that it needs Hadoop 3.4.1+
+The property is matched with or without an account suffix, and the
+`oauth2.refresh.token.endpoint` key, which starts like the refresh token,
+is told apart by its `https://` value, so an account named `endpoint`
+still has its token redacted; `copy()` and `|` keep the class
+(2026-11-21, Stage 2). `workload_identity` notes in its docstring that it needs Hadoop 3.4.1+
 (Spark 4.x, Databricks 14.3+ LTS, Synapse 3.4+), as `azr` documents.
 
 ### 4.5 DuckDB secrets and tuning
@@ -972,6 +1002,17 @@ Settled in Stage 1 (2026-11-21), the implementer's calls:
   does network discovery, which must not happen at construction (Spark
   driver) nor in tests (D23), so the tests replace the class rather than
   one method.
+
+Settled in Stage 2 (2026-11-21), the implementer's calls:
+
+- **D27.** `spark_storage_conf(authority_host=None)` reads
+  `$AZURE_AUTHORITY_HOST`, else the public cloud, as `azr`'s
+  `default_azure_host()` and `RefreshTokenCredential` do. Reason: the
+  signature's literal default could not honour the variable its comment
+  named.
+- **D28.** Explicit `client_id` and `tenant_id` win over those a
+  `SupportsRefreshToken` supplies. Reason: §4.4's defaults apply "when not
+  passed", and an explicit argument is what the fixture compares.
 
 The author's calls, open until the package repository records them:
 

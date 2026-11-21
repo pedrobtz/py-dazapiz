@@ -1,0 +1,2151 @@
+{
+  "generator": "tools/azr_spark_fixture.R",
+  "azr_commit": "cca8ad53b4eeef138c10966c8deb264e33eefe5d",
+  "azr_dirty": false,
+  "azr_version": "0.3.7.9000",
+  "r_version": "4.6.2",
+  "cases": [
+    {
+      "id": "refresh_token/none/public/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/none/public/null",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.refresh.token": "placeholder-refresh-token",
+        "fs.azure.account.oauth2.refresh.token.endpoint": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/none/us_gov/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/none/us_gov/null",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.refresh.token": "placeholder-refresh-token",
+        "fs.azure.account.oauth2.refresh.token.endpoint": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/none/china/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/none/china/null",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.refresh.token": "placeholder-refresh-token",
+        "fs.azure.account.oauth2.refresh.token.endpoint": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/short/public/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.windows.net": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/short/public/null",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.windows.net": "placeholder-refresh-token",
+        "fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/short/us_gov/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.usgovcloudapi.net": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/short/us_gov/null",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.usgovcloudapi.net": "placeholder-refresh-token",
+        "fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/short/china/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.chinacloudapi.cn": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.chinacloudapi.cn": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.chinacloudapi.cn": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/short/china/null",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.chinacloudapi.cn": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.chinacloudapi.cn": "placeholder-refresh-token",
+        "fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.chinacloudapi.cn": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/fqdn/public/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.windows.net": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/fqdn/public/null",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.windows.net": "placeholder-refresh-token",
+        "fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/fqdn/us_gov/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.windows.net": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/fqdn/us_gov/null",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.windows.net": "placeholder-refresh-token",
+        "fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/fqdn/china/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.windows.net": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.windows.net": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/fqdn/china/null",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.windows.net": "placeholder-refresh-token",
+        "fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.windows.net": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/none/public/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/none/public/null",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.client.secret": "placeholder-client-secret",
+        "fs.azure.account.oauth2.client.endpoint": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/none/us_gov/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/none/us_gov/null",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.client.secret": "placeholder-client-secret",
+        "fs.azure.account.oauth2.client.endpoint": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/none/china/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/none/china/null",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.client.secret": "placeholder-client-secret",
+        "fs.azure.account.oauth2.client.endpoint": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/short/public/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.windows.net": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/short/public/null",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.windows.net": "placeholder-client-secret",
+        "fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/short/us_gov/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.usgovcloudapi.net": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/short/us_gov/null",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.usgovcloudapi.net": "placeholder-client-secret",
+        "fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/short/china/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.chinacloudapi.cn": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.chinacloudapi.cn": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.chinacloudapi.cn": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/short/china/null",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.chinacloudapi.cn": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.chinacloudapi.cn": "placeholder-client-secret",
+        "fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.chinacloudapi.cn": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/fqdn/public/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.windows.net": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/fqdn/public/null",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.windows.net": "placeholder-client-secret",
+        "fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/fqdn/us_gov/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.windows.net": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/fqdn/us_gov/null",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.windows.net": "placeholder-client-secret",
+        "fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/fqdn/china/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.windows.net": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.windows.net": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/fqdn/china/null",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.windows.net": "placeholder-client-secret",
+        "fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.windows.net": "https://login.chinacloudapi.cn/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "workload_identity/none/public/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "workload_identity/none/public/null",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.token.file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "fs.azure.account.oauth2.msi.authority": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "workload_identity/none/us_gov/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "workload_identity/none/us_gov/null",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.token.file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "fs.azure.account.oauth2.msi.authority": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "workload_identity/none/china/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "workload_identity/none/china/null",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.token.file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "fs.azure.account.oauth2.msi.authority": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "workload_identity/short/public/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.windows.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "workload_identity/short/public/null",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.windows.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "workload_identity/short/us_gov/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.usgovcloudapi.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "workload_identity/short/us_gov/null",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.usgovcloudapi.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "workload_identity/short/china/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.chinacloudapi.cn": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.chinacloudapi.cn": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.chinacloudapi.cn": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "workload_identity/short/china/null",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.chinacloudapi.cn": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.chinacloudapi.cn": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.chinacloudapi.cn": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "workload_identity/fqdn/public/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.windows.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "workload_identity/fqdn/public/null",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.windows.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "workload_identity/fqdn/us_gov/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.windows.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "workload_identity/fqdn/us_gov/null",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.windows.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "workload_identity/fqdn/china/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.windows.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "workload_identity/fqdn/china/null",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.windows.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "managed_identity/none/public/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "managed_identity/none/public/null",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.msi.authority": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "managed_identity/none/us_gov/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "managed_identity/none/us_gov/null",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.msi.authority": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "managed_identity/none/china/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "managed_identity/none/china/null",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type": "OAuth",
+        "fs.azure.account.oauth.provider.type": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "fs.azure.account.oauth2.client.id": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.msi.authority": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "managed_identity/short/public/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "managed_identity/short/public/null",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "managed_identity/short/us_gov/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "managed_identity/short/us_gov/null",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "managed_identity/short/china/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.chinacloudapi.cn": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.chinacloudapi.cn": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "managed_identity/short/china/null",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.chinacloudapi.cn": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.chinacloudapi.cn": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.chinacloudapi.cn": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "managed_identity/fqdn/public/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "managed_identity/fqdn/public/null",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "managed_identity/fqdn/us_gov/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "managed_identity/fqdn/us_gov/null",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "managed_identity/fqdn/china/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "managed_identity/fqdn/china/null",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.chinacloudapi.cn/"
+      }
+    },
+    {
+      "id": "shared_key/none/public/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "error": "`storage_account` is required when `auth_type` is \"shared_key\"."
+    },
+    {
+      "id": "shared_key/none/public/null",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "error": "`storage_account` is required when `auth_type` is \"shared_key\"."
+    },
+    {
+      "id": "shared_key/none/us_gov/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "error": "`storage_account` is required when `auth_type` is \"shared_key\"."
+    },
+    {
+      "id": "shared_key/none/us_gov/null",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "error": "`storage_account` is required when `auth_type` is \"shared_key\"."
+    },
+    {
+      "id": "shared_key/none/china/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "error": "`storage_account` is required when `auth_type` is \"shared_key\"."
+    },
+    {
+      "id": "shared_key/none/china/null",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": null,
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "error": "`storage_account` is required when `auth_type` is \"shared_key\"."
+    },
+    {
+      "id": "shared_key/short/public/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "SharedKey",
+        "spark.hadoop.fs.azure.account.key.placeholderacct.dfs.core.windows.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/short/public/null",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "SharedKey",
+        "fs.azure.account.key.placeholderacct.dfs.core.windows.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/short/us_gov/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "SharedKey",
+        "spark.hadoop.fs.azure.account.key.placeholderacct.dfs.core.usgovcloudapi.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/short/us_gov/null",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "SharedKey",
+        "fs.azure.account.key.placeholderacct.dfs.core.usgovcloudapi.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/short/china/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "SharedKey",
+        "spark.hadoop.fs.azure.account.key.placeholderacct.dfs.core.chinacloudapi.cn": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/short/china/null",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.chinacloudapi.cn": "SharedKey",
+        "fs.azure.account.key.placeholderacct.dfs.core.chinacloudapi.cn": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/fqdn/public/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "SharedKey",
+        "spark.hadoop.fs.azure.account.key.placeholderacct.dfs.core.windows.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/fqdn/public/null",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "SharedKey",
+        "fs.azure.account.key.placeholderacct.dfs.core.windows.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/fqdn/us_gov/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "SharedKey",
+        "spark.hadoop.fs.azure.account.key.placeholderacct.dfs.core.windows.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/fqdn/us_gov/null",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.us",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "SharedKey",
+        "fs.azure.account.key.placeholderacct.dfs.core.windows.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/fqdn/china/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "SharedKey",
+        "spark.hadoop.fs.azure.account.key.placeholderacct.dfs.core.windows.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/fqdn/china/null",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct.dfs.core.windows.net",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.chinacloudapi.cn",
+        "prefix": null
+      },
+      "conf": {
+        "fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "SharedKey",
+        "fs.azure.account.key.placeholderacct.dfs.core.windows.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "refresh_token/short/us_gov_url/default",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "https://login.microsoftonline.us/",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.usgovcloudapi.net": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "refresh_token/short/public/trailing_dot",
+      "args": {
+        "auth_type": "refresh_token",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop."
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.RefreshTokenBasedTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.placeholderacct.dfs.core.windows.net": "placeholder-refresh-token",
+        "spark.hadoop.fs.azure.account.oauth2.refresh.token.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/short/us_gov_url/default",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "https://login.microsoftonline.us/",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.usgovcloudapi.net": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "client_secret/short/public/trailing_dot",
+      "args": {
+        "auth_type": "client_secret",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop."
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.client.secret.placeholderacct.dfs.core.windows.net": "placeholder-client-secret",
+        "spark.hadoop.fs.azure.account.oauth2.client.endpoint.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/00000000-0000-0000-0000-00000000aaaa/oauth2/v2.0/token"
+      }
+    },
+    {
+      "id": "workload_identity/short/us_gov_url/default",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "https://login.microsoftonline.us/",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.usgovcloudapi.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "workload_identity/short/public/trailing_dot",
+      "args": {
+        "auth_type": "workload_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop."
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.WorkloadIdentityTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.token.file.placeholderacct.dfs.core.windows.net": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "managed_identity/short/us_gov_url/default",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "https://login.microsoftonline.us/",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.usgovcloudapi.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.usgovcloudapi.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.usgovcloudapi.net": "https://login.microsoftonline.us/"
+      }
+    },
+    {
+      "id": "managed_identity/short/public/trailing_dot",
+      "args": {
+        "auth_type": "managed_identity",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop."
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "OAuth",
+        "spark.hadoop.fs.azure.account.oauth.provider.type.placeholderacct.dfs.core.windows.net": "org.apache.hadoop.fs.azurebfs.oauth2.MsiTokenProvider",
+        "spark.hadoop.fs.azure.account.oauth2.client.id.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000bbbb",
+        "spark.hadoop.fs.azure.account.oauth2.msi.tenant.placeholderacct.dfs.core.windows.net": "00000000-0000-0000-0000-00000000aaaa",
+        "spark.hadoop.fs.azure.account.oauth2.msi.authority.placeholderacct.dfs.core.windows.net": "https://login.microsoftonline.com/"
+      }
+    },
+    {
+      "id": "shared_key/short/us_gov_url/default",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "https://login.microsoftonline.us/",
+        "prefix": "spark.hadoop"
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.usgovcloudapi.net": "SharedKey",
+        "spark.hadoop.fs.azure.account.key.placeholderacct.dfs.core.usgovcloudapi.net": "placeholder-account-key"
+      }
+    },
+    {
+      "id": "shared_key/short/public/trailing_dot",
+      "args": {
+        "auth_type": "shared_key",
+        "storage_account": "placeholderacct",
+        "tenant_id": "00000000-0000-0000-0000-00000000aaaa",
+        "client_id": "00000000-0000-0000-0000-00000000bbbb",
+        "client_secret": "placeholder-client-secret",
+        "refresh_token": "placeholder-refresh-token",
+        "account_key": "placeholder-account-key",
+        "token_file": "/var/run/secrets/azure/tokens/azure-identity-token",
+        "authority_host": "login.microsoftonline.com",
+        "prefix": "spark.hadoop."
+      },
+      "conf": {
+        "spark.hadoop.fs.azure.account.auth.type.placeholderacct.dfs.core.windows.net": "SharedKey",
+        "spark.hadoop.fs.azure.account.key.placeholderacct.dfs.core.windows.net": "placeholder-account-key"
+      }
+    }
+  ]
+}

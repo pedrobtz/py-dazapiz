@@ -1,5 +1,7 @@
 """A sentinel secret never appears in repr, str or an error message (design §6)."""
 
+import pprint
+
 import pytest
 from azure.core.exceptions import ClientAuthenticationError
 from helpers import Login, subscription, write_az_login, write_profile, write_token_cache
@@ -10,7 +12,9 @@ from dazure import (
     RefreshTokenCredential,
     RefreshTokenInfo,
     RefreshTokenNotFoundError,
+    SparkStorageConf,
     refresh_token_from_az_cli,
+    spark_storage_conf,
 )
 from dazure._refresh_token import as_refresh_token_info
 
@@ -83,3 +87,60 @@ def test_az_cli_lookup_errors(tmp_path, monkeypatch):
     info = refresh_token_from_az_cli(config_dir=tmp_path)
     assert info.token == SENTINEL
     assert SENTINEL not in shown(info)
+
+
+@pytest.mark.parametrize("prefix", ["spark.hadoop", None])
+@pytest.mark.parametrize("storage_account", [None, "acct", "endpoint", "key"])
+def test_spark_storage_conf(prefix, storage_account):
+    # "endpoint" and "key" as account names put a secret key's property in
+    # front of a word that is also a property: the refresh token key for the
+    # account "endpoint" reads `...oauth2.refresh.token.endpoint.dfs...`.
+    secret, key = SENTINEL + "-secret", SENTINEL + "-key"
+    confs = [
+        spark_storage_conf(refresh_token=SENTINEL, storage_account=storage_account, prefix=prefix),
+        spark_storage_conf(
+            refresh_token=RefreshTokenInfo(SENTINEL, "cid", "tid"),
+            storage_account=storage_account,
+            prefix=prefix,
+        ),
+        spark_storage_conf(
+            "client_secret",
+            client_id="cid",
+            tenant_id="tid",
+            client_secret=secret,
+            storage_account=storage_account,
+            prefix=prefix,
+        ),
+    ]
+    if storage_account is not None:
+        confs.append(
+            spark_storage_conf(
+                "shared_key", storage_account=storage_account, account_key=key, prefix=prefix
+            )
+        )
+    for conf in confs:
+        assert SENTINEL not in shown(conf)
+        assert SENTINEL not in pprint.pformat(conf)
+        assert SENTINEL not in shown(conf.copy())
+        assert SENTINEL not in shown(conf | {"x": "y"})
+        assert SENTINEL not in shown({"conf": conf})
+        assert "<redacted>" in repr(conf)
+        assert any(SENTINEL in v for v in conf.values())  # the dict keeps the real value
+    rt, cs = confs[0], confs[2]
+    # The non-secret values still show.
+    endpoint = next(v for v in rt.values() if v.startswith("https://"))
+    assert endpoint in repr(rt)
+    assert "cid" in repr(cs)
+
+
+def test_spark_storage_conf_built_by_hand():
+    conf = SparkStorageConf(
+        {
+            "fs.azure.account.key.a.dfs.core.windows.net": SENTINEL,
+            "fs.azure.account.oauth2.client.secret": SENTINEL,
+            "spark.hadoop.fs.azure.account.oauth2.refresh.token.b.dfs.core.windows.net": SENTINEL,
+            "fs.azure.account.auth.type": "OAuth",
+        }
+    )
+    assert SENTINEL not in shown(conf)
+    assert "OAuth" in repr(conf)
