@@ -2,7 +2,7 @@
 
 The oracle is `tests/fixtures/azr_spark_conf.json`, written by
 `tools/azr_spark_fixture.R` from an `azr` checkout with every argument
-explicit. The defaults where dazure deliberately differs from azr are tested
+explicit. The defaults where dazapiz deliberately differs from azr are tested
 against the §4.4 list.
 """
 
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from dazure import (
+from dazapiz import (
     AZURE_CLI_CLIENT_ID,
     RefreshTokenInfo,
     RefreshTokenNotFoundError,
@@ -71,7 +71,7 @@ def test_refuses_what_azr_refuses(case):
         spark_storage_conf(**case["args"])
 
 
-# Defaults (§4.4): where dazure differs from azr, and where it follows it.
+# Defaults (§4.4): where dazapiz differs from azr, and where it follows it.
 
 
 def test_refresh_token_info_supplies_its_own_ids(monkeypatch):

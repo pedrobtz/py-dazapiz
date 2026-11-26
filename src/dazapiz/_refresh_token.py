@@ -53,7 +53,7 @@ class RefreshTokenInfo:
     Examples
     --------
     ```python
-    from dazure import AZURE_CLI_CLIENT_ID, RefreshTokenInfo
+    from dazapiz import AZURE_CLI_CLIENT_ID, RefreshTokenInfo
 
     info = RefreshTokenInfo(token=token, client_id=AZURE_CLI_CLIENT_ID, tenant_id="contoso.com")
     info  # RefreshTokenInfo(token='<redacted>', client_id='04b07795-...', ...)
@@ -112,7 +112,7 @@ class SupportsRefreshToken(Protocol):
     Examples
     --------
     ```python
-    from dazure import RefreshTokenInfo, SupportsRefreshToken
+    from dazapiz import RefreshTokenInfo, SupportsRefreshToken
 
     class FromVault:
         def get_refresh_token(self) -> RefreshTokenInfo:

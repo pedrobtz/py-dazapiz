@@ -1,7 +1,7 @@
 """Optional checklist item 8: `examples/petstore.py` against the public Petstore.
 
-Needs no Azure, only the internet: skipped unless `DAZURE_LIVE_HTTP=1`
-(`DAZURE_LIVE` does not turn it on). The public store is shared and
+Needs no Azure, only the internet: skipped unless `DAZAPIZ_LIVE_HTTP=1`
+(`DAZAPIZ_LIVE` does not turn it on). The public store is shared and
 writable, so the test uses ids of its own, tolerates other people's pets
 in the lists it reads, and deletes what it created. pydantic and the
 example are loaded inside the fixture, so collecting this module needs
@@ -15,7 +15,7 @@ import random
 
 import pytest
 
-import dazure
+import dazapiz
 
 
 @pytest.fixture(scope="module")
@@ -33,26 +33,26 @@ def unique_id() -> int:
 def test_pet_and_order_lifecycle(ps, unique_id):
     from pydantic import HttpUrl
 
-    name = f"dazure-live-{unique_id}"
+    name = f"dazapiz-live-{unique_id}"
     with ps.PetStoreClient() as store:
         created = store.add_pet(
             ps.PetCreate(
                 id=unique_id,
                 name=name,
-                photo_urls=[HttpUrl("https://example.com/dazure.png")],
-                tags=[ps.Tag(id=1, name="dazure")],
+                photo_urls=[HttpUrl("https://example.com/dazapiz.png")],
+                tags=[ps.Tag(id=1, name="dazapiz")],
                 status="pending",
             )
         )
         try:
             assert isinstance(created, ps.Pet)
             assert (created.id, created.name, created.status) == (unique_id, name, "pending")
-            assert created.photo_urls == ["https://example.com/dazure.png"]
+            assert created.photo_urls == ["https://example.com/dazapiz.png"]
             assert store.get_pet(unique_id) == created
 
             try:
                 pending = store.find_pets_by_status(["pending"])
-            except dazure.ResponseParseError:
+            except dazapiz.ResponseParseError:
                 # Someone else's malformed pet; ours must still be in the raw list.
                 raw = store.fetch(
                     "/pet/findByStatus",
@@ -75,7 +75,7 @@ def test_pet_and_order_lifecycle(ps, unique_id):
                 store.delete_order(unique_id)
             with pytest.raises(ps.OrderNotFoundError) as err:
                 store.get_order(unique_id)
-            assert isinstance(err.value.__cause__, dazure.ApiError)
+            assert isinstance(err.value.__cause__, dazapiz.ApiError)
         finally:
             store.delete_pet(unique_id)
 

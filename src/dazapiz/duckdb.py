@@ -2,7 +2,7 @@
 
 Ported from `quak`'s `az_set_*_secret()`, `az_list_secrets()`,
 `az_conn_settings()` and `az_tune()`. Needs the `duckdb` extra: `duckdb` is
-imported inside each function, so `import dazure` never needs it.
+imported inside each function, so `import dazapiz` never needs it.
 
 Each helper takes a DuckDB connection, runs `INSTALL azure; LOAD azure` if
 the extension is not loaded yet, and executes the `CREATE OR REPLACE SECRET`
@@ -10,7 +10,7 @@ statement `quak` runs. Values are written as DuckDB string literals (quotes
 doubled, nothing else special), because DuckDB before 1.2 cannot bind
 parameters in `CREATE SECRET` (D45).
 
-Secrets are named `dazure_default`, or `dazure_<account>` with every
+Secrets are named `dazapiz_default`, or `dazapiz_<account>` with every
 character other than a letter or digit replaced by `_` and lower-cased
 (D44), so they never collide with `quak`'s `quak_*` secrets in a shared
 DuckDB file. With `account`, a secret is scoped to the account's
@@ -45,7 +45,7 @@ __all__ = [
 STORAGE_SCOPE = "https://storage.azure.com/.default"
 """The Azure Storage token scope, `set_credential_secret()`'s default `scope`."""
 
-_log = logging.getLogger("dazure.duckdb")
+_log = logging.getLogger("dazapiz.duckdb")
 _REDACTED = "<redacted>"
 
 
@@ -54,7 +54,7 @@ def _duckdb():
         import duckdb
     except ImportError as err:
         raise ImportError(
-            "dazure.duckdb needs DuckDB: pip install 'dazure[duckdb]'", name="duckdb"
+            "dazapiz.duckdb needs DuckDB: pip install 'dazapiz[duckdb]'", name="duckdb"
         ) from err
     return duckdb
 
@@ -90,9 +90,9 @@ def _literal(value: str) -> str:
 
 def _secret_name(account: str | None) -> str:
     if account is None:
-        return "dazure_default"
+        return "dazapiz_default"
     _check_str(account, "account")
-    return "dazure_" + re.sub(r"[^a-zA-Z0-9]", "_", account).lower()
+    return "dazapiz_" + re.sub(r"[^a-zA-Z0-9]", "_", account).lower()
 
 
 def _account_scopes(account: str) -> list[str]:
@@ -149,7 +149,7 @@ def set_token_secret(
     """Register an access token as a DuckDB Azure secret.
 
     As `quak::az_set_token_secret()`: `CREATE OR REPLACE SECRET` with
-    `PROVIDER access_token`, named `dazure_default`, or `dazure_<account>`
+    `PROVIDER access_token`, named `dazapiz_default`, or `dazapiz_<account>`
     with `account`. The token expires and is not refreshed: see
     `set_credential_secret()`.
 
@@ -182,7 +182,7 @@ def set_token_secret(
     --------
     ```python
     import duckdb
-    from dazure.duckdb import set_token_secret
+    from dazapiz.duckdb import set_token_secret
 
     conn = duckdb.connect()
     set_token_secret(conn, token, account="myaccount")
@@ -248,8 +248,8 @@ def set_credential_secret(
     Examples
     --------
     ```python
-    from dazure import RefreshTokenCredential, refresh_token_from_az_cli
-    from dazure.duckdb import set_credential_secret
+    from dazapiz import RefreshTokenCredential, refresh_token_from_az_cli
+    from dazapiz.duckdb import set_credential_secret
 
     expires_on = set_credential_secret(conn, RefreshTokenCredential(refresh_token_from_az_cli()))
     conn.sql("SELECT * FROM 'abfss://data@myaccount.dfs.core.windows.net/sales/*.parquet'")
@@ -310,7 +310,7 @@ def set_sp_secret(
     --------
     ```python
     import os
-    from dazure.duckdb import set_sp_secret
+    from dazapiz.duckdb import set_sp_secret
 
     set_sp_secret(
         conn,
@@ -378,7 +378,7 @@ def set_chain_secret(
     Examples
     --------
     ```python
-    from dazure.duckdb import set_chain_secret
+    from dazapiz.duckdb import set_chain_secret
 
     set_chain_secret(conn, chain="cli")
     ```
@@ -412,7 +412,7 @@ def list_secrets(conn: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyRelation:
     Examples
     --------
     ```python
-    from dazure.duckdb import list_secrets
+    from dazapiz.duckdb import list_secrets
 
     list_secrets(conn).fetchall()
     ```
@@ -439,7 +439,7 @@ def azure_settings(conn: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyRelation:
     Examples
     --------
     ```python
-    from dazure.duckdb import azure_settings
+    from dazapiz.duckdb import azure_settings
 
     azure_settings(conn).df()
     ```
@@ -536,7 +536,7 @@ def tune(
     Examples
     --------
     ```python
-    from dazure.duckdb import tune
+    from dazapiz.duckdb import tune
 
     tune(conn, concurrency=8, chunk_size=1_048_576, buffer_size=8_388_608)
     ```

@@ -5,7 +5,7 @@ import json
 import msal
 from helpers import Login, subscription, write_profile, write_token_cache
 
-from dazure import AZURE_CLI_CLIENT_ID
+from dazapiz import AZURE_CLI_CLIENT_ID
 
 ALICE = Login("alice@contoso.com", "contoso-tid", "contoso-tid", "rt-alice")
 ALICE_GUEST = Login("alice@contoso.com", "contoso-tid", "fabrikam-tid", "rt-alice-2")

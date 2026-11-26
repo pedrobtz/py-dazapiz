@@ -34,7 +34,7 @@ jobs:
       - run: uv run --frozen ruff check .
       - run: uv run --frozen ruff format --check .
       # Strict type checking of src/, examples/ and tests/typing/ ([tool.pyright], design D55),
-      # with the duckdb extra installed so dazure.duckdb is checked against its types.
+      # with the duckdb extra installed so dazapiz.duckdb is checked against its types.
       - run: uv run --frozen --all-extras pyright
 
   quick:
@@ -98,19 +98,19 @@ jobs:
         with:
           python-version: "3.10"
       # Design principle 5: the base install works without the duckdb extra.
-      - name: dazure imports without the duckdb extra
+      - name: dazapiz imports without the duckdb extra
         run: |
           uv run --resolution lowest-direct --isolated --no-dev python -c "
           import importlib.util
           assert importlib.util.find_spec('duckdb') is None, 'duckdb is installed'
-          import dazure, dazure.duckdb
+          import dazapiz, dazapiz.duckdb
           try:
-              dazure.duckdb.list_secrets(None)
+              dazapiz.duckdb.list_secrets(None)
           except ImportError as err:
-              assert 'dazure[duckdb]' in str(err), err
+              assert 'dazapiz[duckdb]' in str(err), err
           else:
-              raise SystemExit('dazure.duckdb ran without duckdb')
-          print('dazure', dazure.__version__, 'imports without duckdb')
+              raise SystemExit('dazapiz.duckdb ran without duckdb')
+          print('dazapiz', dazapiz.__version__, 'imports without duckdb')
           "
       # DuckDB's azure extension is downloaded once per DuckDB version (the one
       # uv.lock, or the lowest resolution, installs) and restored from the cache.
@@ -146,7 +146,7 @@ jobs:
       # stays uncovered here: the Windows branch of killing az's process tree (run
       # by the Windows test legs, not measured), and installing DuckDB's azure
       # extension when the cache already has it.
-      - run: uv run --frozen --all-extras pytest --cov=dazure --cov-report=term-missing --cov-fail-under=98
+      - run: uv run --frozen --all-extras pytest --cov=dazapiz --cov-report=term-missing --cov-fail-under=98
 
   package:
     if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') }}
@@ -168,4 +168,4 @@ jobs:
         run: |
           uv venv /tmp/smoke
           uv pip install --python /tmp/smoke dist/*.whl
-          /tmp/smoke/bin/python -c "import dazure; print(dazure.__version__)"
+          /tmp/smoke/bin/python -c "import dazapiz; print(dazapiz.__version__)"

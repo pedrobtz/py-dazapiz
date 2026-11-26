@@ -16,7 +16,7 @@ import pytest
 from pydantic import BaseModel, TypeAdapter
 from typing_extensions import assert_type
 
-from dazure import ApiClient
+from dazapiz import ApiClient
 
 HOST = "https://api.example.com"
 

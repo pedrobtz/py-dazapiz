@@ -1,13 +1,13 @@
 # Great Docs configuration: https://posit-dev.github.io/great-docs/
 # The site's home page is README.md; guide pages live in user_guide/.
 
-display_name: dazure
+display_name: dazapiz
 parser: numpy
-# Static analysis (griffe) only: dynamic introspection imports `dazure`, which
-# does not import its `duckdb` submodule, so `dazure:duckdb.tune` would fail and
+# Static analysis (griffe) only: dynamic introspection imports `dazapiz`, which
+# does not import its `duckdb` submodule, so `dazapiz:duckdb.tune` would fail and
 # the build would retry statically anyway.
 dynamic: false
-site_url: https://pedrobtz.github.io/py-dazure/
+site_url: https://pedrobtz.github.io/py-dazapiz/
 github_style: icon
 
 authors:
@@ -24,10 +24,10 @@ user_guide:
       - duckdb.qmd
       - browser-sign-in.qmd
 
-# Groups follow design §5. The `dazure.duckdb` and `dazure.testing` submodules'
+# Groups follow design §5. The `dazapiz.duckdb` and `dazapiz.testing` submodules'
 # members are listed by their submodule-qualified names (`duckdb.tune`,
 # `testing.StaticTokenCredential`), which Great Docs resolves relative to the
-# package (`dazure:duckdb.tune`). `members` lists
+# package (`dazapiz:duckdb.tune`). `members` lists
 # keep the dunder methods (documented for `great-docs lint`) off the pages.
 reference:
   - title: Refresh tokens and credentials
@@ -72,7 +72,7 @@ reference:
       - az_is_login
       - az_account_show
   - title: DuckDB
-    desc: "Azure secrets and settings for DuckDB, in `dazure.duckdb` (needs `dazure[duckdb]`)."
+    desc: "Azure secrets and settings for DuckDB, in `dazapiz.duckdb` (needs `dazapiz[duckdb]`)."
     contents:
       - duckdb.set_credential_secret
       - duckdb.set_token_secret
@@ -83,7 +83,7 @@ reference:
       - duckdb.tune
       - duckdb.STORAGE_SCOPE
   - title: Testing
-    desc: "Test doubles for code built on dazure, in `dazure.testing`."
+    desc: "Test doubles for code built on dazapiz, in `dazapiz.testing`."
     contents:
       - name: testing.StaticTokenCredential
         members:
@@ -91,9 +91,9 @@ reference:
           - get_token_info
           - close
   - title: Errors
-    desc: Everything dazure raises derives from `DazureError`.
+    desc: Everything dazapiz raises derives from `DazapizError`.
     contents:
-      - DazureError
+      - DazapizError
       - RefreshTokenNotFoundError
       - UnsupportedPlatformError
       - AzCliError

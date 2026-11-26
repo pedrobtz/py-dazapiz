@@ -18,8 +18,8 @@ from petstore import Pet, PetCreate, PetNotFoundError
 from pydantic import HttpUrl
 from pytest_socket import SocketBlockedError
 
-from dazure import ApiError, ResponseParseError
-from dazure.testing import StaticTokenCredential
+from dazapiz import ApiError, ResponseParseError
+from dazapiz.testing import StaticTokenCredential
 
 PET = {"id": 7, "name": "Rex", "photoUrls": ["https://example.com/rex.png"], "status": "available"}
 

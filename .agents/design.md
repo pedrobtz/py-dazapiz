@@ -1,4 +1,4 @@
-# RFC 0078: `dazure`, the Azure helpers azure-identity lacks
+# RFC 0078: `dazapiz`, the Azure helpers azure-identity lacks
 
 Adopted from [RFC 0078](https://github.com/pedrobtz/packages/blob/c2a33fa70cbfe8a2b6d79c4fc70d036caf682d56/rfcs/not-started/0078-dazure-azure-helpers-for-python.md)
 on 2026-11-21. This file is the single source of truth for the design; the
@@ -13,19 +13,21 @@ answered; #22), 2026-11-21;
 §4.1 `fetch(parse=...)` and model bodies, §5 `ResponseParseError` and the
 Petstore example, §7 and §8 type checking, real-HTTP tests and the Petstore
 item (D49 to D58; #26), 2026-11-21;
-§7 documentation site (#27), 2026-11-21.
+§7 documentation site (#27), 2026-11-21;
+renamed `dazure` to `dazapiz` (D61), 2026-11-26.
 
 - **Status:** Proposed. The decisions in §10 marked "maintainer" were
   settled in conversation on 2026-11-19 (D21 on 2026-11-21); the rest
   are the author's calls and stay open until the package repository
   records them.
 - **Date:** 2026-11-19.
-- **Package:** `dazure`, a Python package (repository `pedrobtz/py-dazure`,
-  import name `dazure`). This is the portfolio's first Python RFC; it
+- **Package:** `dazapiz`, a Python package (repository `pedrobtz/py-dazapiz`,
+  import name `dazapiz`). This is the portfolio's first Python RFC; it
   follows `py-dazdiff`'s layout (`pyproject.toml` with hatchling, `uv`,
-  ruff, pytest, Python >= 3.10). `dazure` is free on PyPI and there is no
-  `pedrobtz/py-dazure` or `pedrobtz/dazure` repository, both checked on
-  2026-11-19. `dependencies = ["azure-identity>=1.27", "httpx>=0.28",
+  ruff, pytest, Python >= 3.10). `dazapiz` is free on PyPI and there is no
+  `pedrobtz/py-dazapiz` or `pedrobtz/dazapiz` repository, both checked on
+  2026-11-26. Proposed and first built as `dazure` (`pedrobtz/py-dazure`);
+  renamed on 2026-11-26 (D61). `dependencies = ["azure-identity>=1.27", "httpx>=0.28",
   "rich>=13"]`;
   `azure-identity` brings `azure-core`, `msal` and `msal-extensions`.
   Extra `duckdb` adds `duckdb>=1.1`. No PySpark dependency: the Spark
@@ -39,17 +41,17 @@ item (D49 to D58; #26), 2026-11-21;
   1.39.0, `msal-extensions` 1.3.1, `httpx` 0.28.1. Nothing has been
   built.
 
-## 1. What dazure is
+## 1. What dazapiz is
 
-`dazure` brings to Python the parts of `azr` and `quak` that the Azure
+`dazapiz` brings to Python the parts of `azr` and `quak` that the Azure
 SDK for Python does not already provide, and nothing else. It is a thin
 layer: wherever `azure-identity` or `msal` already does a job,
-`dazure` calls it rather than reimplementing it. The REST client is on
+`dazapiz` calls it rather than reimplementing it. The REST client is on
 `httpx`; `azure-core` is used only for the `TokenCredential` and
 `AccessToken` types.
 
 ```python
-from dazure import az_login, spark_storage_conf, refresh_token_from_az_cli
+from dazapiz import az_login, spark_storage_conf, refresh_token_from_az_cli
 
 az_login()                                 # device code, once per machine
 conf = spark_storage_conf(refresh_token=refresh_token_from_az_cli())
@@ -64,10 +66,10 @@ Azure SDK will turn an `az login` into Spark's Hadoop ABFS configuration:
 Hadoop ships `RefreshTokenBasedTokenProvider`, but the keys are set by
 hand, and finding the refresh token means reading the Azure CLI's MSAL
 cache and knowing it was issued to the CLI's own client ID. `azr`
-already solves this in R (`azure_spark_storage_conf()`); `dazure` brings
+already solves this in R (`azure_spark_storage_conf()`); `dazapiz` brings
 it to PySpark users.
 
-### 1.1 What dazure is not
+### 1.1 What dazapiz is not
 
 - Not a second credential library. `DefaultAzureCredential`,
   `AzureCliCredential`, `ClientSecretCredential`,
@@ -92,51 +94,51 @@ it to PySpark users.
 ## 2. Scope
 
 Six components plus one interface, in priority order. For each: where
-it comes from, what Python already has, and what `dazure` adds.
+it comes from, what Python already has, and what `dazapiz` adds.
 
 1. **Spark / Hadoop ABFS config.** From
-   `azr::azure_spark_storage_conf()`. Python has nothing. `dazure` adds
+   `azr::azure_spark_storage_conf()`. Python has nothing. `dazapiz` adds
    the whole builder (§4.4).
 2. **Refresh token from `az login`.** From `azr`'s `find_msal_token()`
    (same result, different lookup; §4.3)
    and `default_refresh_token()`. `msal.SerializableTokenCache` reads the
-   cache file and `msal-extensions` decrypts it. `dazure` adds locating
+   cache file and `msal-extensions` decrypts it. `dazapiz` adds locating
    the cache and choosing the entry (§4.3).
 3. **`RefreshTokenCredential`.** From `azr::RefreshTokenCredential`.
    `msal.PublicClientApplication.acquire_token_by_refresh_token()` does
-   the exchange. `dazure` adds a `TokenCredential` wrapper (§4.3).
+   the exchange. `dazapiz` adds a `TokenCredential` wrapper (§4.3).
 4. **A refresh-token interface.** `azr`'s credentials return an httr2
    token that carries `refresh_token`. `azure-identity` keeps refresh
    tokens private: `TokenCredential` returns access tokens only.
-   `dazure` adds a `get_refresh_token()` protocol and thin subclasses of
+   `dazapiz` adds a `get_refresh_token()` protocol and thin subclasses of
    `InteractiveBrowserCredential` and `DeviceCodeCredential` that
    implement it (§4.3). The browser subclass also adds httr2's
    pasted-code sign-in for a redirect URI that is not on localhost,
    which `azure-identity` cannot do (§4.3.3).
 5. **REST client.** From `azr::api_client`. `httpx` is the HTTP layer
    and logs each call on the `httpx` logger; `azure-identity` supplies
-   tokens. `dazure` adds the bearer `httpx.Auth`, retry with backoff,
+   tokens. `dazapiz` adds the bearer `httpx.Auth`, retry with backoff,
    `fetch()` with path templates and content-type parsing, the
    coloured request/response logging, and per-API credentials: a
    subclass picks the developer's login or a service principal from its
    own environment variables (§4.1).
 6. **`az` CLI helpers.** From `azr::az_cli_login()` and its siblings.
-   `AzureCliCredential` runs `az account get-access-token` only. `dazure`
+   `AzureCliCredential` runs `az account get-access-token` only. `dazapiz`
    adds login, logout, is-logged-in and account show (§4.2).
 7. **DuckDB Azure secrets and tuning.** From `quak::az_set_*_secret()`,
    `az_list_secrets()`, `az_conn_settings()` and `az_tune()`. The
-   `azure` extension exists; secrets are raw SQL. `dazure` adds typed
+   `azure` extension exists; secrets are raw SQL. `dazapiz` adds typed
    helpers, per-account scoping and secrets from any `TokenCredential`
    (§4.5).
 
 ## 3. Design principles
 
 1. **The SDK first.** Anything `azure-identity` or `msal` does is used,
-   not redone. A `dazure` function that wraps one says so
+   not redone. A `dazapiz` function that wraps one says so
    in its docstring.
 2. **Any `TokenCredential` works.** Wherever a credential is taken, the
    type is `azure.core.credentials.TokenCredential`, so
-   `DefaultAzureCredential()` and `dazure.RefreshTokenCredential` are
+   `DefaultAzureCredential()` and `dazapiz.RefreshTokenCredential` are
    interchangeable.
 3. **Secrets never print.** Refresh tokens, client secrets, account keys
    and bearer tokens are redacted in `repr`, `str`, logs and error
@@ -147,7 +149,7 @@ it comes from, what Python already has, and what `dazure` adds.
    needs a trailing `/`). These are ported with the comments that explain
    them, and tested by key-for-key comparison with `azr` (§8).
 5. **Engines optional.** Neither Spark nor DuckDB is required to install
-   `dazure`. DuckDB is an extra, imported lazily.
+   `dazapiz`. DuckDB is an extra, imported lazily.
 
 ## 4. Components
 
@@ -296,7 +298,7 @@ The mode is the `mode` argument (or class attribute), else
   fall-through; so is both set with no tenant.
   `prod` never uses a developer login.
 - **`dev`**: `ChainedTokenCredential(AzureCliCredential(),
-  dazure.DeviceCodeCredential())`, the device code tried only in an
+  dazapiz.DeviceCodeCredential())`, the device code tried only in an
   interactive session (a TTY or a notebook kernel), so a batch job fails
   instead of waiting for a prompt.
 - **A single name**: `client_secret` (the named service principal),
@@ -312,7 +314,7 @@ The mode is the `mode` argument (or class attribute), else
 
 Different API classes in one process each read their own variables, so
 two APIs can use two service principals side by side. The chosen mode
-and credential class (never a value) are logged on the `dazure.http`
+and credential class (never a value) are logged on the `dazapiz.http`
 logger at `INFO` when the credential is built, so `verbose=True` shows
 which login a client is using.
 
@@ -335,7 +337,7 @@ Python objects, `application/xml` to `xml.etree.ElementTree.Element`,
 anything else to `str`, an empty body to `None`. The result then goes
 through `response_handler`. `azr`'s default handler converts data frames
 to `data.table`; the Python default is the identity. A non-2xx response
-after retries raises `dazure.ApiError`, an `httpx.HTTPStatusError`
+after retries raises `dazapiz.ApiError`, an `httpx.HTTPStatusError`
 subclass whose message carries the method, URL, status and response
 body.
 
@@ -343,7 +345,7 @@ body.
 on the `httpx` logger, `HTTP Request: GET <url> "HTTP/1.1 200 OK"`, with
 no request body, no timing, no size, no error body and no colour; its
 `httpcore` `DEBUG` records are transport noise. That is not what `azr`
-shows, so `dazure` adds `httpx` event hooks (about 30 lines, prototyped
+shows, so `dazapiz` adds `httpx` event hooks (about 30 lines, prototyped
 on 2026-11-19) that reproduce `azr`'s format:
 
 ```text
@@ -370,7 +372,7 @@ stored in `request.extensions` by the request hook, because
 `response.elapsed` raises inside a response hook until the response is
 closed (found by the prototype).
 
-The hooks write to a `dazure.http` logger, so the records can be routed
+The hooks write to a `dazapiz.http` logger, so the records can be routed
 or silenced like any other. `verbose=True` turns them on and, if the
 logger has no handler yet, attaches `rich.logging.RichHandler(markup=True,
 show_time=False, show_level=False, show_path=False)`, which prints the
@@ -385,7 +387,7 @@ Details settled in Stage 5 (2026-11-21):
 - `app_credential()`'s mode also takes the azure-identity class names that
   `AZURE_TOKEN_CREDENTIALS` takes for the five credentials (D36);
   `EnvironmentCredential` means the named service principal, as in `azr`.
-  Any other value, and the names of credentials `dazure` does not build
+  Any other value, and the names of credentials `dazapiz` does not build
   (`AzurePowerShellCredential`, `InteractiveBrowserCredential`, ...),
   raise `ValueError`. Surrounding spaces are ignored.
 - A partly set service principal raises `ValueError` naming the missing
@@ -434,7 +436,7 @@ Details settled in Stage 5 (2026-11-21):
   of scalars on one line, anything else one item per line. A body that
   does not parse as JSON, or is not JSON, is logged as is, in full.
   `azr` prints a failed response body verbatim; issue #22 asks for both,
-  so `dazure` abbreviates that one too.
+  so `dazapiz` abbreviates that one too.
 - Checked against `tools/azr_json_body_fixture.R`'s output
   (`tests/fixtures/azr_json_body.json`, azr `cca8ad5`): structure (which
   items are kept, where `...` goes) and text match `azr` exactly, except
@@ -442,16 +444,16 @@ Details settled in Stage 5 (2026-11-21):
   says (2026-11-21):
   - In a truncated or mixed-type nested array of scalars, R coerces the
     vector to character, so `azr` prints `["1", ..., "13"]`, `"TRUE"`,
-    and `"NA"` for a null among numbers; `dazure` keeps the JSON types.
+    and `"NA"` for a null among numbers; `dazapiz` keeps the JSON types.
     The test unquotes those tokens in `azr`'s text for exactly those four
     cases, whose inputs hold no such strings.
   - jsonlite unboxes a one-element array (`{"x": [5]}` prints `"x": 5`;
     `[[1], [2]]` prints `[1, 2]`) and boxes a top-level scalar (`5`
-    prints `[5]`, `null` prints `[]`); `dazure` prints the value as sent.
+    prints `[5]`, `null` prints `[]`); `dazapiz` prints the value as sent.
   - Numbers are Python's `json` text (`1e10` is `10000000000.0`,
     `1.23456789` stays), not jsonlite's 4 significant digits.
   - `azr` turns any `"..."` string in the body into a bare `...`; in
-    `dazure` only the placeholder is bare.
+    `dazapiz` only the placeholder is bare.
 - The tests send through a recording `httpx.MockTransport` passed as
   `transport=` and record waits with `sleep=` (D60); they patch only the
   module's `_uniform`, `_now` and `_clock`.
@@ -486,7 +488,7 @@ before (D52). Models and dataclasses are converted wherever they sit: at
 the top, in lists and tuples (sent as lists), in dict values and in
 dataclass fields; dict keys are left alone (D58). The
 check is duck-typed (a non-class with a callable `model_dump`), so
-`dazure` neither imports nor depends on pydantic. `mode="json"` makes
+`dazapiz` neither imports nor depends on pydantic. `mode="json"` makes
 dates, URLs and enums JSON values; `by_alias` sends the wire names;
 `exclude_unset` leaves out the fields the caller did not set, but keeps a
 field explicitly set to `None` (D51). The conversion happens before httpx
@@ -543,7 +545,7 @@ Getting tokens from the CLI is not wrapped: that is
 
 Details settled in Stage 4 (2026-11-21):
 
-- The errors share a base, `AzCliError(DazureError)`; `AzCliNotFoundError`,
+- The errors share a base, `AzCliError(DazapizError)`; `AzCliNotFoundError`,
   `AzCliNotLoggedInError`, `AzCliNonInteractiveError` and
   `AzCliTimeoutError` (also a `TimeoutError`) derive from it.
   `az_login()` and `az_logout()` raise on a non-zero exit (D31).
@@ -574,11 +576,11 @@ Details settled in Stage 4 (2026-11-21):
 an httr2 token, and for the user flows that token carries
 `refresh_token`. In Python the shared interface is
 `azure.core.credentials.TokenCredential`, which every `azure-identity`
-class implements, and `dazure` takes it wherever an access token is
+class implements, and `dazapiz` takes it wherever an access token is
 needed (principle 2). But `azure-identity` deliberately exposes no
 refresh token: `AccessToken` / `AccessTokenInfo` hold the access token,
 expiry and refresh time only, and the interactive credentials keep their
-refresh tokens in a private MSAL cache. `dazure` therefore adds one
+refresh tokens in a private MSAL cache. `dazapiz` therefore adds one
 interface, only for the credentials that can have a refresh token:
 
 ```python
@@ -617,7 +619,7 @@ def refresh_token_from_az_cli(
 
 The result is the account the Azure CLI is signed in as, as in `azr`.
 `azr` gets there by running `az account get-access-token` and matching
-that token in the cache to its `home_account_id`; `dazure` reaches the
+that token in the cache to its `home_account_id`; `dazapiz` reaches the
 same account without running `az`, so it also works where `az` is not
 installed but its config directory is (a mounted `~/.azure`):
 
@@ -662,14 +664,14 @@ the Windows broker by default and the function raises
 
 #### 4.3.2 From an interactive sign-in
 
-`dazure.InteractiveBrowserCredential` and `dazure.DeviceCodeCredential`
+`dazapiz.InteractiveBrowserCredential` and `dazapiz.DeviceCodeCredential`
 subclass the `azure-identity` classes of the same name and add
 `get_refresh_token()`. They are the Python counterparts of `azr`'s
 `AuthCodeCredential` and `DeviceCodeCredential`, and they work on every
 platform, Windows included.
 
 - Constructed with `cache_persistence_options=
-  TokenCachePersistenceOptions(name="dazure",
+  TokenCachePersistenceOptions(name="dazapiz",
   allow_unencrypted_storage=...)`, a public `azure-identity` option, so
   the parent class writes its MSAL cache to the platform store: a file
   under `%LOCALAPPDATA%\.IdentityService\` protected by DPAPI on
@@ -687,7 +689,7 @@ platform, Windows included.
   `.nocae` and `.cae` caches are searched.
 - Opening the cache means building the same `msal_extensions`
   persistence `azure-identity` builds in its private
-  `_persistent_cache._get_persistence()` (file name `dazure.nocae`,
+  `_persistent_cache._get_persistence()` (file name `dazapiz.nocae`,
   Keychain service `Microsoft.Developer.IdentityService`, libsecret
   attribute `MsalClientID`). That layout is `azure-identity`'s
   implementation detail, not a documented API, so a manual test signs
@@ -710,7 +712,7 @@ Details settled in Stage 3 (2026-11-21):
   `load()`s each persistence: no `PersistedTokenCache`, no lock file, no
   write.
 - Both constructors take `allow_unencrypted_storage: bool = False`, the
-  parent's default; it builds the `"dazure"` options and is refused
+  parent's default; it builds the `"dazapiz"` options and is refused
   together with the caller's own `cache_persistence_options` (D29).
 - Selection matches `home_account_id` and `client_id` only, as the
   parent's silent lookup matches the account, not the environment; of
@@ -752,11 +754,11 @@ remote host, which the user's browser never reaches.
 `AuthorizationCodeCredential` takes a code the caller already has, with
 no authorize URL, no PKCE and no persisted cache.
 
-`dazure.InteractiveBrowserCredential` therefore follows httr2's rule:
+`dazapiz.InteractiveBrowserCredential` therefore follows httr2's rule:
 
 - **Localhost redirect, or none.** Unchanged `azure-identity`
   behaviour: a local listener and the system browser.
-- **Any other redirect URI.** The redirect URI is kept by `dazure`
+- **Any other redirect URI.** The redirect URI is kept by `dazapiz`
   (not passed to the parent, whose check would reject it), and only
   `_request_token()` is overridden. It calls the parent's MSAL app
   (`_get_app()`) for `initiate_auth_code_flow(scopes, redirect_uri=...,
@@ -787,7 +789,7 @@ Details settled in Stage 3 (2026-11-21):
   reply, a reply without a code, or without a state, raises
   `ClientAuthenticationError` before MSAL is called. Closed input
   (`EOFError`) raises `CredentialUnavailableError`.
-- The interactive check is `dazure._session.is_interactive()`:
+- The interactive check is `dazapiz._session.is_interactive()`:
   `sys.stdin.isatty()`, or an already imported IPython whose shell has a
   `kernel`. §4.1.1 and §4.2 are to use the same check.
 
@@ -807,7 +809,7 @@ sent), as httr2's call without a secret already requires.
 
 The mechanism is general, as httr2's is: nothing in it is tied to one
 client ID, app or page. Packages that ship this flow for a single app
-hard-code three things, and `dazure` takes all three as arguments:
+hard-code three things, and `dazapiz` takes all three as arguments:
 
 - **The app.** Any Entra app registration whose redirect URI is
   registered as a public client ("Mobile and desktop applications"), so
@@ -823,14 +825,14 @@ hard-code three things, and `dazure` takes all three as arguments:
   page that shows `?code=...&state=...`, or the httr2 page that shows
   them as base64 JSON, is convenient. A page that does not exist, or
   returns 404, also works, because the user can paste the URL from the
-  address bar, which is the first reply form. `dazure` ships no page.
+  address bar, which is the first reply form. `dazapiz` ships no page.
 
 Tenant (GUID, domain, `organizations` or `common`), scopes and
 `authority_host` (sovereign clouds) are the parent's arguments
 unchanged.
 
 ```python
-from dazure import InteractiveBrowserCredential
+from dazapiz import InteractiveBrowserCredential
 
 cred = InteractiveBrowserCredential(
     tenant_id="11111111-2222-3333-4444-555555555555",
@@ -972,7 +974,7 @@ fixture or `azr`'s source:
 - A trailing `.` in `prefix` is dropped (`"spark.hadoop."` gives the same
   keys as `"spark.hadoop"`), as in `azr`.
 - `azr` checks the tenant against `^[A-Za-z0-9.-]+$` only where it builds
-  a token URL (`client_secret`, `refresh_token`); `dazure` checks it for
+  a token URL (`client_secret`, `refresh_token`); `dazapiz` checks it for
   every type that uses one, since Hadoop concatenates `msi.tenant` into a
   URL too. Reason: a tenant with `/` builds a wrong URL silently.
 - An empty string passed for any argument is a `ValueError`, where `azr`
@@ -999,7 +1001,7 @@ still has its token redacted; `copy()` and `|` keep the class
 
 ### 4.5 DuckDB secrets and tuning
 
-In `dazure.duckdb`, needing the `duckdb` extra. Each helper takes a
+In `dazapiz.duckdb`, needing the `duckdb` extra. Each helper takes a
 `duckdb.DuckDBPyConnection`, runs `INSTALL azure; LOAD azure` if needed,
 and executes the same `CREATE OR REPLACE SECRET` statements as `quak`,
 with values bound as parameters or quoted with DuckDB's literal rules,
@@ -1028,8 +1030,8 @@ tune(conn, *, concurrency=None, chunk_size=None, buffer_size=None,
 
 `STORAGE_SCOPE` is `https://storage.azure.com/.default`.
 
-Secrets are named `dazure_default` or `dazure_<account>` (non-
-alphanumerics to `_`), so that `quak`'s and `dazure`'s secrets never
+Secrets are named `dazapiz_default` or `dazapiz_<account>` (non-
+alphanumerics to `_`), so that `quak`'s and `dazapiz`'s secrets never
 collide in a shared DuckDB file. With `account`, the secret gets
 `ACCOUNT_NAME` where the provider takes one and a `SCOPE` list of the
 account's `abfss://`, `abfs://`, `az://` and `azure://` host prefixes,
@@ -1056,7 +1058,7 @@ Details settled in Stage 6 (2026-11-21), checked against DuckDB 1.1.0,
 - The secret name is lower-cased (D44). `access_token` gets no
   `ACCOUNT_NAME`, as in `quak`, although DuckDB 2 would take one.
 - `list_secrets()` and `azure_settings()` return a `DuckDBPyRelation`
-  (D46). Each helper logs one INFO record on `dazure.duckdb` naming the
+  (D46). Each helper logs one INFO record on `dazapiz.duckdb` naming the
   secret, where `quak` prints with `cli`.
 - `set_credential_secret()` takes a `TokenCredential` only, and raises
   `TypeError` pointing to `RefreshTokenCredential` for anything without
@@ -1068,7 +1070,7 @@ Details settled in Stage 6 (2026-11-21), checked against DuckDB 1.1.0,
 ## 5. Public API summary
 
 ```python
-from dazure import (
+from dazapiz import (
     ApiClient, app_credential,
     az_login, az_logout, az_is_login, az_account_show,
     RefreshTokenInfo, SupportsRefreshToken, AZURE_CLI_CLIENT_ID,
@@ -1076,27 +1078,27 @@ from dazure import (
     InteractiveBrowserCredential, DeviceCodeCredential,
     spark_storage_conf, SparkStorageConf,
 )
-from dazure.duckdb import (
+from dazapiz.duckdb import (
     set_token_secret, set_credential_secret, set_sp_secret, set_chain_secret,
     list_secrets, azure_settings, tune, STORAGE_SCOPE,
 )
-from dazure.testing import StaticTokenCredential
+from dazapiz.testing import StaticTokenCredential
 ```
 
 `ApiClient(..., transport=, sleep=)` and its read-only `credential`
 property are its test hooks (§4.1, D60).
 
-`dazure.testing` (D59) holds test doubles for code built on dazure, with
+`dazapiz.testing` (D59) holds test doubles for code built on dazapiz, with
 no dependency beyond azure-core: `StaticTokenCredential(token="fake-token",
 *, expires_in=3600)` implements `TokenCredential` and `SupportsTokenInfo`,
 returns the token with a fresh expiry on every call, records each call's
 scopes in `.calls`, and redacts the token in `repr` (§6). It is exported
-from `dazure.testing` only, so `import dazure` does not offer a fake
+from `dazapiz.testing` only, so `import dazapiz` does not offer a fake
 credential next to the real ones. The guide page "Testing your API
 client" shows it with `respx` on an `ApiClient` subclass.
 
-Errors derive from `dazure.DazureError`; `dazure.ApiError` also derives
-from `httpx.HTTPStatusError`. `dazure.ResponseParseError` is what
+Errors derive from `dazapiz.DazapizError`; `dazapiz.ApiError` also derives
+from `httpx.HTTPStatusError`. `dazapiz.ResponseParseError` is what
 `fetch(..., parse=...)` raises when `parse` fails on a successful response
 (§4.1, D54); it is not an `ApiError`, since the request succeeded.
 `ClientAuthenticationError` from a credential passes through unwrapped.
@@ -1110,7 +1112,7 @@ to `az_` because the module already says Azure.
 
 ## 6. Handling secrets
 
-- No token, key or secret that `dazure` handles appears in `repr`,
+- No token, key or secret that `dazapiz` handles appears in `repr`,
   `str`, exception messages or log records. Tests assert this for every
   component by searching output for a sentinel value.
 - The one exception is deliberate: with `verbose=True`, `ApiClient` logs
@@ -1126,7 +1128,7 @@ to `az_` because the module already says Azure.
 
 ## 7. Packaging
 
-Repository `pedrobtz/py-dazure`, laid out like `py-dazdiff`: `src/dazure/`,
+Repository `pedrobtz/py-dazapiz`, laid out like `py-dazdiff`: `src/dazapiz/`,
 `tests/`, `pyproject.toml` (hatchling), `uv.lock`, `CHANGELOG.md`,
 `ruff` with the same rule set, typed (`py.typed`) and type-checked by
 pyright in strict mode (D55). `examples/`, `typings/` and the Petstore
@@ -1141,12 +1143,12 @@ does.
 
 Documentation site built with great-docs (Quarto) from `great-docs.yml`,
 `user_guide/` and the NumPy docstrings, deployed to GitHub Pages
-(`https://pedrobtz.github.io/py-dazure/`) by `.github/workflows/docs.yml`
+(`https://pedrobtz.github.io/py-dazapiz/`) by `.github/workflows/docs.yml`
 on pushes to `main`, and built and linted (`great-docs lint`) on every
 pull request; great-docs 0.17.0 and Quarto 1.11.9 pinned, as `py-dazdiff`
-does. The reference groups follow §5; `dazure.duckdb` (and `dazure.testing`) is listed by
+does. The reference groups follow §5; `dazapiz.duckdb` (and `dazapiz.testing`) is listed by
 submodule-qualified names (`duckdb.tune`) and read by static analysis
-(`dynamic: false`), since `import dazure` does not import it. Guide code
+(`dynamic: false`), since `import dazapiz` does not import it. Guide code
 is never executed (it needs Azure); the Petstore walkthrough and the testing page include
 `examples/` code by line range, checked by a test. `great-docs.yml`
 and `user_guide/` are left out of the sdist (decided 2026-11-21, #27: the
@@ -1171,7 +1173,7 @@ not simple, and is manual instead.
   Gov, China) x `prefix` (default, `NULL`), stored as JSON with
   placeholder secrets and every argument passed explicitly.
   `spark_storage_conf()` must reproduce it exactly. The default paths,
-  where `dazure` deliberately differs from `azr` (§4.4), have their own
+  where `dazapiz` deliberately differs from `azr` (§4.4), have their own
   tests.
   The generator script lives in `tools/` and is rerun when `azr` changes.
 - **MSAL cache.** Synthetic `azureProfile.json` and
@@ -1257,7 +1259,7 @@ not simple, and is manual instead.
 ### 8.2 Manual (an environment with full Azure access)
 
 Written as a checklist in `tests/manual/README.md`, with a script per
-item where one helps, skipped by pytest unless `DAZURE_LIVE=1`. Run
+item where one helps, skipped by pytest unless `DAZAPIZ_LIVE=1`. Run
 before every release and whenever the `azure-identity` or `msal` floor
 or lock moves, because the private details these items guard (§4.3.2,
 §4.3.3) are what a new release can change. Each run is recorded with
@@ -1266,7 +1268,7 @@ date, OS and versions in the release's pull request.
 The checklist (2026-11-21, Stage 7) has the scripted items as
 `tests/manual/test_live_*.py` (items 1, 4, 6, 7 and the read-only part of
 5), skipped by a collection hook in `tests/manual/conftest.py` unless
-`DAZURE_LIVE` is exactly `1`, configured only by `DAZURE_TEST_*`
+`DAZAPIZ_LIVE` is exactly `1`, configured only by `DAZAPIZ_TEST_*`
 variables, and skipped naming the variable when one is unset. The
 interactive items (2, 3, `az_login()` / `az_logout()`) are driven by
 `tests/manual/interactive.py`, which a person runs. It also carries the
@@ -1279,8 +1281,8 @@ loading `hadoop-azure` and looking for `WorkloadIdentityTokenProvider`.
   after a real `az login`, including a guest tenant; the token is
   redeemed by `RefreshTokenCredential`.
 - **Interactive credentials and the cache layout** (Windows, macOS,
-  Linux): `dazure.DeviceCodeCredential` and
-  `dazure.InteractiveBrowserCredential` sign in for real with the
+  Linux): `dazapiz.DeviceCodeCredential` and
+  `dazapiz.InteractiveBrowserCredential` sign in for real with the
   persisted cache; `get_refresh_token()` must find the token
   `azure-identity` wrote. This is the guard on the cache layout of
   §4.3.2.
@@ -1298,7 +1300,7 @@ loading `hadoop-azure` and looking for `WorkloadIdentityTokenProvider`.
   `set_sp_secret()`, account-scoped and unscoped.
 - **Petstore example** (optional, no Azure; D56): the example's pet and
   order lifecycle against the public store, skipped unless
-  `DAZURE_LIVE_HTTP=1` (`DAZURE_LIVE` does not turn it on).
+  `DAZAPIZ_LIVE_HTTP=1` (`DAZAPIZ_LIVE` does not turn it on).
 
 ## 9. Roadmap
 
@@ -1309,8 +1311,8 @@ The order of work is in [roadmap.md](roadmap.md).
 Settled by the maintainer in conversation on 2026-11-19:
 
 - **D1.** Port only what the Python Azure SDK lacks; where it
-  half-implements something, build on it and keep `dazure` small.
-- **D2.** Name `dazure`: a `daz` prefix, not `dazazr`.
+  half-implements something, build on it and keep `dazapiz` small.
+- **D2.** Name `dazapiz`: a `daz` prefix, not `dazazr`.
 - **D3.** From `azr`: the API client, the Spark config with the
   `az login` refresh token, and the `az` CLI helpers.
 - **D4.** From `quak`: its Azure parts.
@@ -1461,7 +1463,7 @@ Settled for #26 (2026-11-21):
   `exclude_none` cannot express that.
 - **D52.** A model is anything that is not a class and has a callable
   `model_dump`; a dataclass is `dataclasses.is_dataclass()` of a
-  non-class. Reason: `dazure` does not depend on pydantic (#26).
+  non-class. Reason: `dazapiz` does not depend on pydantic (#26).
   (Converting the top-level value only was replaced by D58.)
 - **D53.** The Petstore example's models differ from a literal reading of
   the schema where the real store does: `PetCreate` and `OrderCreate`
@@ -1474,7 +1476,7 @@ Settled for #26 (2026-11-21):
   because the store's `status` parameter takes one value (a repeated one
   is ignored, a comma list refused). Reason: an example of best practice
   validates against the API's contract and works against the real server.
-- **D54.** `ResponseParseError` derives from `DazureError` only, carries
+- **D54.** `ResponseParseError` derives from `DazapizError` only, carries
   `request` and `response`, and wraps any `Exception` from `parse` (not
   `BaseException`). Reason: the HTTP exchange succeeded, so it is not an
   `httpx.HTTPStatusError`; keeping the response lets a caller look at
@@ -1482,7 +1484,7 @@ Settled for #26 (2026-11-21):
 - **D55.** pyright strict (Python 3.10) over `src/`, `examples/` and
   `tests/typing/`, configured in `[tool.pyright]`. `msal` and
   `msal_extensions` ship no types, so `typings/` holds partial stubs of
-  the names `dazure` uses (type checking only, not packaged); the only
+  the names `dazapiz` uses (type checking only, not packaged); the only
   ignores are on azure-identity's private API (`_persistent_cache`, D16;
   `_request_token`, D22), each with its reason. Runtime checks of
   arguments an untyped caller could get wrong stay, written so strict
@@ -1492,10 +1494,10 @@ Settled for #26 (2026-11-21):
   (`RefreshTokenNotFoundError`) instead of passing it on. Reason: the maintainer asked for
   typing enforced in CI, and silencing whole rules would enforce nothing.
 - **D56.** Real-HTTP tests use `pytest-httpbin` on loopback in every CI
-  leg; the Petstore live test is a separate opt-in, `DAZURE_LIVE_HTTP=1`.
+  leg; the Petstore live test is a separate opt-in, `DAZAPIZ_LIVE_HTTP=1`.
   Reason: httpbin is local, so CI stays offline (D23); the public store
   is shared and on the internet, so it is never in CI, and needing no
-  Azure it should not need `DAZURE_LIVE`.
+  Azure it should not need `DAZAPIZ_LIVE`.
 - **D57.** A JSON or XML body that does not parse (`ValueError`, which
   covers `JSONDecodeError` and a body that is not UTF-8, or
   `ET.ParseError`) raises `ResponseParseError` from the parser's error,
@@ -1514,22 +1516,28 @@ Settled for #26 (2026-11-21):
   keys are strings anyway.
 - **D59.** (maintainer, 2026-11-21: testing guide; StaticTokenCredential
   public) A guide page on testing an `ApiClient` subclass in CI, with the
-  Petstore treated as Azure-hosted, and `dazure.testing.StaticTokenCredential`
+  Petstore treated as Azure-hosted, and `dazapiz.testing.StaticTokenCredential`
   public so users need not write their own fake credential. The example
   tests run fully offline: `respx` for HTTP, `pytest-socket` for the rest
   (maintainer's addition). Reason: the maintainer asked how to mock a
   client for a real Azure API in CI (#30); a public fake keeps users off
-  dazure's internals, and blocking sockets proves no test leaks to Entra
+  dazapiz's internals, and blocking sockets proves no test leaks to Entra
   ID or the API.
 - **D60.** (maintainer, 2026-11-21: follow-up to the approved testing
   guide, D59) `ApiClient.__init__` takes keyword-only `transport`
   (passed to `httpx.Client`) and `sleep` (the retry loop's wait, default
   `time.sleep`), and `ApiClient.credential` is a read-only property for
   the credential chosen. They replace the private `_transport()` and
-  `_sleep` that dazure's tests patched. Reason: a user-facing guide must
+  `_sleep` that dazapiz's tests patched. Reason: a user-facing guide must
   not patch private names; these are the smallest public hooks for a
   mock transport, instant retries and checking `app_credential()`'s
   choice.
+- **D61.** (maintainer, 2026-11-26) The package, import name and
+  repository are renamed from `dazure` / `py-dazure` to `dazapiz` /
+  `py-dazapiz`, with every derived name following: `DazapizError`,
+  the `DAZAPIZ_*` environment variables, the `dazapiz.*` loggers and the
+  `dazapiz_default` token cache. No aliases: nothing was published under
+  the old name. Reason: the maintainer chose the new name.
 
 The author's calls, open until the package repository records them:
 
@@ -1538,7 +1546,7 @@ The author's calls, open until the package repository records them:
   object.
 - **D12.** `rich` a required dependency, `duckdb` an extra, no PySpark
   dependency.
-- **D13.** Repository `py-dazure`, Python >= 3.10, `py-dazdiff`'s
+- **D13.** Repository `py-dazapiz`, Python >= 3.10, `py-dazdiff`'s
   tooling.
 - **D14.** The refresh-token interface is a `get_refresh_token()`
   protocol returning `RefreshTokenInfo` (token, client ID, tenant,
@@ -1552,7 +1560,7 @@ The author's calls, open until the package repository records them:
   manual layout test (§8.2), rather than through the private `_cache`
   argument.
 - **D22.** The pasted-code flow is a mode of
-  `dazure.InteractiveBrowserCredential`, chosen by the redirect URI as
+  `dazapiz.InteractiveBrowserCredential`, chosen by the redirect URI as
   httr2 chooses it, not a separate class, and it overrides only the
   parent's `_request_token()`, a private method guarded by the §8.1
   tests with MSAL patched and the §8.2 sign-in from code-server.
@@ -1561,7 +1569,7 @@ The author's calls, open until the package repository records them:
 - **D18.** Spark defaults differ from `azr` where `azr` writes the CLI
   client ID for service-principal, managed and workload identity
   (§4.4).
-- **D19.** Retry is a small loop of `dazure`'s own that follows `azr`:
+- **D19.** Retry is a small loop of `dazapiz`'s own that follows `azr`:
   429, 503 and connection failures only, `azr`'s backoff; no 401
   replay.
 - **D20.** `app_credential()`'s automatic mode: the named service

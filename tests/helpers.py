@@ -18,7 +18,7 @@ from pathlib import Path
 
 import msal
 
-from dazure import AZURE_CLI_CLIENT_ID
+from dazapiz import AZURE_CLI_CLIENT_ID
 
 ENVIRONMENT = "login.microsoftonline.com"
 SCOPE = ["https://management.core.windows.net//.default"]

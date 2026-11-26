@@ -1,12 +1,12 @@
 """Checklist item 6: a local PySpark read from ADLS with `spark_storage_conf()`.
 
 Needs PySpark, Java, and the `hadoop-azure` package matching the Hadoop
-that PySpark bundles: `DAZURE_SPARK_PACKAGES` (default
+that PySpark bundles: `DAZAPIZ_SPARK_PACKAGES` (default
 `org.apache.hadoop:hadoop-azure:3.4.1` for PySpark 4,
 `org.apache.hadoop:hadoop-azure:3.3.4` for PySpark 3.5), fetched by Spark
 from Maven Central on first use. Each test starts and stops its own
 session, so the two auth types never share a cached ABFS file system.
-Skipped unless `DAZURE_LIVE=1`, and when PySpark is not installed.
+Skipped unless `DAZAPIZ_LIVE=1`, and when PySpark is not installed.
 """
 
 from __future__ import annotations
@@ -16,18 +16,18 @@ import re
 
 import pytest
 
-from dazure import refresh_token_from_az_cli, spark_storage_conf
+from dazapiz import refresh_token_from_az_cli, spark_storage_conf
 
 _HADOOP_AZURE = {"3": "3.3.4", "4": "3.4.1"}
 
 
 def _packages(pyspark) -> str:
-    explicit = os.environ.get("DAZURE_SPARK_PACKAGES")
+    explicit = os.environ.get("DAZAPIZ_SPARK_PACKAGES")
     if explicit:
         return explicit
     version = _HADOOP_AZURE.get(pyspark.__version__.split(".")[0])
     if version is None:
-        pytest.skip(f"set DAZURE_SPARK_PACKAGES for PySpark {pyspark.__version__}")
+        pytest.skip(f"set DAZAPIZ_SPARK_PACKAGES for PySpark {pyspark.__version__}")
     return f"org.apache.hadoop:hadoop-azure:{version}"
 
 
@@ -42,7 +42,7 @@ def spark_session():
     def start(conf):
         builder = (
             SparkSession.builder.master("local[1]")
-            .appName("dazure-live")
+            .appName("dazapiz-live")
             .config("spark.jars.packages", _packages(pyspark))
             .config("spark.ui.enabled", "false")
         )

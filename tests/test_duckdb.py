@@ -1,4 +1,4 @@
-"""dazure.duckdb against a real in-memory DuckDB with the azure extension (design §4.5).
+"""dazapiz.duckdb against a real in-memory DuckDB with the azure extension (design §4.5).
 
 The oracle is DuckDB itself: what `duckdb_secrets()` and `duckdb_settings()`
 report after each helper ran. `INSTALL azure` is the only network call, and
@@ -16,7 +16,7 @@ from azure.core.credentials import AccessToken
 
 duckdb = pytest.importorskip("duckdb", reason="needs the duckdb extra")
 
-import dazure.duckdb as dd  # noqa: E402
+import dazapiz.duckdb as dd  # noqa: E402
 
 PREFIXES = ("abfss://", "abfs://", "az://", "azure://")
 
@@ -83,10 +83,10 @@ def conn(azure_extension):
 @pytest.mark.parametrize(
     ("account", "name"),
     [
-        (None, "dazure_default"),
-        ("myacct", "dazure_myacct"),
-        ("myacct.dfs.core.windows.net", "dazure_myacct_dfs_core_windows_net"),
-        ("My-Acct", "dazure_my_acct"),
+        (None, "dazapiz_default"),
+        ("myacct", "dazapiz_myacct"),
+        ("myacct.dfs.core.windows.net", "dazapiz_myacct_dfs_core_windows_net"),
+        ("My-Acct", "dazapiz_my_acct"),
     ],
 )
 def test_token_secret(conn, account, name):
@@ -133,7 +133,7 @@ def test_chain_secret(conn, account, chain, expected):
 def test_secret_is_replaced(conn):
     dd.set_token_secret(conn, "one", account="a")
     dd.set_token_secret(conn, "two", account="a")
-    assert secret(conn, "dazure_a")["access_token"] == "two"
+    assert secret(conn, "dazapiz_a")["access_token"] == "two"
 
 
 def test_list_secrets(conn):
@@ -143,7 +143,7 @@ def test_list_secrets(conn):
     rel = dd.list_secrets(conn)
     assert rel.columns[:3] == ["name", "type", "provider"]
     rows = rel.fetchall()
-    assert [r[0] for r in rows] == ["dazure_b", "dazure_default"]
+    assert [r[0] for r in rows] == ["dazapiz_b", "dazapiz_default"]
     # Redacted by DuckDB even on a connection that allows unredacted secrets.
     assert all("csecret" not in r[-1] and "tok;" not in r[-1] for r in rows)
 
@@ -162,10 +162,10 @@ def test_values_round_trip(conn):
     assert s["account_name"] == AWKWARD
     assert s["scope"] == scopes(AWKWARD)
     dd.set_token_secret(conn, AWKWARD)
-    assert secret(conn, "dazure_default")["access_token"] == AWKWARD
+    assert secret(conn, "dazapiz_default")["access_token"] == AWKWARD
     dd.set_chain_secret(conn, account="x", chain=["cli", AWKWARD])
     raw = conn.execute(
-        "SELECT secret_string FROM duckdb_secrets(redact=false) WHERE name = 'dazure_x'"
+        "SELECT secret_string FROM duckdb_secrets(redact=false) WHERE name = 'dazapiz_x'"
     ).fetchall()[0][0]
     assert f";chain=cli;{AWKWARD}" in raw
 
@@ -177,7 +177,7 @@ def test_injection_stays_a_value(conn):
     keep = conn.execute("SELECT count(*) FROM duckdb_secrets() WHERE name = 'keep'").fetchall()
     assert keep == [(1,)]
     raw = conn.execute(
-        "SELECT secret_string FROM duckdb_secrets(redact=false) WHERE name = 'dazure_default'"
+        "SELECT secret_string FROM duckdb_secrets(redact=false) WHERE name = 'dazapiz_default'"
     ).fetchall()[0][0]
     assert f"tenant_id={evil}" in raw
     assert "account_name" not in raw
@@ -219,7 +219,7 @@ def test_credential_secret(conn):
     cred = FakeCredential("access-tok", expires)
     assert dd.set_credential_secret(conn, cred, account="myacct") == expires
     assert cred.scopes == [("https://storage.azure.com/.default",)]
-    s = secret(conn, "dazure_myacct")
+    s = secret(conn, "dazapiz_myacct")
     assert (s["provider"], s["access_token"]) == ("access_token", "access-tok")
     assert s["scope"] == scopes("myacct")
 
@@ -229,7 +229,7 @@ def test_credential_secret_scope_and_replace(conn):
     assert dd.set_credential_secret(conn, cred, scope="https://x/.default") == 100
     assert cred.scopes == [("https://x/.default",)]
     assert dd.set_credential_secret(conn, FakeCredential("two", 200)) == 200
-    assert secret(conn, "dazure_default")["access_token"] == "two"
+    assert secret(conn, "dazapiz_default")["access_token"] == "two"
     assert dd.STORAGE_SCOPE == "https://storage.azure.com/.default"
 
 
@@ -343,12 +343,12 @@ def test_missing_extra_names_the_install(monkeypatch):
         lambda: dd.list_secrets(object()),
         lambda: dd.tune(object(), concurrency=1),
     ):
-        with pytest.raises(ImportError, match=r"pip install 'dazure\[duckdb\]'"):
+        with pytest.raises(ImportError, match=r"pip install 'dazapiz\[duckdb\]'"):
             call()
 
 
-def test_import_dazure_does_not_import_duckdb():
-    code = "import sys, dazure, dazure.duckdb; assert 'duckdb' not in sys.modules, 'imported'"
+def test_import_dazapiz_does_not_import_duckdb():
+    code = "import sys, dazapiz, dazapiz.duckdb; assert 'duckdb' not in sys.modules, 'imported'"
     subprocess.run([sys.executable, "-c", code], check=True)
 
 

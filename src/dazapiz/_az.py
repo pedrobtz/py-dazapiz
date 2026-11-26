@@ -78,12 +78,12 @@ def az_account_show(timeout: float | None = _TIMEOUT) -> dict[str, Any]:
     -----
     Runs the `az` that `shutil.which("az")` finds, as a plain subprocess
     (ported from `azr`'s `az_cli_*()` helpers). For tokens from the CLI, use
-    `azure.identity.AzureCliCredential`, which dazure does not wrap.
+    `azure.identity.AzureCliCredential`, which dazapiz does not wrap.
 
     Examples
     --------
     ```python
-    from dazure import az_account_show
+    from dazapiz import az_account_show
 
     account = az_account_show()
     account["user"]["name"], account["tenantId"]
@@ -121,7 +121,7 @@ def az_is_login(timeout: float | None = _TIMEOUT) -> bool:
     Examples
     --------
     ```python
-    from dazure import az_is_login, az_login
+    from dazapiz import az_is_login, az_login
 
     if not az_is_login():
         az_login()
@@ -189,7 +189,7 @@ def az_login(
     Examples
     --------
     ```python
-    from dazure import az_login
+    from dazapiz import az_login
 
     az_login()  # To sign in, open https://microsoft.com/devicelogin and enter the code ...
     ```
@@ -258,7 +258,7 @@ def az_logout(timeout: float | None = _TIMEOUT) -> None:
     Examples
     --------
     ```python
-    from dazure import az_logout
+    from dazapiz import az_logout
 
     az_logout()  # Logged out of the Azure CLI.
     ```
@@ -394,7 +394,7 @@ def _failure(args: list[str], code: int, err: str) -> AzCliError:
     message = _ANSI_RE.sub("", err).strip() or f"no message (exit code {code})"
     if "az login" in message or "no active accounts" in message.lower():
         return AzCliNotLoggedInError(
-            f"The Azure CLI is not logged in: {message} Log in with dazure.az_login()."
+            f"The Azure CLI is not logged in: {message} Log in with dazapiz.az_login()."
         )
     return AzCliError(f"`az {' '.join(args)}` failed with exit code {code}: {message}")
 

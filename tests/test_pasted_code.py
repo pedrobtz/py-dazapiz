@@ -17,10 +17,10 @@ from azure.core.exceptions import ClientAuthenticationError
 from azure.identity import CredentialUnavailableError
 from helpers import Login
 
-import dazure._session
-from dazure import InteractiveBrowserCredential
-from dazure._pasted_code import parse_reply
-from dazure._session import is_interactive
+import dazapiz._session
+from dazapiz import InteractiveBrowserCredential
+from dazapiz._pasted_code import parse_reply
+from dazapiz._session import is_interactive
 
 TENANT = "11111111-1111-1111-1111-111111111111"
 REDIRECT = "https://your-domain.example/azure-callback"
@@ -166,7 +166,7 @@ def test_other_uris_reach_the_pasted_flow(redirect_uri, monkeypatch):
     assert cred._pasted_redirect_uri == redirect_uri
     app = FakeApp()
     monkeypatch.setattr(cred, "_get_app", lambda **kwargs: app)
-    monkeypatch.setattr(dazure._session, "is_interactive", lambda: True)
+    monkeypatch.setattr(dazapiz._session, "is_interactive", lambda: True)
     monkeypatch.setattr("builtins.input", lambda prompt="": app.callback_url())
     cred._request_token("User.Read")
     assert app.initiated[0][1]["redirect_uri"] == redirect_uri
@@ -214,7 +214,7 @@ def flow(monkeypatch):
         cred = InteractiveBrowserCredential(redirect_uri=REDIRECT, **kwargs)
         app = app or FakeApp()
         monkeypatch.setattr(cred, "_get_app", lambda **kw: app)
-        monkeypatch.setattr(dazure._session, "is_interactive", lambda: True)
+        monkeypatch.setattr(dazapiz._session, "is_interactive", lambda: True)
         prompts = []
 
         def fake_input(prompt=""):
@@ -288,7 +288,7 @@ def test_flow_error_reply_is_an_authentication_error(flow):
 
 def test_flow_without_an_interactive_session(flow, monkeypatch):
     cred, app, prompts = flow(FakeApp.callback_url)
-    monkeypatch.setattr(dazure._session, "is_interactive", lambda: False)
+    monkeypatch.setattr(dazapiz._session, "is_interactive", lambda: False)
     with pytest.raises(CredentialUnavailableError, match="interactive"):
         cred._request_token("User.Read")
     with pytest.raises(CredentialUnavailableError):

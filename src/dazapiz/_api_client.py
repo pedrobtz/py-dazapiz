@@ -25,7 +25,7 @@ from .errors import ApiError, ResponseParseError
 
 __all__ = ["ApiClient", "BearerAuth", "backoff_default"]
 
-logger = logging.getLogger("dazure.http")
+logger = logging.getLogger("dazapiz.http")
 
 # A token is renewed this many seconds before it expires.
 _EXPIRY_MARGIN = 300
@@ -34,7 +34,7 @@ _TRANSIENT = frozenset({429, 503})
 # Failures where the request never reached the server, so resending is safe.
 # A read timeout is not one: the server may have acted (design §4.1).
 _CONNECTION_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout)
-_START = "dazure.start"
+_START = "dazapiz.start"
 # azr's cli alert symbols.
 _INFO = "\N{INFORMATION SOURCE}"
 
@@ -113,7 +113,7 @@ class ApiClient:
         Attempts per request, the first included, for 429, 503 and
         connection failures.
     verbose
-        Log each request and response on the `dazure.http` logger at `INFO`,
+        Log each request and response on the `dazapiz.http` logger at `INFO`,
         in azr's coloured format through `rich`: method and URL, status, time
         and size, and the JSON request body and failed response body,
         abbreviated. Headers are never logged.
@@ -162,7 +162,7 @@ class ApiClient:
     Examples
     --------
     ```python
-    from dazure import ApiClient
+    from dazapiz import ApiClient
 
     class AppApiClient(ApiClient):
         host_url = "https://app-api.example.com"

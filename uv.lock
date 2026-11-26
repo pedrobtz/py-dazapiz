@@ -737,7 +737,7 @@ wheels = [
 ]
 
 [[package]]
-name = "dazure"
+name = "dazapiz"
 version = "0.0.1.dev0"
 source = { editable = "." }
 dependencies = [

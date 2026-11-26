@@ -20,7 +20,7 @@ import pytest
 from pydantic import BaseModel, HttpUrl, ValidationError
 from recording_transport import RecordingTransport, json_response
 
-from dazure import ApiError, ResponseParseError
+from dazapiz import ApiError, ResponseParseError
 
 ROOT = Path(__file__).parent.parent
 BASE = "https://petstore3.swagger.io/api/v3"

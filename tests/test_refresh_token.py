@@ -4,13 +4,13 @@ import dataclasses
 
 import pytest
 
-from dazure import (
+from dazapiz import (
     AZURE_CLI_CLIENT_ID,
     RefreshTokenInfo,
     RefreshTokenNotFoundError,
     SupportsRefreshToken,
 )
-from dazure._refresh_token import as_refresh_token_info
+from dazapiz._refresh_token import as_refresh_token_info
 
 ENV = ("AZURE_REFRESH_TOKEN", "AZURE_CLIENT_ID", "AZURE_TENANT_ID")
 

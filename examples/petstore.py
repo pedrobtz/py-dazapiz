@@ -1,4 +1,4 @@
-"""A typed client for the Swagger Petstore v3, on `dazure.ApiClient`.
+"""A typed client for the Swagger Petstore v3, on `dazapiz.ApiClient`.
 
 An example of an `ApiClient` subclass with validated request bodies and
 responses (design §4.1, D53). Run it against the public Petstore with::
@@ -17,7 +17,7 @@ document (`tests/fixtures/petstore-openapi.json`, checked by
   (`extra="forbid"`, a typo fails before anything is sent); a response
   ignores them (`extra="ignore"`, a server that adds a field does not break
   the client), but a missing required field, an unknown status or a bad
-  photo URL fails, as `dazure.ResponseParseError`;
+  photo URL fails, as `dazapiz.ResponseParseError`;
 - request models are sent with only the fields that were set
   (`fetch(json=model)` dumps with `exclude_unset=True`), so an optional
   field left out is not sent as `null`.
@@ -33,7 +33,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, TypeAdapter
 from pydantic.alias_generators import to_camel
 
-from dazure import ApiClient, ApiError
+from dazapiz import ApiClient, ApiError
 
 __all__ = [
     "Category",
@@ -158,11 +158,11 @@ _STATUSES = TypeAdapter(tuple[PetStatus, ...])
 
 
 class PetNotFoundError(LookupError):
-    """No pet with that id; `__cause__` is the store's 404 `dazure.ApiError`."""
+    """No pet with that id; `__cause__` is the store's 404 `dazapiz.ApiError`."""
 
 
 class OrderNotFoundError(LookupError):
-    """No order with that id; `__cause__` is the store's 404 `dazure.ApiError`."""
+    """No order with that id; `__cause__` is the store's 404 `dazapiz.ApiError`."""
 
 
 class PetStoreClient(ApiClient):
@@ -170,7 +170,7 @@ class PetStoreClient(ApiClient):
 
     Requests go unauthenticated (no credential: the store is open). Every
     method sends a validated model and returns one, so a malformed response
-    raises `dazure.ResponseParseError` (its `__cause__` is pydantic's
+    raises `dazapiz.ResponseParseError` (its `__cause__` is pydantic's
     `ValidationError`) rather than returning a half-checked dict.
 
     Examples
@@ -360,9 +360,9 @@ def main() -> None:
         pet = store.add_pet(
             PetCreate(
                 id=pet_id,
-                name="dazure-example",
-                photo_urls=[HttpUrl("https://example.com/dazure.png")],
-                tags=[Tag(id=1, name="dazure")],
+                name="dazapiz-example",
+                photo_urls=[HttpUrl("https://example.com/dazapiz.png")],
+                tags=[Tag(id=1, name="dazapiz")],
                 status="available",
             )
         )

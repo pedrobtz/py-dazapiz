@@ -16,7 +16,7 @@ from azure_petstore import AzurePetStoreClient
 from petstore import PETSTORE_URL
 from pytest_socket import disable_socket, enable_socket
 
-from dazure.testing import StaticTokenCredential
+from dazapiz.testing import StaticTokenCredential
 
 
 @pytest.fixture(autouse=True)

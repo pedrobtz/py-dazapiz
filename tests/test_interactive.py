@@ -15,7 +15,7 @@ import pytest
 from azure.identity import AuthenticationRecord, TokenCachePersistenceOptions
 from helpers import Login, token_cache
 
-from dazure import (
+from dazapiz import (
     AZURE_CLI_CLIENT_ID,
     DeviceCodeCredential,
     InteractiveBrowserCredential,
@@ -23,7 +23,7 @@ from dazure import (
     RefreshTokenNotFoundError,
     SupportsRefreshToken,
 )
-from dazure._interactive import find_refresh_token
+from dazapiz._interactive import find_refresh_token
 
 HOME = "11111111-1111-1111-1111-111111111111"
 GUEST = "22222222-2222-2222-2222-222222222222"
@@ -65,7 +65,7 @@ def record_of(login: Login) -> AuthenticationRecord:
     )
 
 
-OPTIONS = TokenCachePersistenceOptions(name="dazure", allow_unencrypted_storage=True)
+OPTIONS = TokenCachePersistenceOptions(name="dazapiz", allow_unencrypted_storage=True)
 alice = Login("alice@contoso.com", HOME, HOME, "rt-alice", now=100)
 alice_other_client = Login("alice@contoso.com", HOME, HOME, "rt-alice-other", OTHER_CLIENT, now=200)
 alice_guest = Login("alice@contoso.com", HOME, GUEST, "rt-alice-guest", now=50)
@@ -78,7 +78,7 @@ bob = Login("bob@contoso.com", HOME, HOME, "rt-bob", now=300)
 def test_lookup_opens_the_persistences_azure_identity_opens(store):
     # Oracle: azure-identity's own `_load_persistent_cache()`, for both caches.
     for allow in (True, False):
-        options = TokenCachePersistenceOptions(name="dazure", allow_unencrypted_storage=allow)
+        options = TokenCachePersistenceOptions(name="dazapiz", allow_unencrypted_storage=allow)
         store.calls.clear()
         persistent_cache._load_persistent_cache(options, is_cae=False)
         persistent_cache._load_persistent_cache(options, is_cae=True)
@@ -87,12 +87,12 @@ def test_lookup_opens_the_persistences_azure_identity_opens(store):
         with pytest.raises(RefreshTokenNotFoundError):
             find_refresh_token(options, record_of(alice))
         assert sorted(store.calls) == sorted(theirs)
-        assert {c[2] for c in theirs} == {"dazure.nocae", "dazure.cae"}
+        assert {c[2] for c in theirs} == {"dazapiz.nocae", "dazapiz.cae"}
 
 
 def test_lookup_selects_by_account_and_client_id(store):
     store.write(
-        "dazure.nocae", [bob, alice_other_client, alice, Login("x@y.com", GUEST, GUEST, "rt-x")]
+        "dazapiz.nocae", [bob, alice_other_client, alice, Login("x@y.com", GUEST, GUEST, "rt-x")]
     )
     info = find_refresh_token(OPTIONS, record_of(alice))
     assert info == RefreshTokenInfo("rt-alice", AZURE_CLI_CLIENT_ID, HOME, "alice@contoso.com")
@@ -103,26 +103,26 @@ def test_lookup_selects_by_account_and_client_id(store):
 
 def test_lookup_returns_the_records_tenant(store):
     # Refresh tokens carry no tenant: the record's is returned.
-    store.write("dazure.nocae", [alice])
+    store.write("dazapiz.nocae", [alice])
     info = find_refresh_token(OPTIONS, record_of(alice_guest))
     assert info.token == "rt-alice"
     assert info.tenant_id == GUEST
 
 
 def test_lookup_searches_the_cae_cache(store):
-    store.write("dazure.nocae", [bob])
-    store.write("dazure.cae", [alice])
+    store.write("dazapiz.nocae", [bob])
+    store.write("dazapiz.cae", [alice])
     assert find_refresh_token(OPTIONS, record_of(alice)).token == "rt-alice"
 
 
 def test_lookup_takes_the_newest_of_both_caches(store):
     old = Login("alice@contoso.com", HOME, HOME, "rt-alice-old", now=10)
     new = Login("alice@contoso.com", HOME, HOME, "rt-alice-new", now=20)
-    store.write("dazure.nocae", [old])
-    store.write("dazure.cae", [new])
+    store.write("dazapiz.nocae", [old])
+    store.write("dazapiz.cae", [new])
     assert find_refresh_token(OPTIONS, record_of(alice)).token == "rt-alice-new"
-    store.write("dazure.nocae", [new])
-    store.write("dazure.cae", [old])
+    store.write("dazapiz.nocae", [new])
+    store.write("dazapiz.cae", [old])
     assert find_refresh_token(OPTIONS, record_of(alice)).token == "rt-alice-new"
 
 
@@ -134,18 +134,18 @@ def test_lookup_reads_the_callers_cache_name(store):
         find_refresh_token(OPTIONS, record_of(alice))
 
 
-@pytest.mark.parametrize("caches", [[], ["dazure.nocae"], ["dazure.nocae", "dazure.cae"]])
+@pytest.mark.parametrize("caches", [[], ["dazapiz.nocae"], ["dazapiz.nocae", "dazapiz.cae"]])
 def test_lookup_not_found(store, caches):
     for name in caches:
         store.write(name, [bob, alice_other_client])
     with pytest.raises(RefreshTokenNotFoundError) as err:
         find_refresh_token(OPTIONS, record_of(alice))
     assert "alice@contoso.com" in str(err.value)
-    assert "dazure" in str(err.value)
+    assert "dazapiz" in str(err.value)
 
 
 def test_lookup_does_not_write(store):
-    store.write("dazure.nocae", [alice])
+    store.write("dazapiz.nocae", [alice])
     before = {p.name: p.read_bytes() for p in store.root.iterdir()}
     find_refresh_token(OPTIONS, record_of(alice))
     assert {p.name: p.read_bytes() for p in store.root.iterdir()} == before
@@ -161,7 +161,7 @@ def test_construction(cls, store):
     assert isinstance(cred, SupportsRefreshToken)
     options = cred._cache_options
     assert isinstance(options, TokenCachePersistenceOptions)
-    assert (options.name, options.allow_unencrypted_storage) == ("dazure", True)
+    assert (options.name, options.allow_unencrypted_storage) == ("dazapiz", True)
     assert cred._client_id == AZURE_CLI_CLIENT_ID
     assert cls()._cache_options.allow_unencrypted_storage is False
     assert store.calls == []  # constructing opens no store
@@ -183,7 +183,7 @@ def test_get_refresh_token_signs_in_first(cls, store, monkeypatch):
 
     def request_token(*scopes, **kwargs):
         signed_in.append(scopes)
-        store.write("dazure.nocae", [bob, alice])
+        store.write("dazapiz.nocae", [bob, alice])
         return alice.token_result()
 
     cred = cls(allow_unencrypted_storage=True)
@@ -197,7 +197,7 @@ def test_get_refresh_token_signs_in_first(cls, store, monkeypatch):
 
 @pytest.mark.parametrize("cls", CLASSES)
 def test_get_refresh_token_with_a_record_does_not_sign_in(cls, store, monkeypatch):
-    store.write("dazure.nocae", [alice_guest])
+    store.write("dazapiz.nocae", [alice_guest])
     cred = cls(authentication_record=record_of(alice_guest), allow_unencrypted_storage=True)
     monkeypatch.setattr(cred, "_request_token", lambda *a, **k: pytest.fail("signed in"))
     info = cred.get_refresh_token()
@@ -205,14 +205,14 @@ def test_get_refresh_token_with_a_record_does_not_sign_in(cls, store, monkeypatc
 
 
 def test_lookup_skips_an_empty_cache(store):
-    (store.root / "dazure.nocae").write_text("", encoding="utf-8")
-    store.write("dazure.cae", [alice])
+    (store.root / "dazapiz.nocae").write_text("", encoding="utf-8")
+    store.write("dazapiz.cae", [alice])
     assert find_refresh_token(OPTIONS, record_of(alice)).token == "rt-alice"
 
 
 def test_lookup_refuses_a_cache_that_is_not_json(store):
-    (store.root / "dazure.nocae").write_text("{not json", encoding="utf-8")
-    store.write("dazure.cae", [alice])
+    (store.root / "dazapiz.nocae").write_text("{not json", encoding="utf-8")
+    store.write("dazapiz.cae", [alice])
     with pytest.raises(RefreshTokenNotFoundError, match="not JSON") as err:
         find_refresh_token(OPTIONS, record_of(alice))
     assert "authenticate()" in str(err.value)

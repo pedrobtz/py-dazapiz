@@ -1,7 +1,7 @@
 from importlib.metadata import version
 
-import dazure
+import dazapiz
 
 
 def test_version_matches_metadata():
-    assert dazure.__version__ == version("dazure")
+    assert dazapiz.__version__ == version("dazapiz")

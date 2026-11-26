@@ -1,5 +1,5 @@
 [project]
-name = "dazure"
+name = "dazapiz"
 version = "0.0.1.dev0"
 description = "The Azure helpers azure-identity lacks: your az login carried into Spark, DuckDB and any Azure REST API."
 readme = "README.md"
@@ -33,10 +33,10 @@ classifiers = [
 duckdb = ["duckdb>=1.1"]
 
 [project.urls]
-Homepage = "https://github.com/pedrobtz/py-dazure"
-Documentation = "https://pedrobtz.github.io/py-dazure/"
-Issues = "https://github.com/pedrobtz/py-dazure/issues"
-Changelog = "https://github.com/pedrobtz/py-dazure/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/pedrobtz/py-dazapiz"
+Documentation = "https://pedrobtz.github.io/py-dazapiz/"
+Issues = "https://github.com/pedrobtz/py-dazapiz/issues"
+Changelog = "https://github.com/pedrobtz/py-dazapiz/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling>=1.27"]

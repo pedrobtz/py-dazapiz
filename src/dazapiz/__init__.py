@@ -1,7 +1,7 @@
 """The Azure helpers azure-identity lacks.
 
 Your `az login` carried into Spark (`spark_storage_conf()`), DuckDB
-(`dazure.duckdb`) and any Azure REST API (`ApiClient`), on top of
+(`dazapiz.duckdb`) and any Azure REST API (`ApiClient`), on top of
 `azure-identity` and `msal`. The design is in `.agents/design.md` in the
 repository.
 """
@@ -23,14 +23,14 @@ from .errors import (
     AzCliNotFoundError,
     AzCliNotLoggedInError,
     AzCliTimeoutError,
-    DazureError,
+    DazapizError,
     RefreshTokenNotFoundError,
     ResponseParseError,
     UnsupportedPlatformError,
 )
 
-__version__ = version("dazure")
-"""The installed version of dazure, from the package metadata."""
+__version__ = version("dazapiz")
+"""The installed version of dazapiz, from the package metadata."""
 
 __all__ = [
     "AZURE_CLI_CLIENT_ID",
@@ -41,7 +41,7 @@ __all__ = [
     "AzCliNotFoundError",
     "AzCliNotLoggedInError",
     "AzCliTimeoutError",
-    "DazureError",
+    "DazapizError",
     "DeviceCodeCredential",
     "InteractiveBrowserCredential",
     "RefreshTokenCredential",
