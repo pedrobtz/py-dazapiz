@@ -188,8 +188,23 @@ def test_parse_is_not_a_path_parameter(transport):
             "application/xml",
             ET.ParseError,
         ),
+        # A +json or text/xml body is checked as well (#43).
+        (
+            "application/problem+json",
+            b'{"secret": "' + SENTINEL.encode(),
+            "application/problem+json",
+            json.JSONDecodeError,
+        ),
+        ("text/xml", b"<a>" + SENTINEL.encode(), "text/xml", ET.ParseError),
     ],
-    ids=["truncated-json", "text-labelled-json", "not-utf8-json", "bad-xml"],
+    ids=[
+        "truncated-json",
+        "text-labelled-json",
+        "not-utf8-json",
+        "bad-xml",
+        "bad-problem-json",
+        "bad-text-xml",
+    ],
 )
 def test_content_that_does_not_parse_is_a_parse_error(transport, content_type, body, media, cause):
     # (#26) A body whose content type says JSON or XML but does not parse is a

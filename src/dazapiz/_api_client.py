@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import dataclasses
+import datetime
 import email.utils
 import json as jsonlib
 import logging
+import math
 import random
 import string
 import threading
@@ -13,12 +15,13 @@ import time
 import xml.etree.ElementTree as ET
 from collections.abc import Callable, Generator, Mapping
 from typing import Any, ClassVar, TypeVar, cast, overload
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import httpx
 from azure.core.credentials import AccessToken, TokenCredential
+from rich.console import ConsoleRenderable
 from rich.logging import RichHandler
-from rich.markup import escape
+from rich.text import Text
 
 from ._app_credential import app_credential
 from .errors import ApiError, ResponseParseError
@@ -315,19 +318,23 @@ class ApiClient:
         attempts, waiting `Retry-After` or `backoff_default()` (uniform in
         1 to 2.5**attempt seconds, at most 60). A read timeout is not
         retried, since the server may have acted. The body is parsed by
-        `content_type`, else the response's: JSON to Python objects, XML to
-        an `ElementTree.Element`, anything else to `str`, an empty body to
-        `None`; a non-empty result goes through `response_handler`.
+        `content_type`, else the response's: JSON (`application/json`,
+        `text/json`, any `+json`) to Python objects, XML (`application/xml`,
+        `text/xml`, any `+xml`) to an `ElementTree.Element`, anything else to
+        `str`, an empty body to `None`; a non-empty result goes through
+        `response_handler`.
 
         Parameters
         ----------
         path
             The path under the host URL, with `{name}` placeholders filled
-            from `path_params`, URL-encoded.
+            from `path_params`, URL-encoded. Never an absolute URL: the
+            bearer token is only for the client's host.
         method
             The HTTP method, any case.
         query
-            Query parameters.
+            Query parameters. A `None` value is left out, as `azr`'s
+            `req_url_query()` drops `NULL`; so is a `None` in a list value.
         json
             The body, sent as JSON. A pydantic model (anything with
             `model_dump()`) is sent as
@@ -362,7 +369,9 @@ class ApiClient:
             A JSON or XML body that does not parse, or an exception from
             `parse`, chained to it.
         ValueError
-            A placeholder without a value, or a value without a placeholder.
+            A placeholder without a value, a value without a placeholder, a
+            placeholder with a conversion or format spec (`{id!r}`,
+            `{id:>5}`), or a `path` that is an absolute URL.
         httpx.HTTPError
             A connection failure after the last attempt, or a timeout.
 
@@ -380,7 +389,7 @@ class ApiClient:
         url = _fill_path(path, path_params)
         method = method.upper()
         body = _to_json(json)
-        response = self._send(method, url, params=query, json=body, headers=headers)
+        response = self._send(method, url, params=_drop_none(query), json=body, headers=headers)
         if not response.is_success:
             raise ApiError(_error_message(response), request=response.request, response=response)
         result = _parse(response, content_type)
@@ -410,10 +419,11 @@ class ApiClient:
                 if wait is None:
                     wait = backoff_default(attempt)
             logger.warning(
-                "[yellow]⚠ Request failed. Retrying in %s secs. (attempt %d of %d).[/yellow]",
+                "⚠ Request failed. Retrying in %s secs. (attempt %d of %d).",
                 _number(wait),
                 attempt,
                 self._max_tries,
+                extra={_STYLE: "yellow"},
             )
             self._sleep(wait)
 
@@ -445,15 +455,47 @@ def _to_json(value: Any) -> Any:
 
 
 def _fill_path(path: str, params: Mapping[str, Any]) -> str:
-    names = {name for _, name, _, _ in string.Formatter().parse(path) if name is not None}
+    # An absolute URL would make httpx ignore base_url while BearerAuth still adds
+    # the API's token, sending it to another host (#36).
+    parts = urlsplit(path)
+    if parts.scheme or parts.netloc:
+        raise ValueError(
+            f"path must be relative to the client's host, not an absolute URL: {path!r}"
+        )
+    fields = [(n, c, s) for _, n, s, c in string.Formatter().parse(path) if n is not None]
+    names = {name for name, _, _ in fields}
     if "" in names or any(not n.isidentifier() for n in names):
         raise ValueError(f"Path placeholders must be names, as in '{{name}}': {path!r}")
+    if any(conversion or spec for _, conversion, spec in fields):
+        # {id!r} or {id:>5} would change the value after it is URL-encoded (#45).
+        raise ValueError(
+            f"Path placeholders take no conversion or format spec, as in '{{name}}': {path!r}"
+        )
     missing, unused = sorted(names - params.keys()), sorted(params.keys() - names)
     if missing:
         raise ValueError(f"Missing path parameter(s) {', '.join(missing)} for {path!r}.")
     if unused:
         raise ValueError(f"Unused path parameter(s) {', '.join(unused)} for {path!r}.")
     return path.format(**{k: quote(str(v), safe="") for k, v in params.items()})
+
+
+def _drop_none(query: Any) -> Any:
+    """`query` without its `None` values, as httr2's `req_url_query()` drops NULL (#40).
+
+    httpx would send `None` as an empty parameter. A `None` inside a list
+    value is dropped too, and a list left empty drops its name.
+    """
+    if not isinstance(query, Mapping):
+        return query
+    kept: dict[Any, Any] = {}
+    for key, value in cast("Mapping[Any, Any]", query).items():
+        if isinstance(value, (list, tuple)):
+            items = [v for v in cast("list[Any] | tuple[Any, ...]", value) if v is not None]
+            if items:
+                kept[key] = items
+        elif value is not None:
+            kept[key] = value
+    return kept
 
 
 def _retry_after(response: httpx.Response) -> float | None:
@@ -468,8 +510,10 @@ def _retry_after(response: httpx.Response) -> float | None:
             when = email.utils.parsedate_to_datetime(value)
         except (TypeError, ValueError):
             return None
-        seconds = when.timestamp() - time.time()
-    return max(seconds, 0.0) if seconds == seconds else None  # NaN is invalid
+        if when.tzinfo is None:  # "-0000": UTC with no zone, not local time (#41)
+            when = when.replace(tzinfo=datetime.timezone.utc)
+        seconds = when.timestamp() - _now()
+    return max(seconds, 0.0) if math.isfinite(seconds) else None  # NaN and inf are invalid
 
 
 def _media_type(response: httpx.Response, content_type: str | None) -> str:
@@ -477,14 +521,23 @@ def _media_type(response: httpx.Response, content_type: str | None) -> str:
     return value.split(";", 1)[0].strip().lower()
 
 
+def _is_json(media: str) -> bool:
+    # application/json, text/json and any +json suffix: problem+json, scim+json... (#43)
+    return media in ("application/json", "text/json") or media.endswith("+json")
+
+
+def _is_xml(media: str) -> bool:
+    return media in ("application/xml", "text/xml") or media.endswith("+xml")
+
+
 def _parse(response: httpx.Response, content_type: str | None) -> Any:
     if not response.content:
         return None
     media = _media_type(response, content_type)
     try:
-        if media == "application/json":
+        if _is_json(media):
             return response.json()
-        if media == "application/xml":
+        if _is_xml(media):
             return ET.fromstring(response.content)
     except (ValueError, ET.ParseError) as exc:  # JSONDecodeError and UnicodeDecodeError too
         raise _parse_error(response, f"is not valid {media}", exc) from exc
@@ -514,10 +567,28 @@ def _error_message(response: httpx.Response) -> str:
 # Logging in azr's format (design §4.1). The hooks never log headers.
 
 
+_STYLE = "dazapiz_style"  # a record's colour, for _StyledHandler only
+
+
+class _StyledHandler(RichHandler):
+    """`RichHandler` that colours a record by its `dazapiz_style`, not by markup.
+
+    Messages carry no markup (D63), so any other handler, or Python's
+    last-resort one, prints them as plain text.
+    """
+
+    def render_message(self, record: logging.LogRecord, message: str) -> ConsoleRenderable:
+        rendered = super().render_message(record, message)
+        style = getattr(record, _STYLE, None)
+        if style is not None and isinstance(rendered, Text):
+            rendered.stylize(style)
+        return rendered
+
+
 def _enable_verbose() -> None:
     if not logger.handlers:
         logger.addHandler(
-            RichHandler(markup=True, show_time=False, show_level=False, show_path=False)
+            _StyledHandler(markup=False, show_time=False, show_level=False, show_path=False)
         )
     if logger.getEffectiveLevel() > logging.INFO:
         logger.setLevel(logging.INFO)
@@ -601,11 +672,13 @@ def _json_body(content: bytes) -> str:
 
 def _log_request(request: httpx.Request) -> None:
     request.extensions[_START] = _clock()
-    logger.info(f"{_INFO} >>> %s %s", request.method, escape(str(request.url)))
+    logger.info(f"{_INFO} >>> %s %s", request.method, request.url)
     content = request.content
-    if content and request.headers.get("content-type", "").startswith("application/json"):
+    if content and _is_json(
+        request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    ):
         logger.info(f"{_INFO} >>> body:")
-        logger.info("%s", escape(_json_body(content)))
+        logger.info("%s", _json_body(content))
 
 
 def _log_response(response: httpx.Response) -> None:
@@ -615,14 +688,11 @@ def _log_response(response: httpx.Response) -> None:
     size = f"{len(response.content) / 1024:.2f}"
     line = f"<<< status = {response.status_code} | time = {elapsed} secs. | size = {size} Kb"
     if response.is_success:
-        logger.info("[green]✔ %s[/green]", line)
+        logger.info("✔ %s", line, extra={_STYLE: "green"})
         return
-    logger.info("[red]✖ %s[/red]", line)
+    logger.info("✖ %s", line, extra={_STYLE: "red"})
     if response.content:
-        logger.info("[red]✖ <<< body:[/red]")
+        logger.info("✖ <<< body:", extra={_STYLE: "red"})
         body = response.content
-        if _media_type(response, None) == "application/json":
-            text = _json_body(body)
-        else:
-            text = response.text
-        logger.info("%s", escape(text))
+        text = _json_body(body) if _is_json(_media_type(response, None)) else response.text
+        logger.info("%s", text)

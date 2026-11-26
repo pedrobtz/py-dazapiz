@@ -15,11 +15,10 @@ import pytest
 from azure.core.credentials import AccessToken
 from recording_transport import RecordingTransport, json_response
 from rich.logging import RichHandler
-from rich.markup import escape
 
 import dazapiz._api_client
 from dazapiz import ApiClient, ApiError, DazapizError
-from dazapiz._api_client import BearerAuth, _abbreviate_json, backoff_default
+from dazapiz._api_client import _abbreviate_json, backoff_default
 
 INFO = "\N{INFORMATION SOURCE}"
 HOST = "https://api.example.com"
@@ -79,12 +78,56 @@ def test_path_templating_and_encoding(transport):
         ("/a", {"z": "2"}, "Unused path parameter.*z"),
         ("/a/{}", {}, "must be names"),
         ("/a/{0}", {}, "must be names"),
+        # A conversion or format spec would change the encoded value (#45).
+        ("/items/{x!r}", {"x": "42"}, "no conversion or format spec"),
+        ("/items/{x!s}", {"x": "42"}, "no conversion or format spec"),
+        ("/items/{x:>5}", {"x": "42"}, "no conversion or format spec"),
     ],
 )
 def test_missing_and_unused_path_parameters(transport, path, params, match):
     with ApiClient(HOST, transport=transport) as client, pytest.raises(ValueError, match=match):
         client.fetch(path, **params)
     assert transport.requests == []
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "https://evil.example/x",
+        "http://evil.example",
+        "//evil.example/x",
+        "HTTPS://evil.example/x",
+    ],
+)
+def test_an_absolute_url_is_refused_so_the_token_stays_on_the_host(transport, path):
+    # httpx would ignore base_url and BearerAuth would still send the token (#36).
+    credential = FakeCredential()
+    with (
+        ApiClient(HOST, transport=transport, credential=credential) as client,
+        pytest.raises(ValueError, match="not an absolute URL") as err,
+    ):
+        client.fetch(path)
+    assert repr(path) in str(err.value)
+    assert transport.requests == []
+    assert credential.calls == []
+
+
+def test_a_relative_path_with_a_colon_is_still_a_path(transport):
+    transport.add(httpx.Response(204))
+    with ApiClient(HOST, transport=transport) as client:
+        client.fetch("/items/a:b")
+    assert str(transport.requests[0].url) == f"{HOST}/items/a:b"
+
+
+def test_none_query_values_are_left_out(transport):
+    # As httr2's req_url_query() drops NULL; httpx would send `$filter=` (#40).
+    transport.add(httpx.Response(204))
+    with ApiClient(HOST, transport=transport) as client:
+        client.fetch(
+            "/items",
+            query={"api-version": "1", "$filter": None, "tag": ["a", None, "b"], "e": [None]},
+        )
+    assert str(transport.requests[0].url) == f"{HOST}/items?api-version=1&tag=a&tag=b"
 
 
 def test_host_url_from_the_class_or_argument(transport):
@@ -137,6 +180,32 @@ def test_method_json_body_and_headers(transport):
             {"a": 1},
         ),
         (json_response(200, {"a": 1}), "text/plain", '{"a": 1}'),
+        # Standard JSON media types beyond application/json (#43).
+        (
+            httpx.Response(
+                200, text='{"a": 1}', headers={"content-type": "application/problem+json"}
+            ),
+            None,
+            {"a": 1},
+        ),
+        (
+            httpx.Response(200, text='{"a": 1}', headers={"content-type": "application/scim+json"}),
+            None,
+            {"a": 1},
+        ),
+        (
+            httpx.Response(200, text='{"a": 1}', headers={"content-type": "text/json"}),
+            None,
+            {"a": 1},
+        ),
+        *(
+            (
+                httpx.Response(200, text="<r><i>1</i></r>", headers={"content-type": media}),
+                None,
+                "r",
+            )
+            for media in ("text/xml", "application/atom+xml")
+        ),
         (httpx.Response(200, headers={"content-type": "application/json"}), None, None),
         (httpx.Response(204), None, None),
     ],
@@ -235,17 +304,21 @@ def test_connection_errors_are_retried(transport, sleeps):
 )
 def test_other_failures_are_sent_once(transport, sleeps, outcome):
     transport.add(outcome)
-    with pytest.raises((ApiError, httpx.ReadTimeout, httpx.ReadError)):
+    expected = ApiError if isinstance(outcome, httpx.Response) else outcome
+    with pytest.raises(expected) as err:
         ApiClient(HOST, transport=transport, sleep=sleeps.append).fetch(
             "/x", "POST", json={"side": "effect"}
         )
+    assert type(err.value) is expected  # a 5xx stays an ApiError, a read error stays itself
     assert len(transport.requests) == 1
     assert sleeps == []
 
 
 def test_retry_after_is_honoured(transport, sleeps, monkeypatch):
     monkeypatch.setattr(dazapiz._api_client, "_uniform", lambda a, b: pytest.fail("backoff used"))
-    when = email.utils.formatdate(time.time() + 30, usegmt=True)
+    now = 1_800_000_000.0
+    monkeypatch.setattr(dazapiz._api_client, "_now", lambda: now)
+    when = email.utils.formatdate(now + 30, usegmt=True)
     transport.add(
         httpx.Response(429, headers={"Retry-After": "7"}),
         httpx.Response(503, headers={"Retry-After": "0.5"}),
@@ -253,8 +326,32 @@ def test_retry_after_is_honoured(transport, sleeps, monkeypatch):
         httpx.Response(204),
     )
     ApiClient(HOST, transport=transport, sleep=sleeps.append).fetch("/x")
-    assert sleeps[:2] == [7.0, 0.5]
-    assert 28 <= sleeps[2] <= 30
+    assert sleeps == [7.0, 0.5, 30.0]
+
+
+@pytest.mark.parametrize(
+    ("header", "expected"),
+    [
+        # An HTTP date with -0000 is UTC, not local time (#41).
+        (email.utils.formatdate(1_800_000_030.0).replace("+0000", "-0000"), 30.0),
+        (email.utils.formatdate(1_800_000_000.0 - 60, usegmt=True), 0.0),  # past: no wait
+        ("-5", 0.0),
+    ],
+)
+def test_retry_after_dates_and_bounds(transport, sleeps, monkeypatch, header, expected):
+    monkeypatch.setattr(dazapiz._api_client, "_now", lambda: 1_800_000_000.0)
+    transport.add(httpx.Response(503, headers={"Retry-After": header}), httpx.Response(204))
+    ApiClient(HOST, transport=transport, sleep=sleeps.append).fetch("/x")
+    assert sleeps == [expected]
+
+
+@pytest.mark.parametrize("header", ["inf", "Infinity", "-inf", "nan", "soon"])
+def test_an_invalid_retry_after_falls_back_to_backoff(transport, sleeps, monkeypatch, header):
+    # time.sleep(inf) would raise OverflowError (#41).
+    monkeypatch.setattr(dazapiz._api_client, "_uniform", lambda a, b: 1.5)
+    transport.add(httpx.Response(429, headers={"Retry-After": header}), httpx.Response(204))
+    ApiClient(HOST, transport=transport, sleep=sleeps.append).fetch("/x")
+    assert sleeps == [1.5]
 
 
 def test_backoff_without_retry_after(transport, sleeps, monkeypatch):
@@ -293,7 +390,9 @@ def test_retry_is_logged_as_a_warning(transport, sleeps, monkeypatch, caplog):
         ApiClient(HOST, transport=transport, sleep=sleeps.append).fetch("/x")
     (record,) = caplog.records
     assert record.levelno == logging.WARNING
-    assert "⚠ Request failed. Retrying in 2 secs. (attempt 1 of 5)." in record.getMessage()
+    # Plain text, also without verbose (#42): the colour is the record's style.
+    assert record.getMessage() == "⚠ Request failed. Retrying in 2 secs. (attempt 1 of 5)."
+    assert record.dazapiz_style == "yellow"
 
 
 # Bearer token ---------------------------------------------------------------------
@@ -311,6 +410,40 @@ def test_bearer_token_fetched_once_for_the_scope(transport):
     transport.add(httpx.Response(204))
     ApiClient(HOST, transport=transport, credential=cred, scope="api://app/.default").fetch("/x")
     assert cred.calls[-1] == ("api://app/.default",)
+
+
+def test_default_scope_of_a_host_with_a_trailing_slash(transport):
+    # The usual ARM form, "https://management.azure.com/", gets one slash.
+    cred = FakeCredential()
+    transport.add(httpx.Response(204))
+    ApiClient("https://management.azure.com/", transport=transport, credential=cred).fetch("/x")
+    assert cred.calls == [("https://management.azure.com/.default",)]
+
+
+def test_timeouts_reach_httpx():
+    client = ApiClient(HOST, timeout=12, connect_timeout=3)
+    assert client._http.timeout == httpx.Timeout(12, connect=3)
+    client.close()
+
+
+def test_concurrent_requests_fetch_one_token(transport):
+    import threading
+
+    class SlowCredential(FakeCredential):
+        def get_token(self, *scopes, **kwargs):
+            time.sleep(0.05)  # wide enough for every thread to arrive first
+            return super().get_token(*scopes, **kwargs)
+
+    cred = SlowCredential()
+    transport.add(*[httpx.Response(204)] * 8)
+    client = ApiClient(HOST, transport=transport, credential=cred)
+    threads = [threading.Thread(target=client.fetch, args=("/x",)) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(cred.calls) == 1
+    assert {r.headers["authorization"] for r in transport.requests} == {"Bearer token-1"}
 
 
 def test_bearer_token_renewed_five_minutes_before_expiry(transport, monkeypatch):
@@ -390,12 +523,12 @@ def test_logging_in_azr_format(transport, caplog, monkeypatch):
         f"{INFO} >>> POST {HOST}/x",
         f"{INFO} >>> body:",
         '{\n  "name": "rg1",\n  "location": "westeurope"\n}',
-        f"[green]✔ <<< status = 201 | time = 0.21 secs. | size = {size_ok} Kb[/green]",
+        f"✔ <<< status = 201 | time = 0.21 secs. | size = {size_ok} Kb",
     ]
     assert messages[4] == f"{INFO} >>> GET {HOST}/y"
-    assert messages[5].startswith("[red]✖ <<< status = 500 | time = 0.5 secs. | size = 0.")
+    assert messages[5].startswith("✖ <<< status = 500 | time = 0.5 secs. | size = 0.")
     assert messages[6:] == [
-        "[red]✖ <<< body:[/red]",
+        "✖ <<< body:",
         '{\n  "error": {\n    "code": "Boom",\n    "message": "bad"\n  }\n}',
     ]
     assert all(r.name == "dazapiz.http" for r in caplog.records)
@@ -427,16 +560,33 @@ def test_verbose_attaches_rich_handler_only_if_none(transport):
     assert log.handlers == [own]
 
 
-def test_bearer_auth_repr_and_markup_escaped(transport, caplog):
-    assert "token" not in repr(BearerAuth(FakeCredential(), "s")).replace("FakeCredential", "")
+def test_log_records_carry_no_markup_and_bodies_print_as_sent(transport, caplog):
+    # Messages are plain text (D63): a body with brackets is logged as sent,
+    # and the colour travels as the record's dazapiz_style, not as markup.
     transport.add(json_response(400, {"why": "[bold]x[/bold]"}))
     with caplog.at_level(logging.INFO, logger="dazapiz.http"), pytest.raises(ApiError):
         ApiClient(HOST, transport=transport, verbose=True).fetch(
             "/x", "POST", json={"f": "[red]x[/red]"}
         )
     bodies = [r.getMessage() for r in caplog.records if r.getMessage().startswith("{")]
-    # Rich markup in a body is escaped, so it prints as sent.
-    assert bodies == ['{\n  "f": "\\[red]x\\[/red]"\n}', '{\n  "why": "\\[bold]x\\[/bold]"\n}']
+    assert bodies == ['{\n  "f": "[red]x[/red]"\n}', '{\n  "why": "[bold]x[/bold]"\n}']
+    styles = {
+        r.getMessage().split(" <<<")[0]: getattr(r, "dazapiz_style", None) for r in caplog.records
+    }
+    assert styles["✖"] == "red"
+
+
+def test_the_verbose_handler_colours_by_style_and_reads_no_markup(transport):
+    transport.add(httpx.Response(200, text="[bold]x[/bold]"))
+    client = ApiClient(HOST, transport=transport, verbose=True)
+    (handler,) = logging.getLogger("dazapiz.http").handlers
+    assert isinstance(handler, RichHandler)
+    record = logging.LogRecord("dazapiz.http", logging.INFO, "", 0, "[bold]x[/bold]", (), None)
+    record.dazapiz_style = "green"
+    rendered = handler.render_message(record, record.getMessage())
+    assert rendered.plain == "[bold]x[/bold]"  # not read as markup
+    assert any(str(span.style) == "green" for span in rendered.spans)
+    client.close()
 
 
 # Abbreviated JSON bodies (design §4.1, #22) ---------------------------------------
@@ -525,7 +675,7 @@ def test_logged_bodies_are_abbreviated(transport, caplog):
     assert sent == _abbreviate_json(body)
     assert sent.count("...") == 1 + 10  # the object, and each kept array
     assert '"k05"' not in sent
-    failed = messages[messages.index("[red]✖ <<< body:[/red]") + 1]
+    failed = messages[messages.index("✖ <<< body:") + 1]
     assert (
         failed
         == '{\n  "error": {\n    "details": [0, 1, 2, 3, 4, 5, ..., 7, 8, 9, 10, 11, 12]\n  }\n}'
@@ -544,7 +694,7 @@ def test_logged_non_json_bodies_are_unchanged(transport, caplog):
             with pytest.raises(ApiError):
                 client.fetch("/x")
     bodies = [r.getMessage() for r in caplog.records if r.getMessage().startswith("[x")]
-    assert bodies == [escape(text)] * 2
+    assert bodies == [text] * 2
 
 
 @pytest.mark.parametrize("bad", [0, -1, 1.5, "3"])
