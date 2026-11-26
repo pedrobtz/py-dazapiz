@@ -14,7 +14,9 @@ answered; #22), 2026-11-21;
 Petstore example, §7 and §8 type checking, real-HTTP tests and the Petstore
 item (D49 to D58; #26), 2026-11-21;
 §7 documentation site (#27), 2026-11-21;
-renamed `dazure` to `dazapiz` (D61), 2026-11-26.
+renamed `dazure` to `dazapiz` (D61), 2026-11-26;
+§4.1, §4.1.1, §4.2 and §4.3.1 changed by the Stage 10 review (D62 to D67;
+#36 to #49), 2026-11-26.
 
 - **Status:** Proposed. The decisions in §10 marked "maintainer" were
   settled in conversation on 2026-11-19 (D21 on 2026-11-21); the rest
@@ -298,9 +300,10 @@ The mode is the `mode` argument (or class attribute), else
   fall-through; so is both set with no tenant.
   `prod` never uses a developer login.
 - **`dev`**: `ChainedTokenCredential(AzureCliCredential(),
-  dazapiz.DeviceCodeCredential())`, the device code tried only in an
+  azure.identity.DeviceCodeCredential())`, the device code tried only in an
   interactive session (a TTY or a notebook kernel), so a batch job fails
-  instead of waiting for a prompt.
+  instead of waiting for a prompt. The device code has no persisted cache,
+  so it prompts where no secret store is usable (D64).
 - **A single name**: `client_secret` (the named service principal),
   `workload_identity`, `managed_identity`, `azure_cli` or `device_code`,
   matched case-insensitively, as `azr` and `azure-identity` accept
@@ -331,10 +334,13 @@ at 60. Each retry is
 logged as a warning with the wait and the attempt number.
 
 **Parsing.** `fetch()` fills `{name}` placeholders from `path_params`
-(URL-encoded; a missing or unused parameter is a `ValueError`), sends
-the request and parses the body by content type: `application/json` to
-Python objects, `application/xml` to `xml.etree.ElementTree.Element`,
-anything else to `str`, an empty body to `None`. The result then goes
+(URL-encoded; a missing or unused parameter, or a placeholder with a
+conversion or format spec, is a `ValueError`), refuses a `path` that is
+an absolute URL (D66), leaves `None` query values out, sends the request
+and parses the body by content type: JSON (`application/json`,
+`text/json`, any `+json`) to Python objects, XML (`application/xml`,
+`text/xml`, any `+xml`) to `xml.etree.ElementTree.Element`, anything
+else to `str`, an empty body to `None`. The result then goes
 through `response_handler`. `azr`'s default handler converts data frames
 to `data.table`; the Python default is the identity. A non-2xx response
 after retries raises `dazapiz.ApiError`, an `httpx.HTTPStatusError`
@@ -374,8 +380,9 @@ closed (found by the prototype).
 
 The hooks write to a `dazapiz.http` logger, so the records can be routed
 or silenced like any other. `verbose=True` turns them on and, if the
-logger has no handler yet, attaches `rich.logging.RichHandler(markup=True,
-show_time=False, show_level=False, show_path=False)`, which prints the
+logger has no handler yet, attaches a `rich.logging.RichHandler(markup=False,
+show_time=False, show_level=False, show_path=False)` that colours each
+record by its `dazapiz_style` (D63), which prints the
 lines above with `rich`'s colours and JSON highlighting. The `httpx`
 logger is left alone so its line does not duplicate `>>>`. The hooks
 never log headers, so the bearer token cannot appear; bodies are logged
@@ -411,7 +418,8 @@ Details settled in Stage 5 (2026-11-21):
   server (D40). After the last attempt the `httpx` exception is raised
   as is; a 429 or 503 after the last attempt raises `ApiError`.
   `Retry-After` is delay-seconds or an HTTP date, not capped (httr2 does
-  not cap it); an invalid one falls back to the backoff. The warning's
+  not cap it); an invalid one, `inf` and `NaN` included, falls back to the
+  backoff, and an HTTP date with no zone (`-0000`) is UTC (#41). The warning's
   attempt number is the attempt that failed, as httr2 passes it to
   `azr`'s backoff.
 - `ApiError`'s message is `<METHOD> <URL> failed: HTTP <status> <reason>`,
@@ -421,9 +429,10 @@ Details settled in Stage 5 (2026-11-21):
   content type before any `;`, lower-cased.
 - Logging: the `>>>` and `<<<` records are `INFO`, failures too; the retry
   warning is `WARNING` and logged whether or not `verbose` is set, as
-  `azr`'s alert is. Records carry `rich` markup for colour (`[green]`,
-  `[red]`, `[yellow]`), and logged bodies and URLs are markup-escaped
-  (D42). The size is the body's bytes / 1024 with two decimals; the time
+  `azr`'s alert is. Messages are plain text; the colour (green, red,
+  yellow) travels as the record's `dazapiz_style`, which only dazapiz's
+  own handler reads, so any other handler prints the text as sent (D63,
+  replacing D42). The size is the body's bytes / 1024 with two decimals; the time
   three significant digits. `verbose=True` also lowers the logger's level
   to `INFO` when its effective level is higher.
 - JSON bodies (request, and failed response) are logged abbreviated as
@@ -538,7 +547,8 @@ then waits for the process to finish. It refuses to run when
 `sys.stdin` is not a TTY and no notebook kernel is detected, raising
 `AzCliNonInteractiveError`, as `azr` refuses outside an interactive
 session. Every helper takes `timeout` (default 10 s; `az_login` has
-none by default) and runs `az` with `--only-show-errors`.
+none by default, and its `timeout` covers its `az account show` checks
+too, D67) and runs `az` with `--only-show-errors`.
 
 Getting tokens from the CLI is not wrapped: that is
 `azure.identity.AzureCliCredential`.
@@ -556,7 +566,7 @@ Details settled in Stage 4 (2026-11-21):
 - `az_is_login()` is `False` on any `AzCliError` (D32).
 - `az_login()` checks the existing login before the TTY, as `azr` does,
   so a reused login works in a batch job. The tenant comparison ignores
-  case. A `tenant_id` must match `[A-Za-z0-9.-]+`, as in §4.4.
+  case, and a domain matches the account's `tenantDefaultDomain` (D67). A `tenant_id` must match `[A-Za-z0-9.-]+`, as in §4.4.
 - The device code is found by `azr`'s pattern `enter the code
   ([A-Z0-9]+) to authenticate` on each stderr line, ANSI styling removed;
   the URL is the first `https://` in that line, else
@@ -1427,7 +1437,7 @@ Settled in Stage 5 (2026-11-21), the implementer's calls:
   request, which is §4.1's rule for resending a `POST`.
 - **D41.** An empty body skips `response_handler`. Reason: `azr` returns
   `NULL` before its handler, and a handler need not accept `None`.
-- **D42.** Log records carry `rich` markup, with bodies and URLs escaped.
+- **D42.** (Replaced by D63, 2026-11-26.) Log records carry `rich` markup, with bodies and URLs escaped.
   Reason: §4.1's `RichHandler(markup=True)` colours from the message, and
   unescaped `[...]` in a body would be read as markup.
 - **D43.** Logged JSON bodies, request and failed response, are
@@ -1555,6 +1565,41 @@ Settled for #26 (2026-11-21):
   before newest-wins (§4.3.1). Reason: matching on username alone gave
   the same UPN in another cloud, or another home account, whichever
   token was newer.
+- **D63.** (2026-11-26, #42) Log records carry no `rich` markup; the
+  colour is the record's `dazapiz_style`, applied by the handler
+  `verbose=True` attaches (`markup=False`), and bodies and URLs are not
+  escaped. Replaces D42. Reason: the retry warning is logged without
+  `verbose`, and the `>>>`/`<<<` records whenever the logger is at
+  `INFO`, so any other handler printed the tags, or the escapes, as text.
+- **D64.** (maintainer, 2026-11-26, #39) `dev` mode's device code is
+  `azure.identity.DeviceCodeCredential()` with no persisted cache, not
+  `dazapiz.DeviceCodeCredential()`. Mode `device_code` keeps dazapiz's.
+  Reason: dazapiz's encrypted cache cannot open without a secret store
+  (headless Linux: SSH, devcontainers, Codespaces, WSL), so the chain
+  failed before showing a code; with no authentication record a new
+  process prompted anyway, so the cache bought nothing there.
+- **D65.** (2026-11-26, #44) A value of `AZURE_TOKEN_CREDENTIALS` that
+  `DefaultAzureCredential` takes but dazapiz does not build
+  (`AzureDeveloperCliCredential`, `AzurePowerShellCredential`,
+  `VisualStudioCodeCredential`, `InteractiveBrowserCredential`) means
+  automatic mode, with a warning; the same name as `mode=` is still an
+  error. Reason: D36's own, a value valid there must not break a client;
+  an argument is the caller's explicit choice.
+- **D66.** (2026-11-26, #36, #40, #43, #45) `fetch()` refuses an absolute
+  URL as `path` and a placeholder with a conversion or format spec,
+  drops `None` query values (as httr2's `req_url_query()` drops `NULL`),
+  and parses `text/json`, `+json`, `text/xml` and `+xml` as JSON or XML.
+  Reason: httpx ignores `base_url` for an absolute URL while the bearer
+  token is still added, so a `nextLink` could send it off-host; the rest
+  sent values or parsed bodies other than the caller meant. MSAL's
+  warning about the pasted flow's `response_mode="query"` is silenced
+  around that one call, since the mode is the flow's.
+- **D67.** (2026-11-26, #37, #38) `az_login(timeout=...)` is one deadline
+  for every `az` it runs, the `az account show` checks included, and a
+  `tenant_id` domain matches `tenantDefaultDomain`. Reason: the checks
+  used `az_account_show()`'s fixed 10 s even with `timeout=None`, and
+  `tenantId` is always a GUID, so a domain never matched an existing
+  login.
 
 The author's calls, open until the package repository records them:
 

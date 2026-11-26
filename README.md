@@ -40,6 +40,7 @@ The development version installs from GitHub:
 ## A first run
 
 ```python
+from pyspark.sql import SparkSession
 from dazapiz import az_login, spark_storage_conf, refresh_token_from_az_cli
 
 az_login()                                 # device code, once per machine

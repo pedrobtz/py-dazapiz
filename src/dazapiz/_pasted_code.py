@@ -6,6 +6,7 @@ import base64
 import binascii
 import json
 import re
+import warnings
 from collections.abc import Callable
 from typing import Any, cast
 from urllib.parse import parse_qsl, urlsplit
@@ -113,14 +114,18 @@ def request_token_by_pasted_code(
             message="Signing in through a callback page needs an interactive session "
             "(a terminal or a notebook kernel) to paste the code into."
         )
-    flow = app.initiate_auth_code_flow(
-        scopes,
-        redirect_uri=redirect_uri,
-        response_mode="query",
-        prompt="select_account",
-        login_hint=login_hint,
-        claims_challenge=claims,
-    )
+    with warnings.catch_warnings():
+        # MSAL recommends form_post; the pasted flow needs the code in the callback
+        # page's URL, so the warning would only tell the user about dazapiz's choice.
+        warnings.filterwarnings("ignore", message="response_mode='form_post' is recommended")
+        flow = app.initiate_auth_code_flow(
+            scopes,
+            redirect_uri=redirect_uri,
+            response_mode="query",
+            prompt="select_account",
+            login_hint=login_hint,
+            claims_challenge=claims,
+        )
     if "auth_uri" not in flow:
         raise CredentialUnavailableError(message="Failed to begin authentication flow")
 

@@ -470,6 +470,18 @@ an environment with full Azure access.
 - A packaging review: metadata, sdist and wheel contents, the README on
   PyPI, the TestPyPI upload installing cleanly.
 
+  As found (2026-11-26): `/code-review` (high) over `src/dazapiz/` and a
+  test review (`review-testing`) gave 14 sub-issues of #13, all labelled
+  `review` (#36 to #49), plus the flake #32 traced to the httpbin tests
+  sending bodies httpbin never reads. Three were security or usability
+  bugs (#36 the bearer token sent to an absolute URL, #37, #39), the rest
+  smaller behaviour, test and docstring fixes; design D62 to D67. The
+  packaging review was clean: the wheel holds the package and `py.typed`
+  only, metadata and classifiers match CI's Python 3.10 to 3.14, and the
+  sdist's own 540 tests pass unpacked. `0.1.0` was already on TestPyPI
+  (from `ce5aec6`, before the review, at the maintainer's request), so the
+  review fixes reach PyPI untried on TestPyPI under that version.
+
 **Exit criteria.**
 
 - Every blocking and required review issue closed, `CHANGELOG.md`

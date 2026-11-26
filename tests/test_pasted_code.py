@@ -399,12 +399,10 @@ class RealMsal:
         return {**login.token_response(), "id_token": f"e30.{part}."}
 
 
-# MSAL warns about response_mode="query", which the pasted flow needs: the code
-# reaches the user in the callback page's URL, not in a form post.
-real_msal = pytest.mark.filterwarnings("ignore:response_mode='form_post' is recommended")
+# The suite turns warnings into errors, so these tests also check that MSAL's
+# warning about response_mode="query" does not reach the user.
 
 
-@real_msal
 def test_real_msal_flow_with_the_right_state(flow, capsys):
     real = RealMsal(capsys)
     cred, _, _ = flow(lambda app: real.callback_url(), app=real.app)
@@ -419,7 +417,6 @@ def test_real_msal_flow_with_the_right_state(flow, capsys):
     assert form["code_verifier"]  # PKCE, from msal's flow
 
 
-@real_msal
 def test_real_msal_flow_with_a_tampered_state(flow, capsys):
     real = RealMsal(capsys)
     cred, _, _ = flow(lambda app: real.callback_url(state="tampered"), app=real.app)
