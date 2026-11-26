@@ -49,7 +49,7 @@ package, a branch on the operating system. Azure itself is never in CI
 | 6 | [DuckDB](#stage-6--duckdb) | quick | [#9](https://github.com/pedrobtz/py-dazapiz/issues/9) | [#21](https://github.com/pedrobtz/py-dazapiz/pull/21) | 2026-11-21 |
 | 7 | [Manual checklist](#stage-7--manual-checklist) | quick | [#10](https://github.com/pedrobtz/py-dazapiz/issues/10) | [#24](https://github.com/pedrobtz/py-dazapiz/pull/24) | 2026-11-21 |
 | 8 | [Full CI](#stage-8--full-ci) | full | [#11](https://github.com/pedrobtz/py-dazapiz/issues/11) | [#25](https://github.com/pedrobtz/py-dazapiz/pull/25) | 2026-11-21 |
-| 9 | [v0.1.0 readiness](#stage-9--v010-readiness) | full | [#12](https://github.com/pedrobtz/py-dazapiz/issues/12) | [#34](https://github.com/pedrobtz/py-dazapiz/pull/34), [#35](https://github.com/pedrobtz/py-dazapiz/pull/35) | 2026-11-26 (manual checklist pending) |
+| 9 | [v0.1.0 readiness](#stage-9--v010-readiness) | full | [#12](https://github.com/pedrobtz/py-dazapiz/issues/12) | [#34](https://github.com/pedrobtz/py-dazapiz/pull/34), [#35](https://github.com/pedrobtz/py-dazapiz/pull/35) | 2026-11-26 |
 | 10 | [Review](#stage-10--review) | full | [#13](https://github.com/pedrobtz/py-dazapiz/issues/13) | [#50](https://github.com/pedrobtz/py-dazapiz/pull/50) | 2026-11-26 |
 
 ## Stage 0 — Package identity
@@ -487,6 +487,15 @@ an environment with full Azure access.
 - Every blocking and required review issue closed, `CHANGELOG.md`
   reflecting any user-visible fix, and a full-profile run green on
   `main`, whose head becomes the release commit.
+
+## Released
+
+`0.1.0` was published on 2026-11-26 from `cabc1b2` (tag `v0.1.0`) by the
+release workflow: PyPI by trusted publishing, then the GitHub release with
+the CHANGELOG section and the wheel and sdist. A clean install of
+`dazapiz[duckdb]==0.1.0` from PyPI imports and runs without Azure. `main`
+is `0.1.1.dev0`; a development version takes its release notes from
+`## Unreleased`.
 
 ## After 0.1.0
 

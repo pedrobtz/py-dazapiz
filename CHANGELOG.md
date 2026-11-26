@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 0.1.0 (2026-11-26)
 
 The first release. `dazapiz` adds what `azure-identity` lacks: your
