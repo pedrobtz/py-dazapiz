@@ -2,12 +2,17 @@
 
 `PublicClientApplication.__init__` runs instance and tenant discovery over the
 network, so the fake replaces the class, recording what it was built with and
-what `acquire_token_by_refresh_token` was handed.
+what `acquire_token_by_refresh_token` was handed. The last tests run the real
+class instead, with only its HTTP faked (`fake_entra`).
 """
 
+import functools
+
+import msal
 import pytest
 from azure.core.credentials import AccessToken, TokenCredential
 from azure.core.exceptions import ClientAuthenticationError
+from fake_entra import FakeEntra
 
 import dazapiz._credential
 from dazapiz import (
@@ -178,3 +183,52 @@ def test_needs_a_scope(app):
     with pytest.raises(ValueError, match="scope"):
         RefreshTokenCredential(INFO).get_token()
     assert app.calls == []
+
+
+# On a real msal.PublicClientApplication, faking only HTTP (#49) ----------------
+
+
+@pytest.fixture
+def entra(monkeypatch):
+    """A real PublicClientApplication whose HTTP goes to a FakeEntra, never the network."""
+    replies = []
+    fake = FakeEntra(token=lambda form: replies.pop(0))
+    real = msal.PublicClientApplication
+    monkeypatch.setattr(
+        dazapiz._credential.msal,
+        "PublicClientApplication",
+        functools.partial(real, http_client=fake, instance_discovery=False),
+    )
+    monkeypatch.delenv("AZURE_AUTHORITY_HOST", raising=False)
+    return fake, replies
+
+
+def test_real_msal_redeems_the_refresh_token(entra, clock):
+    fake, replies = entra
+    replies.append({"token_type": "Bearer", "access_token": "at-1", "expires_in": 3600})
+    cred = RefreshTokenCredential(INFO)
+    assert cred.get_token(SCOPE) == AccessToken("at-1", int(clock["t"]) + 3600)
+    assert fake.gets == [
+        "https://login.microsoftonline.com/tid/v2.0/.well-known/openid-configuration"
+    ]
+    [form] = fake.posts
+    assert form["grant_type"] == "refresh_token"
+    assert form["refresh_token"] == "rt-0"
+    assert form["client_id"] == "cid"
+    assert SCOPE in form["scope"].split()
+    assert cred.get_refresh_token() == INFO
+
+
+def test_real_msal_keeps_the_rotated_refresh_token(entra, clock):
+    fake, replies = entra
+    first = {"token_type": "Bearer", "access_token": "at-1", "expires_in": 3600}
+    replies += [
+        {**first, "refresh_token": "rt-1"},
+        {**first, "access_token": "at-2"},
+    ]
+    cred = RefreshTokenCredential(INFO)
+    assert cred.get_token(SCOPE).token == "at-1"
+    assert cred.get_refresh_token() == RefreshTokenInfo("rt-1", "cid", "tid", "a@x")
+    assert cred.get_token("other/.default").token == "at-2"
+    assert [form["refresh_token"] for form in fake.posts] == ["rt-0", "rt-1"]
+    assert "rt-1" not in repr(cred)
