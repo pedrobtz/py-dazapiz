@@ -429,7 +429,10 @@ an environment with full Azure access.
 - Version `0.1.0`, the `CHANGELOG.md` heading, the README in
   `py-dazdiff`'s style.
 - `.github/workflows/release.yml` with trusted publishing to TestPyPI on
-  dispatch and PyPI on a `v*` tag, as `py-dazdiff`'s.
+  dispatch and PyPI on a `v*` tag, as `py-dazdiff`'s. Landed ahead of the rest
+  of the stage (2026-11-26) so the upload path can be tried with the
+  development version: TestPyPI never takes a version twice, so `0.1.0`
+  goes up only from the release candidate (Stage 10).
 - The maintainer runs the Stage 7 checklist on Windows, macOS and Linux
   and records it in the pull request.
 
