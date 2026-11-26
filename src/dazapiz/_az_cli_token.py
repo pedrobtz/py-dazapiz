@@ -20,6 +20,18 @@ _PROFILE = "azureProfile.json"
 _CACHE = "msal_token_cache.json"
 _ENCRYPTED_CACHE = "msal_token_cache.bin"
 
+# The sign-in hosts of the Azure CLI's built-in clouds (`az cloud list`,
+# `endpoints.activeDirectory`), with the aliases Entra's instance discovery
+# lists for each: a cache entry's `environment` is one of these.
+_CLOUD_HOSTS: dict[str, frozenset[str]] = {
+    "azurecloud": frozenset(
+        {"login.microsoftonline.com", "login.windows.net", "login.microsoft.com", "sts.windows.net"}
+    ),
+    "azurechinacloud": frozenset({"login.chinacloudapi.cn", "login.partner.microsoftonline.cn"}),
+    "azureusgovernment": frozenset({"login.microsoftonline.us", "login.usgovcloudapi.net"}),
+    "azuregermancloud": frozenset({"login.microsoftonline.de"}),
+}
+
 
 def _is_windows() -> bool:
     return sys.platform == "win32"
@@ -46,10 +58,14 @@ def _read_json(path: Path, encoding: str) -> Any:
 
 def _current_account(
     config_dir: Path, username: str | None, tenant_id: str | None
-) -> tuple[str, str]:
-    """The (username, tenant) the Azure CLI is signed in as, with overrides applied."""
+) -> tuple[str, str, str | None]:
+    """The (username, tenant, cloud) the Azure CLI is signed in as, with overrides applied.
+
+    The cloud is the subscription's `environmentName` (`AzureCloud`, ...), or
+    None when the profile is not read or does not name one.
+    """
     if username is not None and tenant_id is not None:
-        return username, tenant_id
+        return username, tenant_id, None
     path = config_dir / _PROFILE
     if not path.is_file():
         raise RefreshTokenNotFoundError(f"No Azure CLI profile at {path}: run `az login`.")
@@ -66,13 +82,17 @@ def _current_account(
         tenant = s.get("tenantId")
         return tenant if isinstance(tenant, str) and tenant else None
 
+    def cloud_of(s: dict[str, Any]) -> str | None:
+        cloud = s.get("environmentName")
+        return cloud if isinstance(cloud, str) and cloud else None
+
     if username is None:
         default = next((s for s in subscriptions if s.get("isDefault") is True), None)
         user = user_of(default) if default is not None else None
         tenant = tenant_of(default) if default is not None else None
-        if not user or tenant is None:
+        if default is None or not user or tenant is None:
             raise RefreshTokenNotFoundError(f"No default subscription in {path}: run `az login`.")
-        return user, tenant_id or tenant
+        return user, tenant_id or tenant, cloud_of(default)
 
     # Prefer the default subscription when it is the given user's, else any of theirs.
     wanted = username.lower()
@@ -85,10 +105,10 @@ def _current_account(
         raise RefreshTokenNotFoundError(
             f"No subscription of {username!r} in {path}: run `az login`, or pass tenant_id."
         )
-    return username, tenant
+    return username, tenant, cloud_of(theirs[0])
 
 
-def _find_refresh_token(config_dir: Path, username: str) -> str:
+def _find_refresh_token(config_dir: Path, username: str, tenant: str, cloud: str | None) -> str:
     path = config_dir / _CACHE
     if not path.is_file():
         if (config_dir / _ENCRYPTED_CACHE).is_file():
@@ -115,11 +135,22 @@ def _find_refresh_token(config_dir: Path, username: str) -> str:
         ) from None
 
     wanted = username.lower()
-    accounts = {
-        (a.get("home_account_id"), a.get("environment"))
+    candidates = [
+        a
         for a in cache.search(cache.CredentialType.ACCOUNT)
         if (a.get("username") or "").lower() == wanted
-    }
+    ]
+    # One username can be several accounts: one per cloud, or two home
+    # accounts. Prefer those in the profile's cloud, then those signed in to
+    # the profile's tenant (msal writes one Account entry per tenant, its
+    # `realm`). A preference nothing meets is dropped, so a tenant the CLI
+    # never signed in to (tenant_id=...) still finds the user's token.
+    hosts = _CLOUD_HOSTS.get(cloud.lower()) if cloud is not None else None
+    if hosts is not None:
+        in_cloud = [a for a in candidates if (a.get("environment") or "").lower() in hosts]
+        candidates = in_cloud or candidates
+    in_tenant = [a for a in candidates if (a.get("realm") or "").lower() == tenant.lower()]
+    accounts = {(a.get("home_account_id"), a.get("environment")) for a in (in_tenant or candidates)}
     tokens = [
         rt
         for rt in cache.search(
@@ -155,6 +186,11 @@ def refresh_token_from_az_cli(
        is only read, never written. The refresh token is the newest one issued
        to `AZURE_CLI_CLIENT_ID` for that user's `home_account_id`. Refresh tokens
        carry no tenant, so the tenant comes from the profile.
+    4. When the username is several cache accounts (the same name in two
+       clouds, or two home accounts), the one in the subscription's cloud
+       (`environmentName`) and signed in to its tenant is taken. Where the
+       profile cannot tell them apart (both overrides given, a custom cloud,
+       a tenant none of them signed in to), the newest token wins.
 
     An encrypted cache (`msal_token_cache.bin`, from
     `az config set core.encrypt_token_cache=true`) is not read.
@@ -210,8 +246,8 @@ def refresh_token_from_az_cli(
             "dazapiz.InteractiveBrowserCredential, or set $AZURE_REFRESH_TOKEN."
         )
     directory = _config_dir(config_dir)
-    username, tenant = _current_account(directory, username, tenant_id)
-    token = _find_refresh_token(directory, username)
+    username, tenant, cloud = _current_account(directory, username, tenant_id)
+    token = _find_refresh_token(directory, username, tenant, cloud)
     return RefreshTokenInfo(
         token=token, client_id=AZURE_CLI_CLIENT_ID, tenant_id=tenant, username=username
     )

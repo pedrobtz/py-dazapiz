@@ -13,6 +13,9 @@ Python 3.10 or later.
   the Azure CLI is signed in as, read from `azureProfile.json` and
   `msal_token_cache.json` without running `az` (macOS and Linux; Windows
   raises `UnsupportedPlatformError`).
+- When one username is several accounts in the Azure CLI's cache (the same
+  name in two clouds, or two home accounts), `refresh_token_from_az_cli()`
+  takes the one in the profile's cloud and tenant, not the newest (#47).
 - `RefreshTokenCredential` redeems a refresh token for access tokens as a
   `TokenCredential`, caching them until five minutes before expiry and
   keeping the rotated refresh token.

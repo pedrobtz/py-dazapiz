@@ -645,6 +645,18 @@ Details settled in Stage 1 (2026-11-21):
   accounts and refresh tokens are matched on `home_account_id` and
   `environment`; with several CLI refresh tokens for the account (one per
   scope set), the newest `last_modification_time` wins.
+- One username can be several cache accounts: the same name in two
+  clouds, or two home accounts (D62, 2026-11-26). Among the `Account`
+  entries with that username, those whose `environment` is a sign-in
+  host of the subscription's `environmentName` (`AzureCloud`,
+  `AzureChinaCloud`, `AzureUSGovernment`, `AzureGermanCloud`, with
+  Entra's aliases) are preferred, then those whose `realm` is the
+  profile's tenant (msal writes one `Account` entry per tenant signed
+  in to). A preference no entry meets is dropped, not enforced, so
+  `tenant_id` for a tenant the CLI never signed in to still finds the
+  token. Where the profile cannot tell the accounts apart (both
+  overrides given, a custom cloud, a tenant none of them signed in to),
+  the newest token wins, as before.
 - `username` alone takes the tenant of that user's subscription (the
   default one if it is theirs); `username` and `tenant_id` together do
   not read the profile at all.
@@ -1538,6 +1550,11 @@ Settled for #26 (2026-11-21):
   the `DAZAPIZ_*` environment variables, the `dazapiz.*` loggers and the
   `dazapiz_default` token cache. No aliases: nothing was published under
   the old name. Reason: the maintainer chose the new name.
+- **D62.** (2026-11-26, #47) `refresh_token_from_az_cli()` prefers the
+  cache accounts in the profile's cloud and signed in to its tenant
+  before newest-wins (§4.3.1). Reason: matching on username alone gave
+  the same UPN in another cloud, or another home account, whichever
+  token was newer.
 
 The author's calls, open until the package repository records them:
 
