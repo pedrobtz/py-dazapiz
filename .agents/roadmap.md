@@ -488,6 +488,15 @@ an environment with full Azure access.
   reflecting any user-visible fix, and a full-profile run green on
   `main`, whose head becomes the release commit.
 
+## Released
+
+`0.1.0` was published on 2026-11-26 from `cabc1b2` (tag `v0.1.0`) by the
+release workflow: PyPI by trusted publishing, then the GitHub release with
+the CHANGELOG section and the wheel and sdist. A clean install of
+`dazapiz[duckdb]==0.1.0` from PyPI imports and runs without Azure. `main`
+is `0.1.1.dev0`; a development version takes its release notes from
+`## Unreleased`.
+
 ## After 0.1.0
 
 - [§11](design.md#11-open-questions) Q1 to Q4 (pagination, an async

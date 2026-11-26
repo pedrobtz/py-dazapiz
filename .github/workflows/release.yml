@@ -12,7 +12,8 @@ name: Release
 #                      environment and check it imports, without Azure. A
 #                      dispatch never publishes to PyPI.
 #   pull_request:      only when this file changes, the build alone (a dry run).
-# Every event checks that CHANGELOG.md has a section for the version.
+# Every event checks that CHANGELOG.md has a section for the version (a .dev
+# version: `## Unreleased`).
 
 on:
   push:
@@ -77,12 +78,21 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          # The section under `## <version>` up to the next `## ` heading.
-          awk -v v="$VERSION" '
+          # The section under `## <version>` up to the next `## ` heading; a
+          # development version (x.y.z.devN) takes `## Unreleased`, which may be
+          # empty between releases.
+          heading="$VERSION"
+          case "$VERSION" in *.dev*) heading="Unreleased" ;; esac
+          awk -v v="$heading" '
             /^## / { if (found) exit; if (index($0, "## " v " ") == 1 || $0 == "## " v) { found = 1; next } }
             found
           ' CHANGELOG.md > release-notes.md
-          if ! grep -q '[^[:space:]]' release-notes.md; then
+          if [ "$heading" = "Unreleased" ]; then
+            if ! grep -q '^## Unreleased$' CHANGELOG.md; then
+              echo "::error::CHANGELOG.md has no '## Unreleased' section for $VERSION"
+              exit 1
+            fi
+          elif ! grep -q '[^[:space:]]' release-notes.md; then
             echo "::error::CHANGELOG.md has no section for $VERSION"
             exit 1
           fi
