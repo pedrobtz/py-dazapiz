@@ -25,7 +25,8 @@ CLASSES = [
     "ClientSecretCredential",
     "ManagedIdentityCredential",
     "WorkloadIdentityCredential",
-    "DeviceCodeCredential",
+    "DeviceCodeCredential",  # dazapiz's, for mode device_code
+    "_SdkDeviceCodeCredential",  # azure-identity's, in dev mode (#39)
 ]
 ENV = [
     ID,
@@ -54,7 +55,8 @@ def built(monkeypatch) -> list[tuple[str, tuple, dict]]:
             calls.append((_name, args, kwargs))
             _real.__init__(self, *args, **kwargs)
 
-        monkeypatch.setattr(dazapiz._app_credential, name, type(name, (real,), {"__init__": init}))
+        fake = type(real.__name__, (real,), {"__init__": init})
+        monkeypatch.setattr(dazapiz._app_credential, name, fake)
     return calls
 
 
@@ -158,8 +160,15 @@ def test_dev_chain_with_device_code_when_interactive(built, monkeypatch):
     assert isinstance(cred, azure.identity.ChainedTokenCredential)
     cli, device = cred.credentials
     assert isinstance(cli, azure.identity.AzureCliCredential)
-    assert isinstance(device, dazapiz.DeviceCodeCredential)
-    assert names(built) == ["AzureCliCredential", "DeviceCodeCredential", "ChainedTokenCredential"]
+    # The SDK's device code with no persisted cache, so it prompts where no secret
+    # store is usable, as on headless Linux (#39, D64).
+    assert isinstance(device, azure.identity.DeviceCodeCredential)
+    assert not isinstance(device, dazapiz.DeviceCodeCredential)
+    assert names(built) == [
+        "AzureCliCredential",
+        "_SdkDeviceCodeCredential",
+        "ChainedTokenCredential",
+    ]
     assert all(
         args == () and kwargs == {}
         for name, args, kwargs in built
@@ -172,7 +181,7 @@ def test_dev_chain_without_device_code_when_not_interactive(built, monkeypatch):
     cred = credential("dev")
     (cli,) = cred.credentials
     assert isinstance(cli, azure.identity.AzureCliCredential)
-    assert "DeviceCodeCredential" not in names(built)
+    assert "_SdkDeviceCodeCredential" not in names(built)
 
 
 # single names ------------------------------------------------------------------
@@ -221,8 +230,41 @@ def test_groups_case_insensitive(built, monkeypatch, mode):
 
 @pytest.mark.parametrize("mode", ["staging", "AzurePowerShellCredential", "interactive_browser"])
 def test_unknown_mode_is_an_error(built, mode):
-    with pytest.raises(ValueError, match="Unknown credential mode"):
+    # As an argument, a credential dazapiz does not build is an error: the caller chose it.
+    with pytest.raises(ValueError) as err:
         credential(mode)
+    assert str(err.value) == (
+        f"Unknown credential mode {mode!r} (from mode); use 'dev', 'prod', 'client_secret', "
+        "'workload_identity', 'managed_identity', 'azure_cli' or 'device_code'."
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "AzurePowerShellCredential",
+        "AzureDeveloperCliCredential",
+        "VisualStudioCodeCredential",
+        "interactivebrowsercredential",
+    ],
+)
+def test_azure_token_credentials_azure_identity_takes_means_automatic(
+    built, monkeypatch, caplog, value
+):
+    # Valid for DefaultAzureCredential, so it must not break a client (D36, #44).
+    monkeypatch.setenv("AZURE_TOKEN_CREDENTIALS", value)
+    with caplog.at_level(logging.INFO, logger="dazapiz.http"):
+        cred = credential()
+    assert isinstance(cred, azure.identity.ChainedTokenCredential)
+    warning, info = caplog.records
+    assert warning.levelno == logging.WARNING
+    assert warning.getMessage() == (
+        f"⚠ AZURE_TOKEN_CREDENTIALS={value} names a credential dazapiz does not build; "
+        "choosing automatically."
+    )
+    assert info.getMessage().endswith("mode dev (automatic).")
+    set_sp(monkeypatch)
+    assert isinstance(credential(), azure.identity.ClientSecretCredential)
 
 
 # where the mode comes from, and automatic ---------------------------------------------
@@ -254,7 +296,11 @@ def test_automatic_dev_otherwise(built, monkeypatch):
     monkeypatch.setenv(TENANT, "tid")
     cred = credential()
     assert isinstance(cred, azure.identity.ChainedTokenCredential)
-    assert names(built) == ["AzureCliCredential", "DeviceCodeCredential", "ChainedTokenCredential"]
+    assert names(built) == [
+        "AzureCliCredential",
+        "_SdkDeviceCodeCredential",
+        "ChainedTokenCredential",
+    ]
 
 
 def test_two_apis_read_their_own_variables(built, monkeypatch):

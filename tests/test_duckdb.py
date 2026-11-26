@@ -188,17 +188,53 @@ def test_nul_refused(conn):
         dd.set_token_secret(conn, "a\x00b")
 
 
-@pytest.mark.parametrize("bad", ["", None, 3])
-def test_bad_values_refused(conn, bad):
-    with pytest.raises((ValueError, TypeError)):
-        dd.set_token_secret(conn, bad)
-    with pytest.raises((ValueError, TypeError)):
-        dd.set_sp_secret(conn, "t", bad, "s")
-    with pytest.raises((ValueError, TypeError)):
-        dd.set_chain_secret(conn, chain=[bad])
-    if bad is not None:
-        with pytest.raises((ValueError, TypeError)):
-            dd.set_token_secret(conn, "tok", account=bad)
+@pytest.mark.parametrize(
+    ("call", "error", "message"),
+    [
+        (lambda c: dd.set_token_secret(c, ""), ValueError, "`token` must be a non-empty string."),
+        (
+            lambda c: dd.set_token_secret(c, None),
+            TypeError,
+            "`token` must be a string, not NoneType.",
+        ),
+        (lambda c: dd.set_token_secret(c, 3), TypeError, "`token` must be a string, not int."),
+        (
+            lambda c: dd.set_sp_secret(c, "t", "", "s"),
+            ValueError,
+            "`client_id` must be a non-empty string.",
+        ),
+        (
+            lambda c: dd.set_sp_secret(c, "t", None, "s"),
+            TypeError,
+            "`client_id` must be a string, not NoneType.",
+        ),
+        (
+            lambda c: dd.set_chain_secret(c, chain=[""]),
+            ValueError,
+            "`chain` must be a non-empty string.",
+        ),
+        (
+            lambda c: dd.set_chain_secret(c, chain=[3]),
+            TypeError,
+            "`chain` must be a string, not int.",
+        ),
+        (
+            lambda c: dd.set_token_secret(c, "tok", account=""),
+            ValueError,
+            "`account` must be a non-empty string.",
+        ),
+        (
+            lambda c: dd.set_token_secret(c, "tok", account=3),
+            TypeError,
+            "`account` must be a string, not int.",
+        ),
+    ],
+)
+def test_bad_values_refused(conn, call, error, message):
+    with pytest.raises(error) as err:
+        call(conn)
+    assert type(err.value) is error
+    assert str(err.value) == message
 
 
 # set_credential_secret ---------------------------------------------------------
@@ -269,21 +305,23 @@ def test_tune_none_leaves_settings(conn):
 
 
 @pytest.mark.parametrize(
-    "kwargs",
+    ("kwargs", "error", "message"),
     [
-        {"concurrency": 0},
-        {"concurrency": 1.5},
-        {"concurrency": True},
-        {"chunk_size": -1},
-        {"buffer_size": ""},
-        {"transport": 3},
-        {"metadata_cache": "yes"},
-        {"context_cache": 1},
+        ({"concurrency": 0}, ValueError, "`concurrency` must be a positive integer or None."),
+        ({"concurrency": 1.5}, TypeError, "`concurrency` must be a positive integer or None."),
+        ({"concurrency": True}, TypeError, "`concurrency` must be a positive integer or None."),
+        ({"chunk_size": -1}, ValueError, "`chunk_size` must be a positive integer or None."),
+        ({"buffer_size": ""}, ValueError, "`buffer_size` must be a non-empty string."),
+        ({"transport": 3}, TypeError, "`transport` must be a string, not int."),
+        ({"metadata_cache": "yes"}, TypeError, "`metadata_cache` must be True, False or None."),
+        ({"context_cache": 1}, TypeError, "`context_cache` must be True, False or None."),
     ],
 )
-def test_tune_refuses(conn, kwargs):
-    with pytest.raises((ValueError, TypeError)):
+def test_tune_refuses(conn, kwargs, error, message):
+    with pytest.raises(error) as err:
         dd.tune(conn, **kwargs)
+    assert type(err.value) is error
+    assert str(err.value) == message
 
 
 def test_tune_names_the_setting_duckdb_refused(conn):

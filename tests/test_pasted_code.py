@@ -1,20 +1,26 @@
 """The pasted-code sign-in of `InteractiveBrowserCredential` (design §4.3.3).
 
 MSAL is never constructed (design D26): the credential's `_get_app()` returns a
-fake that records the two calls the flow makes.
+fake that records the two calls the flow makes. The `real_msal` tests hand it a
+real `PublicClientApplication` instead, with only its HTTP faked (`fake_entra`),
+so MSAL's own state check is what runs.
 """
 
 from __future__ import annotations
 
 import base64
 import json
+import re
 import sys
 import types
+from urllib.parse import parse_qsl, urlsplit
 
 import azure.identity
+import msal
 import pytest
 from azure.core.exceptions import ClientAuthenticationError
 from azure.identity import CredentialUnavailableError
+from fake_entra import FakeEntra
 from helpers import Login
 
 import dazapiz._session
@@ -357,6 +363,69 @@ def test_flow_msal_could_not_begin(flow, capsys):
     assert prompts == []
     assert app.redeemed == []
     assert capsys.readouterr().out == ""
+
+
+# The flow on a real msal.PublicClientApplication, faking only HTTP (#49) --------
+
+
+class RealMsal:
+    """A real PublicClientApplication on a FakeEntra, and the URL the user was shown."""
+
+    def __init__(self, capsys):
+        self.capsys = capsys
+        self.query: dict[str, str] = {}
+        self.entra = FakeEntra(token=self.token_reply)
+        self.app = msal.PublicClientApplication(
+            "cid",
+            authority=f"https://login.microsoftonline.com/{TENANT}",
+            http_client=self.entra,
+            instance_discovery=False,
+        )
+
+    def read_auth_uri(self) -> None:
+        """What the user does: open the printed URL, which carries state and nonce."""
+        out = self.capsys.readouterr().out
+        [url] = re.findall(r"https://\S+/authorize\?\S+", out)
+        self.query = dict(parse_qsl(urlsplit(url).query))
+
+    def callback_url(self, state=None):
+        self.read_auth_uri()
+        return f"{REDIRECT}?code=the-code&state={state or self.query['state']}"
+
+    def token_reply(self, form):
+        login = Login("alice@contoso.com", TENANT, TENANT, "rt", client_id="cid")
+        claims = {**login.id_token_claims(), "nonce": self.query["nonce"]}
+        part = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+        return {**login.token_response(), "id_token": f"e30.{part}."}
+
+
+# The suite turns warnings into errors, so these tests also check that MSAL's
+# warning about response_mode="query" does not reach the user.
+
+
+def test_real_msal_flow_with_the_right_state(flow, capsys):
+    real = RealMsal(capsys)
+    cred, _, _ = flow(lambda app: real.callback_url(), app=real.app)
+    token = cred.get_token("User.Read")
+    assert token.token == "access-rt"
+    assert cred._auth_record.username == "alice@contoso.com"
+    assert real.query["redirect_uri"] == REDIRECT
+    [form] = real.entra.posts
+    assert form["grant_type"] == "authorization_code"
+    assert form["code"] == "the-code"
+    assert form["redirect_uri"] == REDIRECT
+    assert form["code_verifier"]  # PKCE, from msal's flow
+
+
+def test_real_msal_flow_with_a_tampered_state(flow, capsys):
+    real = RealMsal(capsys)
+    cred, _, _ = flow(lambda app: real.callback_url(state="tampered"), app=real.app)
+    with pytest.raises(ClientAuthenticationError) as err:
+        cred._request_token("User.Read")
+    assert type(err.value) is ClientAuthenticationError
+    expected = f"Authentication failed: state mismatch: {real.query['state']} vs tampered"
+    assert err.value.message == expected
+    assert real.entra.posts == []  # refused before the code was redeemed
 
 
 def test_is_interactive_when_get_ipython_raises(monkeypatch):

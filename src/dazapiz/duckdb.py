@@ -409,6 +409,17 @@ def list_secrets(conn: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyRelation:
         redacts the secret values. Fetch it with `.fetchall()`, `.df()` or
         `.pl()`, or print it.
 
+    Raises
+    ------
+    ImportError
+        `duckdb` is not installed (`pip install 'dazapiz[duckdb]'`).
+
+    Notes
+    -----
+    Runs DuckDB's `duckdb_secrets()` table function, after installing and
+    loading the `azure` extension if needed, as `quak::az_list_secrets()`
+    does; nothing is computed in Python.
+
     Examples
     --------
     ```python
@@ -435,6 +446,17 @@ def azure_settings(conn: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyRelation:
     duckdb.DuckDBPyRelation
         `name`, `value` and `description` from `duckdb_settings()` for every
         setting whose name contains `azure`.
+
+    Raises
+    ------
+    ImportError
+        `duckdb` is not installed (`pip install 'dazapiz[duckdb]'`).
+
+    Notes
+    -----
+    Runs DuckDB's `duckdb_settings()` table function, after installing and
+    loading the `azure` extension if needed, as `quak::az_conn_settings()`
+    does.
 
     Examples
     --------
@@ -532,6 +554,11 @@ def tune(
     -----
     UserWarning
         The buffer size is not a multiple of the chunk size, as `quak` warns.
+
+    Notes
+    -----
+    Runs one `SET azure_<setting> = <value>` per argument given, as
+    `quak::az_tune()` does; DuckDB checks each value as it is set.
 
     Examples
     --------

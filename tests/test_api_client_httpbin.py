@@ -163,6 +163,12 @@ def retry_warnings(caplog) -> list[str]:
     return [m for m in messages(caplog) if "Request failed. Retrying" in m]
 
 
+# The retry tests send no request body (#32): httpbin's /status and /delay never
+# read one, and pytest-httpbin closes every connection, so a server closing with
+# the body unread can reset the socket, which Windows reports as WinError 10053
+# (an unretried ReadError). That a POST is retried is tested on the mock transport.
+
+
 @pytest.mark.parametrize("status", [429, 503])
 def test_transient_statuses_are_retried(httpbin, caplog, no_sleep, status):
     with (
@@ -170,11 +176,11 @@ def test_transient_statuses_are_retried(httpbin, caplog, no_sleep, status):
         caplog.at_level(logging.WARNING),
         pytest.raises(ApiError) as err,
     ):
-        client.fetch(f"/status/{status}", "POST", json={})
+        client.fetch(f"/status/{status}")
     assert err.value.response.status_code == status
     warnings = retry_warnings(caplog)
     assert len(warnings) == 2  # three attempts, two waits
-    assert [w.split("(attempt ")[1] for w in warnings] == ["1 of 3).[/yellow]", "2 of 3).[/yellow]"]
+    assert [w.split("(attempt ")[1] for w in warnings] == ["1 of 3).", "2 of 3)."]
     assert len(no_sleep) == 2
 
 
@@ -184,7 +190,7 @@ def test_500_is_not_retried(httpbin, caplog, no_sleep):
         caplog.at_level(logging.INFO),
         pytest.raises(ApiError) as err,
     ):
-        client.fetch("/status/500", "POST", json={})
+        client.fetch("/status/500")
     assert err.value.response.status_code == 500
     assert retry_warnings(caplog) == []
     assert no_sleep == []
@@ -193,8 +199,8 @@ def test_500_is_not_retried(httpbin, caplog, no_sleep):
 def test_read_timeout_is_not_resent(httpbin, caplog, no_sleep):
     client = ApiClient(httpbin.url, sleep=no_sleep.append, timeout=0.5, max_tries=3, verbose=True)
     with client, caplog.at_level(logging.INFO), pytest.raises(httpx.ReadTimeout):
-        client.fetch("/delay/2", "POST", json={"once": True})
-    sent = [m for m in messages(caplog) if ">>> POST" in m]
+        client.fetch("/delay/2")
+    sent = [m for m in messages(caplog) if ">>> GET" in m]
     assert len(sent) == 1  # one request left; the server may have acted on it
     assert retry_warnings(caplog) == []
     assert no_sleep == []

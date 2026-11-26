@@ -29,7 +29,7 @@ PROMPT = f"To sign in, use a web browser to open the page {URL} and enter the co
 NOT_LOGGED_IN = {"stderr": ["ERROR: Please run 'az login' to setup account."], "exit": 1}
 
 
-def account(user="alice@contoso.com", tenant=TENANT, default=True, sub="Sub one"):
+def account(user="alice@contoso.com", tenant=TENANT, default=True, sub="Sub one", domain=None):
     # The shape of `az account show --output json`, and of each entry `az login` lists.
     return {
         "environmentName": "AzureCloud",
@@ -39,6 +39,8 @@ def account(user="alice@contoso.com", tenant=TENANT, default=True, sub="Sub one"
         "managedByTenants": [],
         "name": sub,
         "state": "Enabled",
+        "tenantDefaultDomain": domain or "contoso.onmicrosoft.com",
+        "tenantDisplayName": "Contoso",
         "tenantId": tenant,
         "user": {"name": user, "type": "user"},
     }
@@ -124,6 +126,46 @@ def test_login_tenant_match(fake_az, interactive):
     assert fake_az.calls[-1][3] == OTHER_TENANT
 
 
+def test_login_tenant_domain_matches_the_default_domain(fake_az, interactive):
+    # tenantId is always the GUID; a domain matches tenantDefaultDomain (#38).
+    fake_az.script("account show", shown(account(tenant=TENANT, domain="contoso.com")))
+    fake_az.script("login", login_reply([account(tenant=OTHER_TENANT, domain="fabrikam.com")]))
+    assert az_login("Contoso.com")["tenantId"] == TENANT
+    assert [c[0] for c in fake_az.calls] == ["account"]
+    assert az_login("fabrikam.com")["tenantId"] == OTHER_TENANT
+    assert [c[0] for c in fake_az.calls] == ["account", "account", "login"]
+    assert fake_az.calls[-1][3] == "fabrikam.com"
+
+
+def test_login_timeout_covers_the_account_check(fake_az, interactive):
+    # The pre-check's `az account show` gets what is left of timeout (#37).
+    fake_az.script("account show", {"sleep": 0.6, **shown(account())})
+    start = time.monotonic()
+    with pytest.raises(AzCliTimeoutError) as err:
+        az_login(timeout=0.3)
+    assert time.monotonic() - start < 15
+    assert str(err.value) == "`az account show --output json` did not finish within 0.3 s."
+
+
+@pytest.mark.parametrize("force", [False, True])
+def test_login_without_timeout_never_uses_the_10_second_default(
+    fake_az, interactive, monkeypatch, force
+):
+    # timeout=None waits for every `az` call, the checks included (#37).
+    passed = []
+    real = dazapiz._az.az_account_show
+
+    def spy(timeout=dazapiz._az._TIMEOUT):
+        passed.append(timeout)
+        return real(timeout)
+
+    monkeypatch.setattr(dazapiz._az, "az_account_show", spy)
+    fake_az.script("account show", shown(account()))
+    fake_az.script("login", login_reply([]))  # no default listed: az account show follows
+    az_login(force=force)
+    assert passed == [None]
+
+
 @pytest.mark.parametrize("prompt", [PROMPT, f"\x1b[93m{PROMPT}\x1b[0m"], ids=["plain", "styled"])
 def test_login_streams_the_device_code(fake_az, interactive, monkeypatch, tmp_path, capsys, prompt):
     # The fake waits, after its prompt, until the code reaches the clipboard: a login
@@ -175,8 +217,24 @@ def test_login_no_tty_raises(fake_az, monkeypatch):
     monkeypatch.setattr(dazapiz._session, "is_interactive", lambda: False)
     fake_az.script("account show", NOT_LOGGED_IN)
     fake_az.script("login", login_reply([account()]))
-    with pytest.raises(AzCliNonInteractiveError):
+    with pytest.raises(AzCliNonInteractiveError) as err:
         az_login()
+    assert str(err.value) == (
+        "az_login() needs an interactive session (a TTY or a notebook kernel) "
+        "to show the device code; run `az login` where you can answer it."
+    )
+    assert [c[0] for c in fake_az.calls] == ["account"]
+
+
+def test_login_precheck_failure_propagates(fake_az, interactive):
+    fake_az.script("account show", {"stderr": ["ERROR: something broke"], "exit": 2})
+    with pytest.raises(AzCliError) as err:
+        az_login()
+    assert type(err.value) is AzCliError
+    assert (
+        str(err.value)
+        == "`az account show --output json` failed with exit code 2: ERROR: something broke"
+    )
     assert [c[0] for c in fake_az.calls] == ["account"]
 
 
@@ -205,10 +263,19 @@ def test_login_failure_raises_with_az_message(fake_az, interactive):
     assert not isinstance(err.value, AzCliNotLoggedInError)
 
 
-@pytest.mark.parametrize("tenant", ["", "a b", "x/../y", 42])
-def test_login_refuses_a_bad_tenant(fake_az, tenant):
-    with pytest.raises((ValueError, TypeError)):
+@pytest.mark.parametrize(
+    ("tenant", "error", "message"),
+    [
+        ("", ValueError, "tenant_id '' is not a valid tenant ID"),
+        ("a b", ValueError, "tenant_id 'a b' is not a valid tenant ID"),
+        ("x/../y", ValueError, "tenant_id 'x/../y' is not a valid tenant ID"),
+        (42, TypeError, "tenant_id must be a string, not int"),
+    ],
+)
+def test_login_refuses_a_bad_tenant(fake_az, tenant, error, message):
+    with pytest.raises(error) as err:
         az_login(tenant)
+    assert str(err.value) == message
     assert fake_az.calls == []
 
 
@@ -241,8 +308,12 @@ def test_no_az_on_path(no_az, interactive):
 def test_not_logged_in(fake_az):
     fake_az.script("account show", NOT_LOGGED_IN)
     fake_az.script("logout", {"stderr": ["ERROR: There are no active accounts."], "exit": 1})
-    with pytest.raises(AzCliNotLoggedInError, match="az login"):
+    with pytest.raises(AzCliNotLoggedInError) as err:
         az_account_show()
+    assert str(err.value) == (
+        "The Azure CLI is not logged in: ERROR: Please run 'az login' to setup account. "
+        "Log in with dazapiz.az_login()."
+    )
     assert az_is_login() is False
     with pytest.raises(AzCliNotLoggedInError, match="no active accounts"):
         az_logout()
@@ -250,9 +321,20 @@ def test_not_logged_in(fake_az):
 
 def test_other_failure_is_not_not_logged_in(fake_az):
     fake_az.script("account show", {"stderr": ["ERROR: something broke"], "exit": 2})
-    with pytest.raises(AzCliError, match="something broke") as err:
+    with pytest.raises(AzCliError) as err:
         az_account_show()
-    assert not isinstance(err.value, AzCliNotLoggedInError)
+    assert type(err.value) is AzCliError
+    assert (
+        str(err.value)
+        == "`az account show --output json` failed with exit code 2: ERROR: something broke"
+    )
+    fake_az.script("account show", {"exit": 3})
+    with pytest.raises(AzCliError) as err:
+        az_account_show()
+    assert (
+        str(err.value)
+        == "`az account show --output json` failed with exit code 3: no message (exit code 3)"
+    )
     fake_az.script("account show", {"stdout": "not json"})
     with pytest.raises(AzCliError, match="JSON"):
         az_account_show()

@@ -13,6 +13,9 @@ Python 3.10 or later.
   the Azure CLI is signed in as, read from `azureProfile.json` and
   `msal_token_cache.json` without running `az` (macOS and Linux; Windows
   raises `UnsupportedPlatformError`).
+- When one username is several accounts in the Azure CLI's cache (the same
+  name in two clouds, or two home accounts), `refresh_token_from_az_cli()`
+  takes the one in the profile's cloud and tenant, not the newest (#47).
 - `RefreshTokenCredential` redeems a refresh token for access tokens as a
   `TokenCredential`, caching them until five minutes before expiry and
   keeping the rotated refresh token.
@@ -35,7 +38,11 @@ Python 3.10 or later.
   `tenant_id_env`) and the mode (`prod`, `dev`, a single credential
   name, or automatic), from the argument or `$AZURE_TOKEN_CREDENTIALS`;
   a partly set service principal raises `ValueError` naming the missing
-  variable.
+  variable. In `dev` mode the device code has no persisted cache, so it
+  prompts on headless Linux too (#39). A `$AZURE_TOKEN_CREDENTIALS` value
+  that `DefaultAzureCredential` takes but dazapiz does not build
+  (`AzureDeveloperCliCredential`, ...) means automatic, with a warning
+  (#44).
 
 ### Spark
 
@@ -58,7 +65,9 @@ Python 3.10 or later.
   (into `tenant_id`, if given) unless `force=True`; otherwise it runs
   `az login --use-device-code`, prints the device code and URL as `az`
   streams them, copies the code to the clipboard when a clipboard tool is
-  found, and returns the account. Errors: `AzCliError` and its
+  found, and returns the account. Its `timeout` covers the whole login,
+  the `az account show` checks included (#37), and a `tenant_id` domain
+  matches the account's default domain (#38). Errors: `AzCliError` and its
   subclasses `AzCliNotFoundError`, `AzCliNotLoggedInError`,
   `AzCliNonInteractiveError` (no TTY or notebook kernel) and
   `AzCliTimeoutError`.
@@ -66,10 +75,14 @@ Python 3.10 or later.
 ### REST client
 
 - `ApiClient`, a small `httpx` client for one REST API, meant to be
-  subclassed: `fetch()` fills `{name}` path placeholders (URL-encoded),
-  retries 429, 503 and connection failures up to `max_tries` with
-  `Retry-After` or `azr`'s backoff, parses JSON, XML or text by content
-  type, and raises `ApiError` (an `httpx.HTTPStatusError`) with the
+  subclassed: `fetch()` fills `{name}` path placeholders (URL-encoded; a
+  conversion or format spec is refused, #45), refuses an absolute URL so
+  the bearer token never leaves the client's host (#36), leaves `None`
+  query values out (#40), retries 429, 503 and connection failures up to
+  `max_tries` with `Retry-After` (an invalid or infinite one falls back,
+  #41) or `azr`'s backoff, parses JSON (`application/json`, `text/json`,
+  `+json`), XML (`application/xml`, `text/xml`, `+xml`) or text by content
+  type (#43), and raises `ApiError` (an `httpx.HTTPStatusError`) with the
   method, URL, status and body. The bearer token is fetched from the
   credential once and renewed five minutes before expiry. Subclasses
   that set `client_id_env` and `client_secret_env` get their credential
@@ -86,7 +99,8 @@ Python 3.10 or later.
   depend on pydantic.
 - `verbose=True` logs requests and responses in `azr`'s format on the
   `dazapiz.http` logger, through `rich`, with long JSON bodies abbreviated
-  as `azr`'s `format_json_body()`; headers are never logged.
+  as `azr`'s `format_json_body()`; headers are never logged. Log messages
+  are plain text, so other handlers print no `rich` markup (#42).
 - For tests: `ApiClient` takes keyword-only `transport=` (such as
   `httpx.MockTransport`) and `sleep=` (the function retries wait with),
   and has a read-only `credential` property.

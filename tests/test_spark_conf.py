@@ -179,7 +179,15 @@ def test_missing_ids_are_refused(auth_type, missing, monkeypatch):
     # Never the CLI client ID or "common", as azr would.
     arg = "client_id" if missing == "AZURE_CLIENT_ID" else "tenant_id"
     conf = spark_storage_conf(auth_type, **{arg: "given"})
-    assert "given" in conf.values() or any("/given/" in v for v in conf.values())
+    if arg == "client_id":
+        assert conf[P + "oauth2.client.id"] == "given"
+    elif auth_type == "client_secret":
+        assert (
+            conf[P + "oauth2.client.endpoint"]
+            == "https://login.microsoftonline.com/given/oauth2/v2.0/token"
+        )
+    else:
+        assert conf[P + "oauth2.msi.tenant"] == "given"
 
 
 def test_shared_key_needs_an_account_and_a_key():
@@ -199,25 +207,36 @@ def test_missing_secrets_are_refused():
 
 
 @pytest.mark.parametrize(
-    "kwargs",
+    ("kwargs", "error", "message"),
     [
-        {"auth_type": "sas"},
-        {"prefix": ""},
-        {"storage_account": ""},
-        {"authority_host": ""},
-        {"authority_host": "///"},
-        {"tenant_id": "a/b"},
-        {"tenant_id": ""},
-        {"client_id": ""},
-        {"auth_type": "managed_identity", "tenant_id": "a b"},
-        {"storage_account": 1},
+        (
+            {"auth_type": "sas"},
+            ValueError,
+            "auth_type must be one of refresh_token, client_secret, workload_identity, "
+            "managed_identity, shared_key, not 'sas'",
+        ),
+        ({"prefix": ""}, ValueError, "prefix must not be empty"),
+        ({"storage_account": ""}, ValueError, "storage_account must not be empty"),
+        ({"authority_host": ""}, ValueError, "authority_host must not be empty"),
+        ({"authority_host": "///"}, ValueError, "authority_host '///' has no host"),
+        ({"tenant_id": "a/b"}, ValueError, "tenant_id 'a/b' is not a valid tenant ID"),
+        ({"tenant_id": ""}, ValueError, "tenant_id must not be empty"),
+        ({"client_id": ""}, ValueError, "client_id must not be empty"),
+        (
+            {"auth_type": "managed_identity", "tenant_id": "a b"},
+            ValueError,
+            "tenant_id 'a b' is not a valid tenant ID",
+        ),
+        ({"storage_account": 1}, TypeError, "storage_account must be a str or None, not int"),
     ],
-    ids=repr,
+    ids=lambda v: repr(v) if isinstance(v, dict) else "",
 )
-def test_invalid_arguments_are_refused(kwargs):
+def test_invalid_arguments_are_refused(kwargs, error, message):
     kwargs = {"refresh_token": "rt", **kwargs}
-    with pytest.raises((ValueError, TypeError)):
+    with pytest.raises(error) as err:
         spark_storage_conf(**kwargs)
+    assert type(err.value) is error
+    assert str(err.value) == message
 
 
 def test_secrets_of_other_auth_types_are_ignored():

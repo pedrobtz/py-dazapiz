@@ -108,8 +108,10 @@ def write_token_cache(config_dir: Path, logins: list[Login]) -> Path:
     return path
 
 
-def subscription(username: str, tenant_id: str, *, is_default: bool = False) -> dict:
-    """One `azureProfile.json` subscription, as `az login` writes it."""
+def subscription(
+    username: str, tenant_id: str, *, is_default: bool = False, cloud: str = "AzureCloud"
+) -> dict:
+    """One `azureProfile.json` subscription in `cloud`, as `az login` writes it."""
     return {
         "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"{username}/{tenant_id}")),
         "name": f"subscription of {username} in {tenant_id}",
@@ -117,7 +119,7 @@ def subscription(username: str, tenant_id: str, *, is_default: bool = False) -> 
         "user": {"name": username, "type": "user"},
         "isDefault": is_default,
         "tenantId": tenant_id,
-        "environmentName": "AzureCloud",
+        "environmentName": cloud,
         "homeTenantId": tenant_id,
         "managedByTenants": [],
     }

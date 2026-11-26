@@ -16,6 +16,7 @@ import signal
 import subprocess
 import tempfile
 import threading
+import time
 from typing import Any, cast
 
 from . import _session
@@ -118,6 +119,11 @@ def az_is_login(timeout: float | None = _TIMEOUT) -> bool:
         including no `az` on PATH and a timeout, as `azr::az_cli_is_login()`
         returns `FALSE` on any error.
 
+    Notes
+    -----
+    Runs `az account show` through `az_account_show()`, as
+    `azr::az_cli_is_login()` does.
+
     Examples
     --------
     ```python
@@ -154,11 +160,13 @@ def az_login(
     ----------
     tenant_id
         Log in to this tenant (GUID or domain); an account logged in to
-        another tenant counts as not logged in.
+        another tenant counts as not logged in. A domain matches the
+        account's `tenantDefaultDomain`.
     force
         Log in again even when the CLI already is.
     timeout
-        Seconds to wait for the whole login; `None`, the default, waits.
+        Seconds to wait for the whole login, the `az account show` checks
+        included; `None`, the default, waits.
 
     Returns
     -------
@@ -200,8 +208,19 @@ def az_login(
             raise TypeError(f"tenant_id must be a string, not {type(tenant_id).__name__}")
         check_tenant(tenant_id)
 
+    deadline = None if timeout is None else time.monotonic() + timeout
+
+    def remaining() -> float | None:
+        # What is left of `timeout` for the next `az` (#37); never a fixed 10 s.
+        if deadline is None:
+            return None
+        left = deadline - time.monotonic()
+        if left <= 0:
+            raise AzCliTimeoutError(f"az_login() did not finish within {_seconds(timeout)} s.")
+        return left
+
     if not force:
-        account = _current_account(tenant_id)
+        account = _current_account(tenant_id, remaining())
         if account is not None:
             print(
                 f"Already logged in to the Azure CLI as {_user_name(account)}; "
@@ -220,13 +239,13 @@ def az_login(
     if tenant_id is not None:
         args += ["--tenant", tenant_id]
     args += ["--output", "json"]
-    code, out, err = _stream_login(args, timeout)
+    code, out, err = _stream_login(args, remaining())
     if code != 0:
         raise _failure(args, code, err)
 
     account = _default_account(out)
     if account is None:
-        account = az_account_show()
+        account = az_account_show(remaining())
     print(f"Logged in to the Azure CLI as {_user_name(account)}.", flush=True)
     return account
 
@@ -314,7 +333,14 @@ def _kill_tree(proc: subprocess.Popen[Any]) -> None:
 
 
 def _timeout_error(args: list[str], timeout: float | None) -> AzCliTimeoutError:
-    return AzCliTimeoutError(f"`az {' '.join(args)}` did not finish within {timeout} s.")
+    return AzCliTimeoutError(f"`az {' '.join(args)}` did not finish within {_seconds(timeout)} s.")
+
+
+def _seconds(timeout: float | None) -> str:
+    # One decimal: what is left of az_login()'s timeout prints as the timeout given.
+    if timeout is None:
+        return "None"
+    return f"{round(timeout, 1):g}" if timeout >= 0.1 else f"{timeout:.2g}"
 
 
 def _run(args: list[str], timeout: float | None) -> tuple[int, str, str]:
@@ -402,15 +428,18 @@ def _failure(args: list[str], code: int, err: str) -> AzCliError:
 # Login --------------------------------------------------------------------------
 
 
-def _current_account(tenant_id: str | None) -> dict[str, Any] | None:
+def _current_account(tenant_id: str | None, timeout: float | None) -> dict[str, Any] | None:
     # The logged-in account, or None when the CLI is not logged in or is logged in
     # to a tenant other than the one asked for (azr's az_cli_current_account()).
+    # A domain matches tenantDefaultDomain, since tenantId is always the GUID (#38).
     try:
-        account = az_account_show()
+        account = az_account_show(timeout)
     except AzCliNotLoggedInError:
         return None
-    if tenant_id is not None and str(account.get("tenantId", "")).lower() != tenant_id.lower():
-        return None
+    if tenant_id is not None:
+        known = {str(account.get(k, "")).lower() for k in ("tenantId", "tenantDefaultDomain")}
+        if tenant_id.lower() not in known - {""}:
+            return None
     return account
 
 

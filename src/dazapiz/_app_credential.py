@@ -14,6 +14,7 @@ from azure.identity import (
     ManagedIdentityCredential,
     WorkloadIdentityCredential,
 )
+from azure.identity import DeviceCodeCredential as _SdkDeviceCodeCredential
 
 from . import _session
 from ._interactive import DeviceCodeCredential
@@ -38,6 +39,16 @@ _MODES = {
     "azureclicredential": "azure_cli",
     "device_code": "device_code",
     "devicecodecredential": "device_code",
+}
+# Values DefaultAzureCredential takes for `AZURE_TOKEN_CREDENTIALS` (azure-identity
+# 1.27) that name a credential dazapiz does not build: automatic mode, with a
+# warning, rather than an error, since a value valid there must not break a
+# client (D36, D65).
+_SDK_ONLY = {
+    "visualstudiocodecredential",
+    "azuredeveloperclicredential",
+    "azurepowershellcredential",
+    "interactivebrowsercredential",
 }
 _VALID = "'dev', 'prod', 'client_secret', 'workload_identity', 'managed_identity', 'azure_cli' or 'device_code'"
 
@@ -64,7 +75,7 @@ def app_credential(
     | Mode | Credential |
     | --- | --- |
     | `"prod"` | `ClientSecretCredential` from the named variables when they are set, else `WorkloadIdentityCredential()` when `$AZURE_FEDERATED_TOKEN_FILE` is set, else `ManagedIdentityCredential()` (user-assigned with `client_id=$AZURE_CLIENT_ID` when that is set) |
-    | `"dev"` | `ChainedTokenCredential(AzureCliCredential(), dazapiz.DeviceCodeCredential())`, the device code only in an interactive session (a TTY or a notebook kernel) |
+    | `"dev"` | `ChainedTokenCredential(AzureCliCredential(), azure.identity.DeviceCodeCredential())`, the device code only in an interactive session (a TTY or a notebook kernel), with no persisted token cache, so it also prompts where no secret store is usable |
     | `"client_secret"`, `"workload_identity"`, `"managed_identity"`, `"azure_cli"`, `"device_code"` (or the azure-identity class name) | that credential alone |
     | automatic | the named service principal when its client ID and secret variables are set, otherwise `"dev"` |
 
@@ -78,7 +89,11 @@ def app_credential(
         The variable holding its tenant ID.
     mode
         One of the modes above; default `$AZURE_TOKEN_CREDENTIALS`, else
-        automatic.
+        automatic. A value of `$AZURE_TOKEN_CREDENTIALS` that
+        `DefaultAzureCredential` takes but dazapiz does not build
+        (`AzureDeveloperCliCredential`, `AzurePowerShellCredential`,
+        `VisualStudioCodeCredential`, `InteractiveBrowserCredential`) means
+        automatic, with a warning.
 
     Returns
     -------
@@ -119,6 +134,13 @@ def app_credential(
 
     if raw is None:
         chosen = "auto"
+    elif source == "AZURE_TOKEN_CREDENTIALS" and raw.strip().lower() in _SDK_ONLY:
+        logger.warning(
+            "⚠ AZURE_TOKEN_CREDENTIALS=%s names a credential dazapiz does not build; "
+            "choosing automatically.",
+            raw,
+        )
+        source, chosen = None, "auto"
     else:
         chosen = _MODES.get(raw.strip().lower())
         if chosen is None:
@@ -214,8 +236,11 @@ def _managed_identity() -> TokenCredential:
 
 
 def _dev() -> TokenCredential:
+    # The SDK's own device code, with no persisted cache (D64): dazapiz's would
+    # need a secret store, unusable on headless Linux (#39), and buys nothing
+    # here, since no authentication record carries a login to the next process.
     if _session.is_interactive():
-        return ChainedTokenCredential(AzureCliCredential(), DeviceCodeCredential())
+        return ChainedTokenCredential(AzureCliCredential(), _SdkDeviceCodeCredential())
     return ChainedTokenCredential(AzureCliCredential())
 
 

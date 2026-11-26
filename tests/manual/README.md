@@ -211,7 +211,20 @@ Pass: all three tests pass.
 Also look once at the verbose output of a run with `-s`: the request and
 response lines are readable, and no `Authorization` value appears.
 
-Record: pass/fail per test.
+**Headless Linux, Linux only** (design D64, #39). Run this over SSH, or in
+a devcontainer, with no keyring or D-Bus session and `az logout` done
+first:
+
+```sh
+DAZAPIZ_LIVE=1 uv run pytest tests/manual/test_live_api_client.py -k test_fetch_dev -s
+```
+
+Pass: the device code and URL are printed, and after you sign in the test
+passes. It must not fail with "Cache encryption is impossible" or a
+`ClientAuthenticationError` before any code is shown. Run `az login` again
+afterwards.
+
+Record: pass/fail per test, and the headless run on Linux.
 
 ## 5. `az` helpers
 
@@ -341,6 +354,7 @@ Paste one block per OS into the release pull request:
 | 3 pasted code: tampered state refused | | |
 | 3 pasted code: code then state | | |
 | 4 `ApiClient` dev | | |
+| 4 `ApiClient` dev, headless Linux device code | | Linux only |
 | 4 `ApiClient` prod | | |
 | 4 `ApiError` on 4xx | | |
 | 5 `az_is_login` / `az_account_show` | | |

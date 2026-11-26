@@ -96,6 +96,67 @@ def test_username_is_case_insensitive_as_in_msal(tmp_path):
     assert lookup(tmp_path).token == "rt-alice"
 
 
+# One username, several accounts (#47) -----------------------------------------
+
+CHINA = "login.chinacloudapi.cn"
+
+
+def test_same_username_in_two_clouds_takes_the_profiles_cloud(tmp_path):
+    # Alice signed in to the public cloud and to Azure China; the other
+    # cloud's token is the newer one each time, so newest-wins would be wrong.
+    public = Login(ALICE.username, CONTOSO, CONTOSO, "rt-public", now=1000)
+    china = Login(ALICE.username, CONTOSO, CONTOSO, "rt-china", environment=CHINA, now=2000)
+    write_token_cache(tmp_path, [public, china])
+    write_profile(tmp_path, [subscription(ALICE.username, CONTOSO, is_default=True)])
+    assert lookup(tmp_path).token == "rt-public"
+
+    public = Login(ALICE.username, CONTOSO, CONTOSO, "rt-public", now=3000)
+    write_token_cache(tmp_path, [public, china])
+    write_profile(
+        tmp_path,
+        [subscription(ALICE.username, CONTOSO, is_default=True, cloud="AzureChinaCloud")],
+    )
+    assert lookup(tmp_path).token == "rt-china"
+
+
+def test_same_username_in_two_home_accounts_takes_the_profiles_tenant(tmp_path):
+    # Two home accounts with one username (homed in Contoso and in Fabrikam):
+    # the profile's tenant says which one the CLI is signed in as.
+    contoso = Login(ALICE.username, CONTOSO, CONTOSO, "rt-contoso", now=1000)
+    fabrikam = Login(ALICE.username, FABRIKAM, FABRIKAM, "rt-fabrikam", now=2000)
+    assert contoso.home_account_id != fabrikam.home_account_id
+    write_token_cache(tmp_path, [contoso, fabrikam])
+    write_profile(
+        tmp_path,
+        [
+            subscription(ALICE.username, CONTOSO, is_default=True),
+            subscription(ALICE.username, FABRIKAM),
+        ],
+    )
+    assert lookup(tmp_path).token == "rt-contoso"
+    assert lookup(tmp_path, tenant_id=FABRIKAM).token == "rt-fabrikam"
+    assert lookup(tmp_path, username=ALICE.username, tenant_id=CONTOSO).token == "rt-contoso"
+
+
+def test_several_accounts_the_profile_cannot_tell_apart_newest_wins(tmp_path):
+    contoso = Login(ALICE.username, CONTOSO, CONTOSO, "rt-contoso", now=1000)
+    fabrikam = Login(ALICE.username, FABRIKAM, FABRIKAM, "rt-fabrikam", now=2000)
+    write_token_cache(tmp_path, [contoso, fabrikam])
+    # A tenant neither account signed in to: no preference applies.
+    other = "33333333-3333-3333-3333-333333333333"
+    assert lookup(tmp_path, username=ALICE.username, tenant_id=other).token == "rt-fabrikam"
+
+    # A custom cloud, or a profile cloud no account is in, filters nothing.
+    public = Login(ALICE.username, CONTOSO, CONTOSO, "rt-public", now=1000)
+    china = Login(ALICE.username, CONTOSO, CONTOSO, "rt-china", environment=CHINA, now=2000)
+    write_token_cache(tmp_path, [public, china])
+    for cloud in ("MyStack", "AzureUSGovernment"):
+        write_profile(
+            tmp_path, [subscription(ALICE.username, CONTOSO, is_default=True, cloud=cloud)]
+        )
+        assert lookup(tmp_path).token == "rt-china"
+
+
 def test_username_override(tmp_path):
     write_az_login(tmp_path, [ALICE, BOB], default=ALICE)
     info = lookup(tmp_path, username="bob@fabrikam.com")
