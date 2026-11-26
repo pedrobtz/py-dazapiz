@@ -2,7 +2,7 @@
 title: Get started
 ---
 
-`dazure` carries your `az login` into Spark, DuckDB and any Azure REST API,
+`dazapiz` carries your `az login` into Spark, DuckDB and any Azure REST API,
 on top of `azure-identity` and `msal`. This page takes one login all the way
 to a Spark session that reads Azure Data Lake Storage Gen2.
 
@@ -12,11 +12,11 @@ Azure account.
 ## Install
 
 ```sh
-pip install dazure            # Spark configuration, credentials, REST client, az helpers
-pip install "dazure[duckdb]"  # also the DuckDB secrets in dazure.duckdb
+pip install dazapiz            # Spark configuration, credentials, REST client, az helpers
+pip install "dazapiz[duckdb]"  # also the DuckDB secrets in dazapiz.duckdb
 ```
 
-PySpark is never a dependency: `dazure` builds a plain `dict` of Spark
+PySpark is never a dependency: `dazapiz` builds a plain `dict` of Spark
 settings, for whichever Spark you already have.
 
 ## Log in once
@@ -26,7 +26,7 @@ at <https://microsoft.com/devicelogin>. It does nothing when the Azure CLI is
 already logged in, so it is safe at the top of a notebook.
 
 ```python
-from dazure import az_login
+from dazapiz import az_login
 
 az_login()
 ```
@@ -46,7 +46,7 @@ you would type at a terminal. They need the Azure CLI (`az`) on `PATH`.
 subscription, without running `az`:
 
 ```python
-from dazure import refresh_token_from_az_cli
+from dazapiz import refresh_token_from_az_cli
 
 info = refresh_token_from_az_cli()
 info
@@ -69,7 +69,7 @@ Spark read and write ADLS Gen2 as you:
 
 ```python
 from pyspark.sql import SparkSession
-from dazure import refresh_token_from_az_cli, spark_storage_conf
+from dazapiz import refresh_token_from_az_cli, spark_storage_conf
 
 conf = spark_storage_conf(refresh_token=refresh_token_from_az_cli())
 spark = SparkSession.builder.config(map=conf).getOrCreate()

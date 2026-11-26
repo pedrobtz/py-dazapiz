@@ -94,7 +94,7 @@ def _find_refresh_token(config_dir: Path, username: str) -> str:
         if (config_dir / _ENCRYPTED_CACHE).is_file():
             raise RefreshTokenNotFoundError(
                 f"The Azure CLI token cache is encrypted ({config_dir / _ENCRYPTED_CACHE}), "
-                "which dazure does not read. Run `az config set core.encrypt_token_cache=false` "
+                "which dazapiz does not read. Run `az config set core.encrypt_token_cache=false` "
                 f"and `az login` again to look up {username!r}, or set $AZURE_REFRESH_TOKEN."
             )
         raise RefreshTokenNotFoundError(
@@ -190,14 +190,14 @@ def refresh_token_from_az_cli(
     Notes
     -----
     Uses `msal.SerializableTokenCache` to read and search the cache; the
-    lookup (which file, which entry) is what dazure adds. Nothing is
+    lookup (which file, which entry) is what dazapiz adds. Nothing is
     redeemed here: the token is returned as found, and may have expired if
     the CLI has not been used for a long time (run `az login` again).
 
     Examples
     --------
     ```python
-    from dazure import refresh_token_from_az_cli
+    from dazapiz import refresh_token_from_az_cli
 
     info = refresh_token_from_az_cli()
     info.username, info.tenant_id
@@ -206,8 +206,8 @@ def refresh_token_from_az_cli(
     if _is_windows():
         raise UnsupportedPlatformError(
             "refresh_token_from_az_cli() is not available on Windows, where the Azure CLI "
-            "keeps its tokens in the Windows broker. Use dazure.DeviceCodeCredential or "
-            "dazure.InteractiveBrowserCredential, or set $AZURE_REFRESH_TOKEN."
+            "keeps its tokens in the Windows broker. Use dazapiz.DeviceCodeCredential or "
+            "dazapiz.InteractiveBrowserCredential, or set $AZURE_REFRESH_TOKEN."
         )
     directory = _config_dir(config_dir)
     username, tenant = _current_account(directory, username, tenant_id)

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-import dazure._az
+import dazapiz._az
 
 FAKE_AZ_DIR = Path(__file__).parent / "fake_az"
 
@@ -37,10 +37,10 @@ class FakeAz:
         shutil.copy(FAKE_AZ_DIR / stub, self.bin / stub)
         (self.bin / stub).chmod(0o755)
         monkeypatch.setenv("PATH", str(self.bin) + os.pathsep + os.environ.get("PATH", ""))
-        monkeypatch.setenv("DAZURE_FAKE_AZ_PYTHON", sys.executable)
-        monkeypatch.setenv("DAZURE_FAKE_AZ_LOG", str(self.log))
-        monkeypatch.setenv("DAZURE_FAKE_AZ_SCRIPT", str(self.script_file))
-        monkeypatch.setattr(dazure._az, "_copy_to_clipboard", self._copy)
+        monkeypatch.setenv("DAZAPIZ_FAKE_AZ_PYTHON", sys.executable)
+        monkeypatch.setenv("DAZAPIZ_FAKE_AZ_LOG", str(self.log))
+        monkeypatch.setenv("DAZAPIZ_FAKE_AZ_SCRIPT", str(self.script_file))
+        monkeypatch.setattr(dazapiz._az, "_copy_to_clipboard", self._copy)
 
     def script(self, command: str, reply: dict | list[dict]) -> None:
         self._script[command] = reply

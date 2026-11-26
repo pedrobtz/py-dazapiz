@@ -9,7 +9,7 @@ credentials come from, and its methods call `fetch()`.
 ## A client for one API
 
 ```python
-from dazure import ApiClient
+from dazapiz import ApiClient
 
 
 class AppApiClient(ApiClient):
@@ -47,7 +47,7 @@ else `$AZURE_TOKEN_CREDENTIALS`, else automatically:
 | Mode | Credential |
 | --- | --- |
 | automatic | the API's service principal when both of its variables are set, else `"dev"` |
-| `"dev"` | `AzureCliCredential`, then `dazure.DeviceCodeCredential` in an interactive session |
+| `"dev"` | `AzureCliCredential`, then `dazapiz.DeviceCodeCredential` in an interactive session |
 | `"prod"` | the API's service principal if set, else `WorkloadIdentityCredential` when `$AZURE_FEDERATED_TOKEN_FILE` is set, else `ManagedIdentityCredential` |
 | `"client_secret"`, `"workload_identity"`, `"managed_identity"`, `"azure_cli"`, `"device_code"` | that credential alone |
 
@@ -80,24 +80,24 @@ labelled JSON or XML does not parse.
 
 `json=` takes a pydantic model (sent as
 `model_dump(mode="json", by_alias=True, exclude_unset=True)`) or a dataclass,
-also nested in lists and dicts. `dazure` does not depend on pydantic: any
+also nested in lists and dicts. `dazapiz` does not depend on pydantic: any
 object with a `model_dump()` method is treated as a model.
 
 ## Logging and retries
 
-`verbose=True` logs each call on the `dazure.http` logger, in `azr`'s format:
+`verbose=True` logs each call on the `dazapiz.http` logger, in `azr`'s format:
 
 ```
 ℹ >>> POST https://petstore3.swagger.io/api/v3/pet
 ℹ >>> body:
 {
   "id": 4711,
-  "name": "dazure-example",
-  "photoUrls": ["https://example.com/dazure.png"],
+  "name": "dazapiz-example",
+  "photoUrls": ["https://example.com/dazapiz.png"],
   "tags": [
     {
       "id": 1,
-      "name": "dazure"
+      "name": "dazapiz"
     }
   ],
   "status": "available"

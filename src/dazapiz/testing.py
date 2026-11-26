@@ -1,4 +1,4 @@
-"""Test doubles for code built on dazure (design §5, D59).
+"""Test doubles for code built on dazapiz (design §5, D59).
 
 `StaticTokenCredential` stands in for an Azure credential in tests that run
 without Azure, such as an `ApiClient` subclass's tests in CI: pass it as
@@ -50,7 +50,7 @@ class StaticTokenCredential:
     Examples
     --------
     ```python
-    from dazure.testing import StaticTokenCredential
+    from dazapiz.testing import StaticTokenCredential
 
     credential = StaticTokenCredential()
     client = MyApiClient(credential=credential)  # requests send "Bearer fake-token"

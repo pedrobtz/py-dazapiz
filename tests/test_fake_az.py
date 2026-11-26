@@ -73,7 +73,7 @@ def test_not_released_in_time_fails(fake_az, tmp_path):
 def test_stubs_launch_fake_az_py():
     # The other OS's stub is not run on this leg, so check its text here.
     assert (
-        '"$DAZURE_FAKE_AZ_PYTHON" "$(dirname "$0")/fake_az.py" "$@"'
+        '"$DAZAPIZ_FAKE_AZ_PYTHON" "$(dirname "$0")/fake_az.py" "$@"'
         in (FAKE_AZ_DIR / "az").read_text()
     )
-    assert '"%DAZURE_FAKE_AZ_PYTHON%" "%~dp0fake_az.py" %*' in (FAKE_AZ_DIR / "az.cmd").read_text()
+    assert '"%DAZAPIZ_FAKE_AZ_PYTHON%" "%~dp0fake_az.py" %*' in (FAKE_AZ_DIR / "az.cmd").read_text()

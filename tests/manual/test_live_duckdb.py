@@ -5,7 +5,7 @@ connection, and reads the test file by its fully qualified `abfss://` URL.
 `set_credential_secret()` uses the `az login` refresh token
 (`RefreshTokenCredential(refresh_token_from_az_cli())`) on macOS and Linux,
 and `AzureCliCredential` on Windows, where the CLI cache is not read.
-Skipped unless `DAZURE_LIVE=1`; needs the `duckdb` extra.
+Skipped unless `DAZAPIZ_LIVE=1`; needs the `duckdb` extra.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ import time
 
 import pytest
 
-from dazure import RefreshTokenCredential, refresh_token_from_az_cli
+from dazapiz import RefreshTokenCredential, refresh_token_from_az_cli
 
 SCOPED = pytest.mark.parametrize("scoped", [True, False], ids=["scoped", "unscoped"])
 
@@ -46,7 +46,7 @@ def _user_credential():
 
 @SCOPED
 def test_read_with_credential_secret(storage, scoped):
-    from dazure.duckdb import list_secrets, set_credential_secret
+    from dazapiz.duckdb import list_secrets, set_credential_secret
 
     conn = _connect()
     expires_on = set_credential_secret(conn, _user_credential(), storage[0] if scoped else None)
@@ -57,7 +57,7 @@ def test_read_with_credential_secret(storage, scoped):
 
 @SCOPED
 def test_read_with_sp_secret(storage, service_principal, scoped):
-    from dazure.duckdb import list_secrets, set_sp_secret
+    from dazapiz.duckdb import list_secrets, set_sp_secret
 
     conn = _connect()
     tenant_id, client_id, client_secret = service_principal

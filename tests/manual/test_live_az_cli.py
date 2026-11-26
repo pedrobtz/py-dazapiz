@@ -1,6 +1,6 @@
 """Checklist items 1 and 5: the `az login` refresh token, and the read-only `az` helpers.
 
-Needs `az` installed and logged in (`az login`). Skipped unless `DAZURE_LIVE=1`.
+Needs `az` installed and logged in (`az login`). Skipped unless `DAZAPIZ_LIVE=1`.
 """
 
 from __future__ import annotations
@@ -9,11 +9,11 @@ import time
 
 from live_helpers import ARM_SCOPE
 
-import dazure
-from dazure import RefreshTokenCredential, refresh_token_from_az_cli
+import dazapiz
+from dazapiz import RefreshTokenCredential, refresh_token_from_az_cli
 
 
-def _redeem(info: dazure.RefreshTokenInfo, claims) -> dict:
+def _redeem(info: dazapiz.RefreshTokenInfo, claims) -> dict:
     credential = RefreshTokenCredential(info)
     access = credential.get_token(ARM_SCOPE)
     assert access.expires_on > time.time() + 60
@@ -27,8 +27,8 @@ def _redeem(info: dazure.RefreshTokenInfo, claims) -> dict:
 
 def test_refresh_token_from_az_cli_is_redeemed(posix_only, claims):
     info = refresh_token_from_az_cli()
-    assert info.client_id == dazure.AZURE_CLI_CLIENT_ID
-    account = dazure.az_account_show()
+    assert info.client_id == dazapiz.AZURE_CLI_CLIENT_ID
+    account = dazapiz.az_account_show()
     assert info.tenant_id == account["tenantId"]
     assert (info.username or "").lower() == account["user"]["name"].lower()
 
@@ -38,15 +38,15 @@ def test_refresh_token_from_az_cli_is_redeemed(posix_only, claims):
 
 
 def test_refresh_token_from_az_cli_guest_tenant(posix_only, env, claims):
-    guest = env("DAZURE_TEST_GUEST_TENANT_ID")
+    guest = env("DAZAPIZ_TEST_GUEST_TENANT_ID")
     info = refresh_token_from_az_cli(tenant_id=guest)
     assert info.tenant_id == guest
     assert _redeem(info, claims)["tid"] == guest
 
 
 def test_az_is_login_and_account_show():
-    assert dazure.az_is_login() is True
-    account = dazure.az_account_show()
+    assert dazapiz.az_is_login() is True
+    account = dazapiz.az_account_show()
     assert account["tenantId"]
     assert account["user"]["name"]
     assert "accessToken" not in account

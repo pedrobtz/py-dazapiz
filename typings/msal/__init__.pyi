@@ -1,5 +1,5 @@
 # Partial stubs for pyright (design §8.1): msal ships no type information, so
-# strict mode would see everything from it as unknown. Only the names dazure
+# strict mode would see everything from it as unknown. Only the names dazapiz
 # uses, and those azure-identity's typed signatures name, with msal 1.x's
 # types as its source documents them. Type checking only; not packaged.
 from collections.abc import Iterator

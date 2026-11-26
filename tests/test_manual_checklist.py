@@ -1,4 +1,4 @@
-"""The live tests of tests/manual/ are collected, and skipped without DAZURE_LIVE=1."""
+"""The live tests of tests/manual/ are collected, and skipped without DAZAPIZ_LIVE=1."""
 
 from __future__ import annotations
 
@@ -14,17 +14,17 @@ ROOT = Path(__file__).parent.parent
 MANUAL = ROOT / "tests" / "manual"
 
 
-# Modules that need no Azure, skipped unless DAZURE_LIVE_HTTP=1 (item 8).
+# Modules that need no Azure, skipped unless DAZAPIZ_LIVE_HTTP=1 (item 8).
 LIVE_HTTP = {"test_live_petstore"}
 
 
 def _env(live: str | None, live_http: str | None = None) -> dict[str, str]:
-    drop = {"DAZURE_LIVE", "DAZURE_LIVE_HTTP"}
+    drop = {"DAZAPIZ_LIVE", "DAZAPIZ_LIVE_HTTP"}
     env = {k: v for k, v in os.environ.items() if k not in drop}
     if live is not None:
-        env["DAZURE_LIVE"] = live
+        env["DAZAPIZ_LIVE"] = live
     if live_http is not None:
-        env["DAZURE_LIVE_HTTP"] = live_http
+        env["DAZAPIZ_LIVE_HTTP"] = live_http
     return env
 
 
@@ -75,7 +75,7 @@ def test_live_tests_are_collected_and_skipped(tmp_path, live, live_http):
     assert set(by_file) == live_files
 
     for name, file_cases in by_file.items():
-        reason = "DAZURE_LIVE_HTTP=1" if name in LIVE_HTTP else "DAZURE_LIVE=1"
+        reason = "DAZAPIZ_LIVE_HTTP=1" if name in LIVE_HTTP else "DAZAPIZ_LIVE=1"
         for case in file_cases:
             message = _skip_message(name, case)
             assert reason in message
@@ -83,14 +83,14 @@ def test_live_tests_are_collected_and_skipped(tmp_path, live, live_http):
 
 
 def test_live_http_does_not_turn_on_the_azure_tests(tmp_path):
-    # DAZURE_LIVE_HTTP=1 alone leaves every Azure item skipped (the Petstore
+    # DAZAPIZ_LIVE_HTTP=1 alone leaves every Azure item skipped (the Petstore
     # module is deselected so this test makes no request).
     by_file = _run_manual(tmp_path, _env(None, "1"), "-k", "not petstore")
     assert by_file
     assert not set(by_file) & LIVE_HTTP
     for name, file_cases in by_file.items():
         for case in file_cases:
-            assert "DAZURE_LIVE=1" in _skip_message(name, case)
+            assert "DAZAPIZ_LIVE=1" in _skip_message(name, case)
 
 
 def test_interactive_helper_runs_nothing_on_import():

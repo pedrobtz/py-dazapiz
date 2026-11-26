@@ -9,8 +9,8 @@ import pytest
 from azure.core.credentials import AccessToken, TokenCredential
 from azure.core.exceptions import ClientAuthenticationError
 
-import dazure._credential
-from dazure import (
+import dazapiz._credential
+from dazapiz import (
     AZURE_CLI_CLIENT_ID,
     RefreshTokenCredential,
     RefreshTokenInfo,
@@ -47,7 +47,7 @@ def ok(n, *, expires_in=3600, refresh_token=None):
 @pytest.fixture
 def app(monkeypatch):
     FakeApp.built, FakeApp.calls, FakeApp.responses = [], [], []
-    monkeypatch.setattr(dazure._credential.msal, "PublicClientApplication", FakeApp)
+    monkeypatch.setattr(dazapiz._credential.msal, "PublicClientApplication", FakeApp)
     for name in (
         "AZURE_AUTHORITY_HOST",
         "AZURE_REFRESH_TOKEN",
@@ -61,7 +61,7 @@ def app(monkeypatch):
 @pytest.fixture
 def clock(monkeypatch):
     now = {"t": 1_000_000.0}
-    monkeypatch.setattr(dazure._credential.time, "time", lambda: now["t"])
+    monkeypatch.setattr(dazapiz._credential.time, "time", lambda: now["t"])
     return now
 
 

@@ -13,8 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic.alias_generators import to_camel
 from recording_transport import RecordingTransport, json_response
 
-import dazure._api_client
-from dazure import ApiClient, ApiError, DazureError, ResponseParseError
+import dazapiz._api_client
+from dazapiz import ApiClient, ApiError, DazapizError, ResponseParseError
 
 HOST = "https://api.example.com"
 INFO = "\N{INFORMATION SOURCE}"
@@ -29,7 +29,7 @@ def transport() -> RecordingTransport:
 
 @pytest.fixture(autouse=True)
 def _restore_http_logger():
-    log = logging.getLogger("dazure.http")
+    log = logging.getLogger("dazapiz.http")
     handlers, level = list(log.handlers), log.level
     yield
     log.handlers[:] = handlers
@@ -126,7 +126,7 @@ def test_parse_error_is_wrapped_naming_method_and_url_not_the_body(transport):
     with pytest.raises(ResponseParseError) as err:
         client.fetch("/things/{id}", "post", id="a b", query={"q": "1"}, parse=Thing.model_validate)
     e = err.value
-    assert isinstance(e, DazureError)
+    assert isinstance(e, DazapizError)
     assert not isinstance(e, ApiError)  # the request succeeded; its body did not parse
     assert str(e) == (
         f"POST {HOST}/things/a%20b?q=1: the response body was rejected by parse= (ValidationError)."
@@ -317,7 +317,7 @@ def test_dict_keys_are_left_alone():
         k: int
 
     key = Key(1)
-    converted = dazure._api_client._to_json({key: Point(x_value=1), (1, 2): [Point(x_value=2)]})
+    converted = dazapiz._api_client._to_json({key: Point(x_value=1), (1, 2): [Point(x_value=2)]})
     assert list(converted) == [key, (1, 2)]
     assert converted[key] == {"x_value": 1, "label": None, "tags": []}
     assert converted[(1, 2)] == [{"x_value": 2, "label": None, "tags": []}]
@@ -326,7 +326,7 @@ def test_dict_keys_are_left_alone():
 def test_logging_sees_the_converted_body(transport, caplog):
     transport.add(httpx.Response(204))
     client = ApiClient(HOST, transport=transport, verbose=True)
-    with caplog.at_level(logging.INFO, logger="dazure.http"):
+    with caplog.at_level(logging.INFO, logger="dazapiz.http"):
         client.fetch("/things", "POST", json=Thing(thing_id=1, display_name="a"))
     messages = [r.getMessage() for r in caplog.records]
     assert messages[1:3] == [f"{INFO} >>> body:", '{\n  "thingId": 1,\n  "displayName": "a"\n}']

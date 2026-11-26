@@ -1,4 +1,4 @@
-# dazure (Python)
+# dazapiz (Python)
 
 The Azure helpers `azure-identity` lacks: the `az login` refresh token
 carried into Spark's ABFS configuration, a small `httpx` REST client,
@@ -26,7 +26,7 @@ uv run ruff check .           # lint
 uv run ruff format .          # format (Python files only)
 uv run pyright                # strict type check of src/, examples/, tests/typing/
 uv run python examples/petstore.py   # the Petstore example, against the public store
-DAZURE_LIVE_HTTP=1 uv run pytest tests/manual/test_live_petstore.py  # its live test
+DAZAPIZ_LIVE_HTTP=1 uv run pytest tests/manual/test_live_petstore.py  # its live test
 uv build                      # sdist and wheel into dist/
 uv run --python 3.13 --with great-docs==0.17.0 great-docs lint     # docstring checks
 uv run --python 3.13 --with great-docs==0.17.0 great-docs build    # site into great-docs/_site
@@ -49,9 +49,9 @@ GitHub Pages from `main` (great-docs and Quarto pinned).
 
 ## Rules
 
-- Source lives in `src/dazure/`; public names are re-exported from
-  `__init__.py`, except the `dazure.duckdb` and `dazure.testing`
-  submodules' names, exported from those modules only. `dazure.duckdb` imports `duckdb` lazily: the base
+- Source lives in `src/dazapiz/`; public names are re-exported from
+  `__init__.py`, except the `dazapiz.duckdb` and `dazapiz.testing`
+  submodules' names, exported from those modules only. `dazapiz.duckdb` imports `duckdb` lazily: the base
   install must not need it, nor PySpark ever.
 - The SDK first (design §3): anything `azure-identity` or `msal` does is
   called, not reimplemented, and the docstring says what it wraps.
@@ -63,7 +63,7 @@ GitHub Pages from `main` (great-docs and Quarto pinned).
 - Tests in CI touch no Azure: only plain data or a simple mock
   (`httpx.MockTransport`, a local httpbin on loopback, a fake `az` on
   `PATH`, one `msal` method patched; in `examples/tests/`, `respx` and
-  `dazure.testing.StaticTokenCredential`, with `pytest-socket` blocking
+  `dazapiz.testing.StaticTokenCredential`, with `pytest-socket` blocking
   all network there). Anything needing a fake Entra authority or a real OS secret
   store goes on the manual checklist in `tests/manual/README.md`
   (design §8.2), run by hand with full Azure access.
@@ -76,7 +76,7 @@ GitHub Pages from `main` (great-docs and Quarto pinned).
   following design §5), `user_guide/*.qmd` (guide pages) and the NumPy
   docstrings. A new public name gets a NumPy docstring (summary,
   `Parameters`, `Returns`, `Raises`, `Notes` saying what it wraps, a short
-  `Examples`) and an entry in a `reference` group; `dazure.duckdb` names
+  `Examples`) and an entry in a `reference` group; `dazapiz.duckdb` names
   are listed as `duckdb.<name>`. Guide code needs Azure, so it never runs:
   plain code blocks only. Code from `examples/` is included by line range
   under a `<!-- snippet: <first line> -->` marker, which

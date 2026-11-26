@@ -9,7 +9,7 @@ your `az login` (design §4.1.1).
 
 Its tests, in `examples/tests/`, are the pattern the guide page "Testing
 your API client" walks through: HTTP mocked with `respx`, the credential
-faked with `dazure.testing.StaticTokenCredential`, no Azure and no network.
+faked with `dazapiz.testing.StaticTokenCredential`, no Azure and no network.
 Pointed at the public store it still works, since the store ignores the
 `Authorization` header, but it needs a credential to get a token first.
 """

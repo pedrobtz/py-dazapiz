@@ -1,4 +1,4 @@
-"""`dazure.testing.StaticTokenCredential`: a fake `TokenCredential` for tests."""
+"""`dazapiz.testing.StaticTokenCredential`: a fake `TokenCredential` for tests."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import time
 import httpx
 from azure.core.credentials import AccessToken, AccessTokenInfo, SupportsTokenInfo, TokenCredential
 
-import dazure
-import dazure.testing
-from dazure import ApiClient
-from dazure.testing import StaticTokenCredential
+import dazapiz
+import dazapiz.testing
+from dazapiz import ApiClient
+from dazapiz.testing import StaticTokenCredential
 
 
 def test_get_token_returns_the_token_with_an_expiry():
@@ -70,7 +70,7 @@ def test_api_client_sends_it_as_bearer():
     assert cred.calls == [("api://app/.default",)]
 
 
-def test_only_exported_from_dazure_testing():
-    assert not hasattr(dazure, "StaticTokenCredential")
-    assert "StaticTokenCredential" not in dazure.__all__
-    assert dazure.testing.__all__ == ["StaticTokenCredential"]
+def test_only_exported_from_dazapiz_testing():
+    assert not hasattr(dazapiz, "StaticTokenCredential")
+    assert "StaticTokenCredential" not in dazapiz.__all__
+    assert dazapiz.testing.__all__ == ["StaticTokenCredential"]

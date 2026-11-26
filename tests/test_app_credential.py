@@ -1,6 +1,6 @@
 """app_credential(): every mode and partly set case, by type and constructor arguments.
 
-Each azure-identity class is replaced in `dazure._app_credential` by a
+Each azure-identity class is replaced in `dazapiz._app_credential` by a
 subclass that records its constructor arguments and then builds the real
 thing, so the result has the real type and no token is ever fetched.
 """
@@ -12,10 +12,10 @@ import logging
 import azure.identity
 import pytest
 
-import dazure
-import dazure._app_credential
-import dazure._session
-from dazure import app_credential
+import dazapiz
+import dazapiz._app_credential
+import dazapiz._session
+from dazapiz import app_credential
 
 INFO = "\N{INFORMATION SOURCE}"
 ID, SECRET, TENANT = "APP_ID", "APP_SECRET", "APP_TENANT"
@@ -45,16 +45,16 @@ def built(monkeypatch) -> list[tuple[str, tuple, dict]]:
     """Clear the environment, fake an interactive session and record every construction."""
     for name in ENV:
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.setattr(dazure._session, "is_interactive", lambda: True)
+    monkeypatch.setattr(dazapiz._session, "is_interactive", lambda: True)
     calls: list[tuple[str, tuple, dict]] = []
     for name in CLASSES:
-        real = getattr(dazure._app_credential, name)
+        real = getattr(dazapiz._app_credential, name)
 
         def init(self, *args, _real=real, _name=name, **kwargs):
             calls.append((_name, args, kwargs))
             _real.__init__(self, *args, **kwargs)
 
-        monkeypatch.setattr(dazure._app_credential, name, type(name, (real,), {"__init__": init}))
+        monkeypatch.setattr(dazapiz._app_credential, name, type(name, (real,), {"__init__": init}))
     return calls
 
 
@@ -158,7 +158,7 @@ def test_dev_chain_with_device_code_when_interactive(built, monkeypatch):
     assert isinstance(cred, azure.identity.ChainedTokenCredential)
     cli, device = cred.credentials
     assert isinstance(cli, azure.identity.AzureCliCredential)
-    assert isinstance(device, dazure.DeviceCodeCredential)
+    assert isinstance(device, dazapiz.DeviceCodeCredential)
     assert names(built) == ["AzureCliCredential", "DeviceCodeCredential", "ChainedTokenCredential"]
     assert all(
         args == () and kwargs == {}
@@ -168,7 +168,7 @@ def test_dev_chain_with_device_code_when_interactive(built, monkeypatch):
 
 
 def test_dev_chain_without_device_code_when_not_interactive(built, monkeypatch):
-    monkeypatch.setattr(dazure._session, "is_interactive", lambda: False)
+    monkeypatch.setattr(dazapiz._session, "is_interactive", lambda: False)
     cred = credential("dev")
     (cli,) = cred.credentials
     assert isinstance(cli, azure.identity.AzureCliCredential)
@@ -271,12 +271,12 @@ def test_two_apis_read_their_own_variables(built, monkeypatch):
 
 def test_choice_logged_at_info(built, monkeypatch, caplog):
     set_sp(monkeypatch)
-    with caplog.at_level(logging.INFO, logger="dazure.http"):
+    with caplog.at_level(logging.INFO, logger="dazapiz.http"):
         credential()
         credential("dev")
         monkeypatch.setenv("AZURE_TOKEN_CREDENTIALS", "prod")
         credential()
-    assert [(r.name, r.levelno) for r in caplog.records] == [("dazure.http", logging.INFO)] * 3
+    assert [(r.name, r.levelno) for r in caplog.records] == [("dazapiz.http", logging.INFO)] * 3
     assert [r.getMessage() for r in caplog.records] == [
         f"{INFO} Credential: ClientSecretCredential, mode client_secret (automatic).",
         f"{INFO} Credential: ChainedTokenCredential(AzureCliCredential, DeviceCodeCredential), mode dev (from mode).",

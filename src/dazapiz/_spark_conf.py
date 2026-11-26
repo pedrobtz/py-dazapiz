@@ -241,7 +241,7 @@ def spark_storage_conf(
     --------
     ```python
     from pyspark.sql import SparkSession
-    from dazure import refresh_token_from_az_cli, spark_storage_conf
+    from dazapiz import refresh_token_from_az_cli, spark_storage_conf
 
     conf = spark_storage_conf(refresh_token=refresh_token_from_az_cli())
     spark = SparkSession.builder.config(map=conf).getOrCreate()

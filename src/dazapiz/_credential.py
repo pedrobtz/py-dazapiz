@@ -36,7 +36,7 @@ class RefreshTokenCredential:
     """A `TokenCredential` that redeems a refresh token for access tokens.
 
     Use it wherever the Azure SDK, `ApiClient` or
-    `dazure.duckdb.set_credential_secret()` takes a credential, to act as
+    `dazapiz.duckdb.set_credential_secret()` takes a credential, to act as
     the user an `az login` (or any other sign-in) refresh token belongs to.
     Access tokens are kept in memory, per tenant and scope set, until five
     minutes before they expire. When Entra rotates the refresh token, the new
@@ -75,7 +75,7 @@ class RefreshTokenCredential:
     --------
     ```python
     from azure.storage.filedatalake import DataLakeServiceClient
-    from dazure import RefreshTokenCredential, refresh_token_from_az_cli
+    from dazapiz import RefreshTokenCredential, refresh_token_from_az_cli
 
     credential = RefreshTokenCredential(refresh_token_from_az_cli())
     lake = DataLakeServiceClient("https://myaccount.dfs.core.windows.net", credential)

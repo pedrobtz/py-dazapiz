@@ -8,16 +8,16 @@ from typing import ClassVar
 
 import pytest
 
-import dazure._az
-import dazure._session
-from dazure import az_account_show, az_is_login, az_login, az_logout
-from dazure.errors import (
+import dazapiz._az
+import dazapiz._session
+from dazapiz import az_account_show, az_is_login, az_login, az_logout
+from dazapiz.errors import (
     AzCliError,
     AzCliNonInteractiveError,
     AzCliNotFoundError,
     AzCliNotLoggedInError,
     AzCliTimeoutError,
-    DazureError,
+    DazapizError,
 )
 
 TENANT = "11111111-1111-1111-1111-111111111111"
@@ -50,7 +50,7 @@ def shown(acct):
 
 @pytest.fixture
 def interactive(monkeypatch):
-    monkeypatch.setattr(dazure._session, "is_interactive", lambda: True)
+    monkeypatch.setattr(dazapiz._session, "is_interactive", lambda: True)
 
 
 def login_reply(accounts, **extra):
@@ -136,7 +136,7 @@ def test_login_streams_the_device_code(fake_az, interactive, monkeypatch, tmp_pa
         release.touch()
         return True
 
-    monkeypatch.setattr(dazure._az, "_copy_to_clipboard", copy)
+    monkeypatch.setattr(dazapiz._az, "_copy_to_clipboard", copy)
     fake_az.script("account show", NOT_LOGGED_IN)
     fake_az.script(
         "login", login_reply([account()], stderr=[prompt], wait_for=str(release), wait_timeout=20)
@@ -150,7 +150,7 @@ def test_login_streams_the_device_code(fake_az, interactive, monkeypatch, tmp_pa
 
 
 def test_login_without_clipboard_still_prints_the_code(fake_az, interactive, monkeypatch, capsys):
-    monkeypatch.setattr(dazure._az, "_copy_to_clipboard", lambda text: False)
+    monkeypatch.setattr(dazapiz._az, "_copy_to_clipboard", lambda text: False)
     fake_az.script("account show", NOT_LOGGED_IN)
     fake_az.script("login", login_reply([account()]))
     az_login()
@@ -172,7 +172,7 @@ def test_login_prints_only_the_device_code_line(fake_az, interactive, capsys):
 
 
 def test_login_no_tty_raises(fake_az, monkeypatch):
-    monkeypatch.setattr(dazure._session, "is_interactive", lambda: False)
+    monkeypatch.setattr(dazapiz._session, "is_interactive", lambda: False)
     fake_az.script("account show", NOT_LOGGED_IN)
     fake_az.script("login", login_reply([account()]))
     with pytest.raises(AzCliNonInteractiveError):
@@ -215,12 +215,12 @@ def test_login_refuses_a_bad_tenant(fake_az, tenant):
 # Errors -------------------------------------------------------------------------
 
 
-def test_errors_derive_from_dazure_error():
+def test_errors_derive_from_dazapiz_error():
     for cls in (AzCliNotFoundError, AzCliNotLoggedInError, AzCliNonInteractiveError):
         assert issubclass(cls, AzCliError)
     assert issubclass(AzCliTimeoutError, AzCliError)
     assert issubclass(AzCliTimeoutError, TimeoutError)
-    assert issubclass(AzCliError, DazureError)
+    assert issubclass(AzCliError, DazapizError)
 
 
 @pytest.fixture
@@ -337,7 +337,7 @@ def test_interrupt_kills_az_login(fake_az, interactive, popen, monkeypatch):
     def interrupted(line):
         raise KeyboardInterrupt
 
-    monkeypatch.setattr(dazure._az, "_show_device_code", interrupted)
+    monkeypatch.setattr(dazapiz._az, "_show_device_code", interrupted)
     with pytest.raises(KeyboardInterrupt):
         az_login()
     login = [p for p in popen.started if "login" in p.args]
@@ -360,7 +360,7 @@ def test_clipboard_uses_the_first_tool_that_works(monkeypatch, tmp_path):
     target = tmp_path / "clip.txt"
     writer = f"import sys; open({str(target)!r}, 'w').write(sys.stdin.read())"
     monkeypatch.setattr(
-        dazure._az,
+        dazapiz._az,
         "_CLIPBOARD_TOOLS",
         (
             ("no-such-clipboard-tool",),
@@ -368,17 +368,17 @@ def test_clipboard_uses_the_first_tool_that_works(monkeypatch, tmp_path):
             (sys.executable, "-c", writer),
         ),
     )
-    assert dazure._az._copy_to_clipboard(CODE) is True
+    assert dazapiz._az._copy_to_clipboard(CODE) is True
     assert target.read_text() == CODE
 
 
 def test_clipboard_fails_silently(monkeypatch, capsys):
     monkeypatch.setattr(
-        dazure._az,
+        dazapiz._az,
         "_CLIPBOARD_TOOLS",
         (("no-such-clipboard-tool",), (sys.executable, "-c", "raise SystemExit(1)")),
     )
-    assert dazure._az._copy_to_clipboard(CODE) is False
+    assert dazapiz._az._copy_to_clipboard(CODE) is False
     assert capsys.readouterr() == ("", "")
 
 
@@ -387,7 +387,7 @@ def test_clipboard_skips_a_tool_that_errors(monkeypatch, tmp_path):
     target = tmp_path / "clip.txt"
     writer = f"import sys; open({str(target)!r}, 'w').write(sys.stdin.read())"
     hangs = (sys.executable, "-c", "pass  # hangs")
-    monkeypatch.setattr(dazure._az, "_CLIPBOARD_TOOLS", (hangs, (sys.executable, "-c", writer)))
+    monkeypatch.setattr(dazapiz._az, "_CLIPBOARD_TOOLS", (hangs, (sys.executable, "-c", writer)))
     real_run = subprocess.run
 
     def run(argv, **kwargs):
@@ -396,5 +396,5 @@ def test_clipboard_skips_a_tool_that_errors(monkeypatch, tmp_path):
         return real_run(argv, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", run)
-    assert dazure._az._copy_to_clipboard(CODE) is True
+    assert dazapiz._az._copy_to_clipboard(CODE) is True
     assert target.read_text() == CODE

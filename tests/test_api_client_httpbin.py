@@ -19,7 +19,7 @@ from azure.core.credentials import AccessToken
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from dazure import ApiClient, ApiError
+from dazapiz import ApiClient, ApiError
 
 TOKEN = "httpbin-bearer-sentinel-91c4"
 STATUS = re.compile(
@@ -51,7 +51,7 @@ def no_sleep() -> list[float]:
 
 @pytest.fixture(autouse=True)
 def _restore_http_logger():
-    log = logging.getLogger("dazure.http")
+    log = logging.getLogger("dazapiz.http")
     handlers, level = list(log.handlers), log.level
     yield
     log.handlers[:] = handlers
@@ -59,7 +59,7 @@ def _restore_http_logger():
 
 
 def messages(caplog) -> list[str]:
-    return [r.getMessage() for r in caplog.records if r.name == "dazure.http"]
+    return [r.getMessage() for r in caplog.records if r.name == "dazapiz.http"]
 
 
 # Bearer token --------------------------------------------------------------------------

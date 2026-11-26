@@ -7,10 +7,10 @@ from pathlib import Path
 import pytest
 from helpers import Login, subscription, write_az_login, write_profile, write_token_cache
 
-import dazure._az_cli_token
-from dazure import (
+import dazapiz._az_cli_token
+from dazapiz import (
     AZURE_CLI_CLIENT_ID,
-    DazureError,
+    DazapizError,
     RefreshTokenInfo,
     RefreshTokenNotFoundError,
     UnsupportedPlatformError,
@@ -29,7 +29,7 @@ BOB_GUEST = Login("bob@fabrikam.com", FABRIKAM, CONTOSO, "rt-bob-guest")
 def lookup_runs_here(monkeypatch):
     """Run the lookup on every OS leg: on Windows only the refusal tests see Windows."""
     monkeypatch.delenv("AZURE_CONFIG_DIR", raising=False)
-    monkeypatch.setattr(dazure._az_cli_token, "_is_windows", lambda: False)
+    monkeypatch.setattr(dazapiz._az_cli_token, "_is_windows", lambda: False)
 
 
 def lookup(config_dir, **kwargs):
@@ -263,9 +263,9 @@ def test_no_matching_token(tmp_path):
     assert "rt-bob" not in message
 
 
-def test_errors_derive_from_dazure_error():
-    assert issubclass(RefreshTokenNotFoundError, DazureError)
-    assert issubclass(UnsupportedPlatformError, DazureError)
+def test_errors_derive_from_dazapiz_error():
+    assert issubclass(RefreshTokenNotFoundError, DazapizError)
+    assert issubclass(UnsupportedPlatformError, DazapizError)
 
 
 def test_windows_refused(tmp_path, monkeypatch):

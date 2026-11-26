@@ -17,10 +17,10 @@ least one OS each, as the table says. Record each run with the
 Two kinds of item:
 
 - **Scripted** items are pytest modules here, `test_live_*.py`. They are
-  skipped unless `DAZURE_LIVE=1` (item 8, which needs no Azure, unless
-  `DAZURE_LIVE_HTTP=1`), so a plain `uv run pytest` reports them skipped
+  skipped unless `DAZAPIZ_LIVE=1` (item 8, which needs no Azure, unless
+  `DAZAPIZ_LIVE_HTTP=1`), so a plain `uv run pytest` reports them skipped
   (`tests/test_manual_checklist.py` checks that). With
-  `DAZURE_LIVE=1`, a test whose environment variable is unset is skipped
+  `DAZAPIZ_LIVE=1`, a test whose environment variable is unset is skipped
   with the variable's name, so a partial run says what it left out.
 - **Interactive** items need a person at a browser. `interactive.py` here
   drives each one and prints `PASS` or `FAIL` per step.
@@ -29,9 +29,9 @@ Neither prints a token or a secret: only lengths, client IDs, tenants and
 usernames. Do not run them with `-s` plus extra debug logging of your own.
 
 ```sh
-uv sync --all-extras                       # dazure, the dev group and duckdb
+uv sync --all-extras                       # dazapiz, the dev group and duckdb
 uv pip install pyspark                     # only for item 6
-DAZURE_LIVE=1 uv run pytest tests/manual -ra -v
+DAZAPIZ_LIVE=1 uv run pytest tests/manual -ra -v
 uv run python tests/manual/interactive.py --help
 ```
 
@@ -71,23 +71,23 @@ Environment variables:
 
 | Variable | Used by | Value |
 | --- | --- | --- |
-| `DAZURE_LIVE` | scripted items 1, 4–7 | `1` to run them; anything else skips |
-| `DAZURE_LIVE_HTTP` | item 8 | `1` to run it; anything else skips. `DAZURE_LIVE` does not turn it on |
-| `DAZURE_TEST_STORAGE_ACCOUNT` | 6, 7 | the storage account's short name |
-| `DAZURE_TEST_CONTAINER` | 6, 7 | the container |
-| `DAZURE_TEST_PATH` | 6, 7 | the test file's path in the container |
-| `DAZURE_TEST_ROWS` | 6, 7 (optional) | the file's row count (data rows for CSV); without it, at least one |
-| `DAZURE_TEST_TENANT_ID` | 4, 6, 7 | the service principal's tenant |
-| `DAZURE_TEST_CLIENT_ID` | 4, 6, 7 | the service principal's client ID |
-| `DAZURE_TEST_CLIENT_SECRET` | 4, 6, 7 | the service principal's secret |
-| `DAZURE_TEST_GUEST_TENANT_ID` | 1b | a tenant the `az login` user is a guest in |
-| `DAZURE_TEST_APP_CLIENT_ID` | 3 | the app registration's client ID |
-| `DAZURE_TEST_APP_TENANT_ID` | 3 | its tenant |
-| `DAZURE_TEST_REDIRECT_URI` | 3 | its non-localhost redirect URI, exactly as registered |
-| `DAZURE_SPARK_PACKAGES` | 6 (optional) | the `hadoop-azure` coordinate; default `org.apache.hadoop:hadoop-azure:3.4.1` for PySpark 4, `3.3.4` for PySpark 3.5, matching the Hadoop PySpark bundles |
+| `DAZAPIZ_LIVE` | scripted items 1, 4–7 | `1` to run them; anything else skips |
+| `DAZAPIZ_LIVE_HTTP` | item 8 | `1` to run it; anything else skips. `DAZAPIZ_LIVE` does not turn it on |
+| `DAZAPIZ_TEST_STORAGE_ACCOUNT` | 6, 7 | the storage account's short name |
+| `DAZAPIZ_TEST_CONTAINER` | 6, 7 | the container |
+| `DAZAPIZ_TEST_PATH` | 6, 7 | the test file's path in the container |
+| `DAZAPIZ_TEST_ROWS` | 6, 7 (optional) | the file's row count (data rows for CSV); without it, at least one |
+| `DAZAPIZ_TEST_TENANT_ID` | 4, 6, 7 | the service principal's tenant |
+| `DAZAPIZ_TEST_CLIENT_ID` | 4, 6, 7 | the service principal's client ID |
+| `DAZAPIZ_TEST_CLIENT_SECRET` | 4, 6, 7 | the service principal's secret |
+| `DAZAPIZ_TEST_GUEST_TENANT_ID` | 1b | a tenant the `az login` user is a guest in |
+| `DAZAPIZ_TEST_APP_CLIENT_ID` | 3 | the app registration's client ID |
+| `DAZAPIZ_TEST_APP_TENANT_ID` | 3 | its tenant |
+| `DAZAPIZ_TEST_REDIRECT_URI` | 3 | its non-localhost redirect URI, exactly as registered |
+| `DAZAPIZ_SPARK_PACKAGES` | 6 (optional) | the `hadoop-azure` coordinate; default `org.apache.hadoop:hadoop-azure:3.4.1` for PySpark 4, `3.3.4` for PySpark 3.5, matching the Hadoop PySpark bundles |
 
-Keep the secret out of shell history (`read -s DAZURE_TEST_CLIENT_SECRET;
-export DAZURE_TEST_CLIENT_SECRET`).
+Keep the secret out of shell history (`read -s DAZAPIZ_TEST_CLIENT_SECRET;
+export DAZAPIZ_TEST_CLIENT_SECRET`).
 
 ## 1. `az login` refresh token
 
@@ -97,7 +97,7 @@ redemption by Entra.
 **1a. Home tenant.** After `az login`:
 
 ```sh
-DAZURE_LIVE=1 uv run pytest tests/manual/test_live_az_cli.py -ra -v
+DAZAPIZ_LIVE=1 uv run pytest tests/manual/test_live_az_cli.py -ra -v
 ```
 
 Pass: `test_refresh_token_from_az_cli_is_redeemed` passes. It checks that
@@ -106,7 +106,7 @@ and user `az account show` reports, that `RefreshTokenCredential` redeems
 the token for an ARM access token whose `tid` is that tenant and whose
 expiry is in the future, and that neither `repr` shows a token.
 
-**1b. Guest tenant.** With `DAZURE_TEST_GUEST_TENANT_ID` set, the same run.
+**1b. Guest tenant.** With `DAZAPIZ_TEST_GUEST_TENANT_ID` set, the same run.
 Pass: `test_refresh_token_from_az_cli_guest_tenant` passes (the redeemed
 token's `tid` is the guest tenant).
 
@@ -115,7 +115,7 @@ CLI afterwards:
 
 ```sh
 az config set core.encrypt_token_cache=true && az login
-uv run python -c "import dazure; dazure.refresh_token_from_az_cli()"
+uv run python -c "import dazapiz; dazapiz.refresh_token_from_az_cli()"
 az config set core.encrypt_token_cache=false && az login
 ```
 
@@ -164,8 +164,8 @@ than the Python process), with the app registration above. Deferred from
 Stage 3 (#6): redeeming a real code from a callback page.
 
 ```sh
-export DAZURE_TEST_APP_CLIENT_ID=... DAZURE_TEST_APP_TENANT_ID=...
-export DAZURE_TEST_REDIRECT_URI=https://<code-server-host>/oauth/callback
+export DAZAPIZ_TEST_APP_CLIENT_ID=... DAZAPIZ_TEST_APP_TENANT_ID=...
+export DAZAPIZ_TEST_REDIRECT_URI=https://<code-server-host>/oauth/callback
 uv run python tests/manual/interactive.py pasted-code
 ```
 
@@ -190,7 +190,7 @@ Design §4.1, §4.1.1. Deferred from Stage 5 (#8): a real `fetch()` in `dev`
 and `prod`.
 
 ```sh
-DAZURE_LIVE=1 uv run pytest tests/manual/test_live_api_client.py -ra -v
+DAZAPIZ_LIVE=1 uv run pytest tests/manual/test_live_api_client.py -ra -v
 ```
 
 Pass: all three tests pass.
@@ -200,9 +200,9 @@ Pass: all three tests pass.
   /subscriptions?api-version=2022-12-01` lists the CLI's current
   subscription.
 - `test_fetch_prod`: `mode="prod"` with the service principal in the
-  `DAZURE_TEST_*` variables is a `ClientSecretCredential`, and the same
+  `DAZAPIZ_TEST_*` variables is a `ClientSecretCredential`, and the same
   request returns a `value` list.
-- Both run with `verbose=True` and check that the captured `dazure.http`
+- Both run with `verbose=True` and check that the captured `dazapiz.http`
   log has the `>>> GET` record and contains neither the bearer token nor
   the client secret.
 - `test_fetch_error_is_api_error`: an unknown subscription raises
@@ -221,7 +221,7 @@ as the installed `az` streams it (Stage 4 checked its format in the
 azure-cli source only). This logs the CLI out at the end.
 
 ```sh
-DAZURE_LIVE=1 uv run pytest tests/manual/test_live_az_cli.py -ra -v -k account_show
+DAZAPIZ_LIVE=1 uv run pytest tests/manual/test_live_az_cli.py -ra -v -k account_show
 uv run python tests/manual/interactive.py az-helpers
 ```
 
@@ -245,7 +245,7 @@ ADLS with these keys. Also checks §12's Hadoop note, that
 
 ```sh
 uv pip install pyspark
-DAZURE_LIVE=1 uv run pytest tests/manual/test_live_spark.py -ra -v
+DAZAPIZ_LIVE=1 uv run pytest tests/manual/test_live_spark.py -ra -v
 ```
 
 The tests skip, with the reason, if PySpark is not installed.
@@ -261,7 +261,7 @@ The tests skip, with the reason, if PySpark is not installed.
   with PySpark 3.5 (Hadoop 3.3.4, absent) and once with PySpark 4 (Hadoop
   3.4.1, present) to check both sides of the note.
 
-Pass: every test passes; the read count is `DAZURE_TEST_ROWS` when set.
+Pass: every test passes; the read count is `DAZAPIZ_TEST_ROWS` when set.
 
 Record: PySpark, Hadoop (in the JUnit property `hadoop_version`, or
 `spark.sparkContext._jvm.org.apache.hadoop.util.VersionInfo.getVersion()`)
@@ -273,7 +273,7 @@ Design §4.5. Deferred from Stage 6 (#9): real reads from ADLS,
 account-scoped and unscoped.
 
 ```sh
-DAZURE_LIVE=1 uv run pytest tests/manual/test_live_duckdb.py -ra -v
+DAZAPIZ_LIVE=1 uv run pytest tests/manual/test_live_duckdb.py -ra -v
 ```
 
 Each test opens a fresh in-memory connection, registers one secret and
@@ -289,7 +289,7 @@ reads the test file by its fully qualified URL,
   service principal, with and without `account`; `list_secrets()` does
   not show the client secret.
 
-Pass: all four pass; the count is `DAZURE_TEST_ROWS` when set.
+Pass: all four pass; the count is `DAZAPIZ_TEST_ROWS` when set.
 
 Record: DuckDB version, pass/fail per test.
 
@@ -303,7 +303,7 @@ against recorded Petstore-shaped responses and the store's OpenAPI
 document; this checks the real server agrees.
 
 ```sh
-DAZURE_LIVE_HTTP=1 uv run pytest tests/manual/test_live_petstore.py -ra -v
+DAZAPIZ_LIVE_HTTP=1 uv run pytest tests/manual/test_live_petstore.py -ra -v
 uv run python examples/petstore.py           # the example's own demo, verbose
 ```
 
@@ -326,7 +326,7 @@ Paste one block per OS into the release pull request:
 
 - Date: YYYY-MM-DD
 - OS: <name and version>; Python: <x.y.z>
-- dazure: <version or commit>
+- dazapiz: <version or commit>
 - azure-identity: <x.y.z>; msal: <x.y.z>; msal-extensions: <x.y.z>; httpx: <x.y.z>; duckdb: <x.y.z>
 - az: <version>; PySpark / Hadoop / Java: <x.y.z / x.y.z / x>
 
@@ -356,5 +356,5 @@ Paste one block per OS into the release pull request:
 The versions come from:
 
 ```sh
-uv run python -c "import sys, importlib.metadata as m; print(sys.version.split()[0], *(f'{p} {m.version(p)}' for p in ['dazure', 'azure-identity', 'msal', 'msal-extensions', 'httpx', 'duckdb']))"
+uv run python -c "import sys, importlib.metadata as m; print(sys.version.split()[0], *(f'{p} {m.version(p)}' for p in ['dazapiz', 'azure-identity', 'msal', 'msal-extensions', 'httpx', 'duckdb']))"
 ```

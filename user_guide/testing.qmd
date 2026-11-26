@@ -5,8 +5,8 @@ title: Testing your API client
 You have written an `ApiClient` subclass for a REST API hosted in Azure
 behind Entra ID. Its tests should run in CI on every pull request, and CI
 has no Azure: no `az login`, no service principal you would want to put in
-a runner, and an API you do not want a test to change. dazure's own CI
-works the same way ([design decision D23](https://github.com/pedrobtz/py-dazure/blob/main/.agents/design.md#10-decisions):
+a runner, and an API you do not want a test to change. dazapiz's own CI
+works the same way ([design decision D23](https://github.com/pedrobtz/py-dazapiz/blob/main/.agents/design.md#10-decisions):
 Azure is tested by hand, CI only with simple mocks): what needs real Azure is checked
 by hand, and the automated tests touch neither Azure nor the network.
 
@@ -15,7 +15,7 @@ So the tests replace the two things the client talks to:
 - **the API**, with [respx](https://lundberg.github.io/respx/), which
   answers `httpx` requests from routes you declare. `ApiClient` is an
   `httpx` client, so respx mocks it with no change to the client;
-- **the credential**, with `dazure.testing.StaticTokenCredential`, a
+- **the credential**, with `dazapiz.testing.StaticTokenCredential`, a
   `TokenCredential` that hands out a fixed token and records the scopes it
   was asked for. Pass it as `credential=`, which wins over
   `app_credential()`.
@@ -33,7 +33,7 @@ service-principal variables:
 <!-- snippet: class AzurePetStoreClient(PetStoreClient): -->
 {{< include examples/azure_petstore.py lines="24-32" >}}
 
-Its tests are in `examples/tests/` and run in dazure's CI. They need
+Its tests are in `examples/tests/` and run in dazapiz's CI. They need
 `pytest`, `respx` and `pytest-socket` in your dev dependencies:
 
 ```sh
@@ -142,7 +142,7 @@ function from request to response. Pass it as the client's `transport=`:
 import httpx
 import pytest
 
-from dazure.testing import StaticTokenCredential
+from dazapiz.testing import StaticTokenCredential
 
 
 @pytest.fixture
@@ -172,6 +172,6 @@ schedule with real credentials, outside the CI suite:
   deployment signs in;
 - the real API still answers in the shape the models expect.
 
-dazure does the same with an opt-in live test of the Petstore example
-(`DAZURE_LIVE_HTTP=1`) and a manual checklist for everything that needs
+dazapiz does the same with an opt-in live test of the Petstore example
+(`DAZAPIZ_LIVE_HTTP=1`) and a manual checklist for everything that needs
 Azure.

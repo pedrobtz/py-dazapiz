@@ -2,19 +2,23 @@
 
 ## 0.1.0 (unreleased)
 
+- The package is renamed from `dazure` to `dazapiz` (import name,
+  distribution, repository `pedrobtz/py-dazapiz`, `DazapizError`,
+  `DAZAPIZ_*` environment variables, `dazapiz.*` loggers and the
+  `dazapiz_default` token cache).
 - `ApiClient` takes keyword-only `transport=` (an `httpx` transport, such
   as `httpx.MockTransport` in tests) and `sleep=` (the function retries
   wait with, default `time.sleep`), and has a read-only `credential`
   property, the credential it chose or `None` (#30).
-- `dazure.testing.StaticTokenCredential`: a fake `TokenCredential` for
+- `dazapiz.testing.StaticTokenCredential`: a fake `TokenCredential` for
   tests without Azure, which returns a fixed token, records the scopes it
   was asked for in `.calls` and redacts the token in `repr` (#30).
 - A guide page, "Testing your API client": an `ApiClient` subclass tested
   in CI with `respx` and `StaticTokenCredential`, fully offline
   (`pytest-socket`), including which credential `app_credential()` picks;
   its example, `examples/azure_petstore.py` and `examples/tests/`, runs in
-  dazure's CI (#30).
-- A documentation site, <https://pedrobtz.github.io/py-dazure/>, built with
+  dazapiz's CI (#30).
+- A documentation site, <https://pedrobtz.github.io/py-dazapiz/>, built with
   Great Docs: a guide (get started, REST client with the Petstore example,
   DuckDB, browser-hosted sign-in) and an API reference from NumPy
   docstrings, now on every public name (#27).
@@ -31,7 +35,7 @@
 - `fetch(json=...)` sends a pydantic model as
   `model_dump(mode="json", by_alias=True, exclude_unset=True)` and a
   dataclass as `dataclasses.asdict()`, also when nested in lists, tuples,
-  dict values or dataclass fields; `dazure` does not depend on pydantic
+  dict values or dataclass fields; `dazapiz` does not depend on pydantic
   (#26).
 - `with SomeApiClient() as client:` types `client` as the subclass (#26).
 - `refresh_token_from_az_cli()` reports an `azureProfile.json` whose user
@@ -67,7 +71,7 @@
   and account key.
 - `DeviceCodeCredential` and `InteractiveBrowserCredential` subclass the
   `azure-identity` classes, keep their token cache in the platform store
-  under the name `"dazure"` (`allow_unencrypted_storage=True` falls back
+  under the name `"dazapiz"` (`allow_unencrypted_storage=True` falls back
   to a plain file), and add `get_refresh_token()`, which signs in if
   needed and returns the refresh token from that cache.
 - `az_account_show()`, `az_is_login()`, `az_login()` and `az_logout()` run
@@ -92,7 +96,7 @@
   type, and raises `ApiError` (an `httpx.HTTPStatusError`) with the
   method, URL, status and body. The bearer token is fetched from the
   credential once and renewed five minutes before expiry. `verbose=True`
-  logs requests and responses in `azr`'s format on the `dazure.http`
+  logs requests and responses in `azr`'s format on the `dazapiz.http`
   logger, through `rich`; headers are never logged.
 - `app_credential()` chooses an API's credential from its own service
   principal variables (`client_id_env`, `client_secret_env`,
@@ -101,8 +105,8 @@
   a partly set service principal raises `ValueError` naming the missing
   variable. `ApiClient` subclasses call it when they set `client_id_env`
   and `client_secret_env`.
-- `dazure.duckdb` (extra `duckdb`) registers DuckDB Azure secrets as
-  `quak` does, named `dazure_default` or `dazure_<account>` and, with
+- `dazapiz.duckdb` (extra `duckdb`) registers DuckDB Azure secrets as
+  `quak` does, named `dazapiz_default` or `dazapiz_<account>` and, with
   `account`, scoped to the account's `abfss://`, `abfs://`, `az://` and
   `azure://` hosts: `set_token_secret()`, `set_sp_secret()`,
   `set_chain_secret()`, and `set_credential_secret()`, which registers an
@@ -111,8 +115,8 @@
   return DuckDB relations; `tune()` sets the six Azure read and cache
   settings. The `azure` extension is installed and loaded when needed.
   Values are quoted as DuckDB literals, and no secret appears in a log
-  record or error. `import dazure` never imports `duckdb`; without it,
-  `dazure.duckdb` raises `ImportError` naming `pip install 'dazure[duckdb]'`.
-- `dazure.errors`: `DazureError`, `RefreshTokenNotFoundError`,
+  record or error. `import dazapiz` never imports `duckdb`; without it,
+  `dazapiz.duckdb` raises `ImportError` naming `pip install 'dazapiz[duckdb]'`.
+- `dazapiz.errors`: `DazapizError`, `RefreshTokenNotFoundError`,
   `UnsupportedPlatformError`, `ApiError`. No token appears in a `repr`,
   `str` or error message.

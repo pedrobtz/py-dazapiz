@@ -17,9 +17,9 @@ from recording_transport import RecordingTransport, json_response
 from rich.logging import RichHandler
 from rich.markup import escape
 
-import dazure._api_client
-from dazure import ApiClient, ApiError, DazureError
-from dazure._api_client import BearerAuth, _abbreviate_json, backoff_default
+import dazapiz._api_client
+from dazapiz import ApiClient, ApiError, DazapizError
+from dazapiz._api_client import BearerAuth, _abbreviate_json, backoff_default
 
 INFO = "\N{INFORMATION SOURCE}"
 HOST = "https://api.example.com"
@@ -39,7 +39,7 @@ def sleeps() -> list[float]:
 
 @pytest.fixture(autouse=True)
 def _restore_http_logger():
-    log = logging.getLogger("dazure.http")
+    log = logging.getLogger("dazapiz.http")
     handlers, level = list(log.handlers), log.level
     yield
     log.handlers[:] = handlers
@@ -172,7 +172,7 @@ def test_api_error_message(transport):
     with pytest.raises(ApiError) as err:
         client.fetch("/things/{id}", "DELETE", id="7")
     e = err.value
-    assert isinstance(e, DazureError)
+    assert isinstance(e, DazapizError)
     assert isinstance(e, httpx.HTTPStatusError)
     assert e.response.status_code == 404
     assert e.request.url == f"{HOST}/things/7"
@@ -244,7 +244,7 @@ def test_other_failures_are_sent_once(transport, sleeps, outcome):
 
 
 def test_retry_after_is_honoured(transport, sleeps, monkeypatch):
-    monkeypatch.setattr(dazure._api_client, "_uniform", lambda a, b: pytest.fail("backoff used"))
+    monkeypatch.setattr(dazapiz._api_client, "_uniform", lambda a, b: pytest.fail("backoff used"))
     when = email.utils.formatdate(time.time() + 30, usegmt=True)
     transport.add(
         httpx.Response(429, headers={"Retry-After": "7"}),
@@ -264,7 +264,7 @@ def test_backoff_without_retry_after(transport, sleeps, monkeypatch):
         bounds.append((a, b))
         return b  # the top of the range, to see the cap
 
-    monkeypatch.setattr(dazure._api_client, "_uniform", uniform)
+    monkeypatch.setattr(dazapiz._api_client, "_uniform", uniform)
     transport.add(httpx.Response(429, headers={"Retry-After": "soon"}), *[httpx.Response(503)] * 5)
     with pytest.raises(ApiError):
         ApiClient(HOST, transport=transport, sleep=sleeps.append, max_tries=6).fetch("/x")
@@ -280,16 +280,16 @@ def test_backoff_default_bounds():
     for attempt in range(1, 8):
         for _ in range(200):
             with pytest.MonkeyPatch.context() as mp:
-                mp.setattr(dazure._api_client, "_uniform", rng.uniform)
+                mp.setattr(dazapiz._api_client, "_uniform", rng.uniform)
                 x = backoff_default(attempt)
             assert 1.0 <= x <= min(2.5**attempt, 60.0)
             assert x == round(x, 1)
 
 
 def test_retry_is_logged_as_a_warning(transport, sleeps, monkeypatch, caplog):
-    monkeypatch.setattr(dazure._api_client, "_uniform", lambda a, b: 2.0)
+    monkeypatch.setattr(dazapiz._api_client, "_uniform", lambda a, b: 2.0)
     transport.add(httpx.Response(503), httpx.Response(204))
-    with caplog.at_level(logging.WARNING, logger="dazure.http"):
+    with caplog.at_level(logging.WARNING, logger="dazapiz.http"):
         ApiClient(HOST, transport=transport, sleep=sleeps.append).fetch("/x")
     (record,) = caplog.records
     assert record.levelno == logging.WARNING
@@ -317,7 +317,7 @@ def test_bearer_token_renewed_five_minutes_before_expiry(transport, monkeypatch)
     cred = FakeCredential(lifetime=3600)
     now = time.time()
     clock = [now]
-    monkeypatch.setattr(dazure._api_client, "_now", lambda: clock[0])
+    monkeypatch.setattr(dazapiz._api_client, "_now", lambda: clock[0])
     transport.add(*[httpx.Response(204)] * 3)
     client = ApiClient(HOST, transport=transport, credential=cred)
     client.fetch("/x")
@@ -349,7 +349,7 @@ def test_class_credential_from_app_credential(transport, monkeypatch):
         calls.append((args, kwargs))
         return cred
 
-    monkeypatch.setattr(dazure._api_client, "app_credential", fake_app_credential)
+    monkeypatch.setattr(dazapiz._api_client, "app_credential", fake_app_credential)
 
     class Api(ApiClient):
         host_url = HOST
@@ -374,13 +374,13 @@ def test_class_credential_from_app_credential(transport, monkeypatch):
 
 def test_logging_in_azr_format(transport, caplog, monkeypatch):
     ticks = iter([10.0, 10.21, 20.0, 20.5])
-    monkeypatch.setattr(dazure._api_client, "_clock", lambda: next(ticks))
+    monkeypatch.setattr(dazapiz._api_client, "_clock", lambda: next(ticks))
     transport.add(
         json_response(201, {"id": 1}),
         json_response(500, {"error": {"code": "Boom", "message": "bad"}}),
     )
     client = ApiClient(HOST, transport=transport, credential=FakeCredential(), verbose=True)
-    with caplog.at_level(logging.INFO, logger="dazure.http"):
+    with caplog.at_level(logging.INFO, logger="dazapiz.http"):
         client.fetch("/x", "POST", json={"name": "rg1", "location": "westeurope"})
         with pytest.raises(ApiError):
             client.fetch("/y")
@@ -398,19 +398,19 @@ def test_logging_in_azr_format(transport, caplog, monkeypatch):
         "[red]✖ <<< body:[/red]",
         '{\n  "error": {\n    "code": "Boom",\n    "message": "bad"\n  }\n}',
     ]
-    assert all(r.name == "dazure.http" for r in caplog.records)
+    assert all(r.name == "dazapiz.http" for r in caplog.records)
     assert not any("token-1" in m or "uthorization" in m for m in messages)
 
 
 def test_not_verbose_logs_no_requests(transport, caplog):
     transport.add(httpx.Response(204))
-    with caplog.at_level(logging.DEBUG, logger="dazure.http"):
+    with caplog.at_level(logging.DEBUG, logger="dazapiz.http"):
         ApiClient(HOST, transport=transport).fetch("/x")
     assert caplog.records == []
 
 
 def test_verbose_attaches_rich_handler_only_if_none(transport):
-    log = logging.getLogger("dazure.http")
+    log = logging.getLogger("dazapiz.http")
     log.handlers.clear()
     log.setLevel(logging.NOTSET)
     ApiClient(HOST, transport=transport, verbose=True)
@@ -430,7 +430,7 @@ def test_verbose_attaches_rich_handler_only_if_none(transport):
 def test_bearer_auth_repr_and_markup_escaped(transport, caplog):
     assert "token" not in repr(BearerAuth(FakeCredential(), "s")).replace("FakeCredential", "")
     transport.add(json_response(400, {"why": "[bold]x[/bold]"}))
-    with caplog.at_level(logging.INFO, logger="dazure.http"), pytest.raises(ApiError):
+    with caplog.at_level(logging.INFO, logger="dazapiz.http"), pytest.raises(ApiError):
         ApiClient(HOST, transport=transport, verbose=True).fetch(
             "/x", "POST", json={"f": "[red]x[/red]"}
         )
@@ -518,7 +518,7 @@ def test_logged_bodies_are_abbreviated(transport, caplog):
     transport.add(json_response(400, {"error": {"details": list(range(13))}}))
     client = ApiClient(HOST, transport=transport, verbose=True)
     body = {f"k{i:02d}": [str(j) for j in range(13)] for i in range(11)}
-    with caplog.at_level(logging.INFO, logger="dazure.http"), pytest.raises(ApiError):
+    with caplog.at_level(logging.INFO, logger="dazapiz.http"), pytest.raises(ApiError):
         client.fetch("/x", "POST", json=body)
     messages = [r.getMessage() for r in caplog.records]
     sent = messages[messages.index(f"{INFO} >>> body:") + 1]
@@ -539,7 +539,7 @@ def test_logged_non_json_bodies_are_unchanged(transport, caplog):
         httpx.Response(500, text=text, headers={"content-type": "application/json"}),
     )
     client = ApiClient(HOST, transport=transport, verbose=True)
-    with caplog.at_level(logging.INFO, logger="dazure.http"):
+    with caplog.at_level(logging.INFO, logger="dazapiz.http"):
         for _ in range(2):
             with pytest.raises(ApiError):
                 client.fetch("/x")

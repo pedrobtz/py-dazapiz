@@ -2,15 +2,15 @@
 title: DuckDB
 ---
 
-`dazure.duckdb` registers Azure secrets with DuckDB's `azure` extension, so
+`dazapiz.duckdb` registers Azure secrets with DuckDB's `azure` extension, so
 DuckDB can query ADLS Gen2 and Blob Storage as you or as a service
 principal. It needs the extra:
 
 ```sh
-pip install "dazure[duckdb]"
+pip install "dazapiz[duckdb]"
 ```
 
-`duckdb` is imported only when a helper runs; `import dazure` never needs
+`duckdb` is imported only when a helper runs; `import dazapiz` never needs
 it. Each helper takes a connection and runs `INSTALL azure; LOAD azure`
 first if the extension is not loaded yet.
 
@@ -23,8 +23,8 @@ it.
 
 ```python
 import duckdb
-from dazure import RefreshTokenCredential, refresh_token_from_az_cli
-from dazure.duckdb import set_credential_secret
+from dazapiz import RefreshTokenCredential, refresh_token_from_az_cli
+from dazapiz.duckdb import set_credential_secret
 
 conn = duckdb.connect()
 expires_on = set_credential_secret(conn, RefreshTokenCredential(refresh_token_from_az_cli()))
@@ -59,13 +59,13 @@ The functions are ports of `quak`'s `az_set_*_secret()`, `az_list_secrets()`,
 
 ## One secret per account
 
-Without `account`, the secret is named `dazure_default` and applies to every
-Azure URL. With `account`, it is named `dazure_<account>` and scoped to that
+Without `account`, the secret is named `dazapiz_default` and applies to every
+Azure URL. With `account`, it is named `dazapiz_<account>` and scoped to that
 account's hosts, so different accounts can use different credentials:
 
 ```python
-set_credential_secret(conn, mine)                           # dazure_default
-set_sp_secret(conn, tenant, client_id, secret, account="shared")  # dazure_shared
+set_credential_secret(conn, mine)                           # dazapiz_default
+set_sp_secret(conn, tenant, client_id, secret, account="shared")  # dazapiz_shared
 ```
 
 The scope covers `abfss://` and `abfs://` on `<account>.dfs.core.windows.net`
@@ -81,7 +81,7 @@ one (no `account`) for Delta tables; scoped secrets work for Parquet, CSV
 and JSON.
 :::
 
-`dazure_*` names never collide with `quak`'s `quak_*` secrets in a shared
+`dazapiz_*` names never collide with `quak`'s `quak_*` secrets in a shared
 DuckDB file.
 
 ## Tuning reads
@@ -90,7 +90,7 @@ DuckDB file.
 alone:
 
 ```python
-from dazure.duckdb import tune
+from dazapiz.duckdb import tune
 
 tune(conn, concurrency=8, chunk_size=1_048_576, buffer_size=8_388_608)
 ```

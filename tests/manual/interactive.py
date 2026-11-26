@@ -30,7 +30,11 @@ def step(name: str, ok: bool, detail: str = "") -> None:
 def _credential_kwargs(kind: str) -> dict:
     if kind != "pasted-code":
         return {}
-    names = ("DAZURE_TEST_APP_CLIENT_ID", "DAZURE_TEST_APP_TENANT_ID", "DAZURE_TEST_REDIRECT_URI")
+    names = (
+        "DAZAPIZ_TEST_APP_CLIENT_ID",
+        "DAZAPIZ_TEST_APP_TENANT_ID",
+        "DAZAPIZ_TEST_REDIRECT_URI",
+    )
     missing = [n for n in names if not os.environ.get(n)]
     if missing:
         sys.exit(f"set {', '.join(missing)} (tests/manual/README.md)")
@@ -42,12 +46,12 @@ def sign_in(kind: str, unencrypted: bool) -> None:
     """Items 2 and 3: real sign-in, the persisted cache read back, a silent second token."""
     from azure.identity import AuthenticationRequiredError
 
-    import dazure
+    import dazapiz
 
     cls = (
-        dazure.DeviceCodeCredential
+        dazapiz.DeviceCodeCredential
         if kind == "device-code"
-        else dazure.InteractiveBrowserCredential
+        else dazapiz.InteractiveBrowserCredential
     )
     kwargs = _credential_kwargs(kind)
     credential = cls(allow_unencrypted_storage=unencrypted, **kwargs)
@@ -64,7 +68,7 @@ def sign_in(kind: str, unencrypted: bool) -> None:
     )
     step("the refresh token is redacted in repr", info.token not in repr(info))
 
-    access = dazure.RefreshTokenCredential(info).get_token(ARM_SCOPE)
+    access = dazapiz.RefreshTokenCredential(info).get_token(ARM_SCOPE)
     claims = jwt_claims(access.token)
     step(
         "RefreshTokenCredential redeems it",
@@ -87,19 +91,19 @@ def sign_in(kind: str, unencrypted: bool) -> None:
 
 def az_helpers() -> None:
     """Item 5: az_login() with a device code, az_account_show(), az_logout()."""
-    import dazure
+    import dazapiz
 
-    account = dazure.az_login(force=True)
+    account = dazapiz.az_login(force=True)
     step("az_login(force=True) by device code", bool(account.get("id")), account["user"]["name"])
-    shown = dazure.az_account_show()
+    shown = dazapiz.az_account_show()
     step("az_account_show() is the account az_login() returned", shown["id"] == account["id"])
-    step("az_is_login() is True", dazure.az_is_login() is True)
-    dazure.az_logout()
-    step("az_logout(); az_is_login() is False", dazure.az_is_login() is False)
+    step("az_is_login() is True", dazapiz.az_is_login() is True)
+    dazapiz.az_logout()
+    step("az_logout(); az_is_login() is False", dazapiz.az_is_login() is False)
     try:
-        dazure.az_account_show()
+        dazapiz.az_account_show()
         step("az_account_show() after logout raises AzCliNotLoggedInError", False)
-    except dazure.AzCliNotLoggedInError:
+    except dazapiz.AzCliNotLoggedInError:
         step("az_account_show() after logout raises AzCliNotLoggedInError", True)
     print("Log in again with `az login` before the other items.", flush=True)
 

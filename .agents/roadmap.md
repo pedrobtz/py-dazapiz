@@ -1,10 +1,10 @@
-# dazure (Python): roadmap
+# dazapiz (Python): roadmap
 
 Status: draft 2026-11-21. Implements [design.md](design.md), whose §9
 outline (0.0.1 to 0.0.4) these stages replace.
 Target: v0.1.0, the first PyPI release.
-Tracking: [v0.1.0 (#2)](https://github.com/pedrobtz/py-dazure/issues/2), with one
-sub-issue per stage; [PyPI-release (#14)](https://github.com/pedrobtz/py-dazure/issues/14).
+Tracking: [v0.1.0 (#2)](https://github.com/pedrobtz/py-dazapiz/issues/2), with one
+sub-issue per stage; [PyPI-release (#14)](https://github.com/pedrobtz/py-dazapiz/issues/14).
 
 Adapted from the `pkg-roadmap` skill for R packages, as `py-dazdiff` did:
 GitHub Actions running pytest replace r-actions, a PyPI release replaces
@@ -40,22 +40,22 @@ package, a branch on the operating system. Azure itself is never in CI
 
 | Stage | Title | CI | Issue | Pull request | Done |
 | --- | --- | --- | --- | --- | --- |
-| 0 | [Package identity](#stage-0--package-identity) | quick | [#3](https://github.com/pedrobtz/py-dazure/issues/3) | `a095141` | 2026-11-21 |
-| 1 | [Refresh tokens](#stage-1--refresh-tokens) | full | [#4](https://github.com/pedrobtz/py-dazure/issues/4) | [#16](https://github.com/pedrobtz/py-dazure/pull/16) | 2026-11-21 |
-| 2 | [Spark config](#stage-2--spark-config) | quick | [#5](https://github.com/pedrobtz/py-dazure/issues/5) | [#17](https://github.com/pedrobtz/py-dazure/pull/17) | 2026-11-21 |
-| 3 | [Interactive credentials](#stage-3--interactive-credentials) | full | [#6](https://github.com/pedrobtz/py-dazure/issues/6) | [#18](https://github.com/pedrobtz/py-dazure/pull/18) | 2026-11-21 |
-| 4 | [az CLI helpers](#stage-4--az-cli-helpers) | full | [#7](https://github.com/pedrobtz/py-dazure/issues/7) | [#19](https://github.com/pedrobtz/py-dazure/pull/19) | 2026-11-21 |
-| 5 | [REST client](#stage-5--rest-client) | quick | [#8](https://github.com/pedrobtz/py-dazure/issues/8) | [#20](https://github.com/pedrobtz/py-dazure/pull/20) | 2026-11-21 |
-| 6 | [DuckDB](#stage-6--duckdb) | quick | [#9](https://github.com/pedrobtz/py-dazure/issues/9) | [#21](https://github.com/pedrobtz/py-dazure/pull/21) | 2026-11-21 |
-| 7 | [Manual checklist](#stage-7--manual-checklist) | quick | [#10](https://github.com/pedrobtz/py-dazure/issues/10) | [#24](https://github.com/pedrobtz/py-dazure/pull/24) | 2026-11-21 |
-| 8 | [Full CI](#stage-8--full-ci) | full | [#11](https://github.com/pedrobtz/py-dazure/issues/11) | [#25](https://github.com/pedrobtz/py-dazure/pull/25) | 2026-11-21 |
-| 9 | [v0.1.0 readiness](#stage-9--v010-readiness) | full | [#12](https://github.com/pedrobtz/py-dazure/issues/12) | | |
-| 10 | [Review](#stage-10--review) | full | [#13](https://github.com/pedrobtz/py-dazure/issues/13) | | |
+| 0 | [Package identity](#stage-0--package-identity) | quick | [#3](https://github.com/pedrobtz/py-dazapiz/issues/3) | `a095141` | 2026-11-21 |
+| 1 | [Refresh tokens](#stage-1--refresh-tokens) | full | [#4](https://github.com/pedrobtz/py-dazapiz/issues/4) | [#16](https://github.com/pedrobtz/py-dazapiz/pull/16) | 2026-11-21 |
+| 2 | [Spark config](#stage-2--spark-config) | quick | [#5](https://github.com/pedrobtz/py-dazapiz/issues/5) | [#17](https://github.com/pedrobtz/py-dazapiz/pull/17) | 2026-11-21 |
+| 3 | [Interactive credentials](#stage-3--interactive-credentials) | full | [#6](https://github.com/pedrobtz/py-dazapiz/issues/6) | [#18](https://github.com/pedrobtz/py-dazapiz/pull/18) | 2026-11-21 |
+| 4 | [az CLI helpers](#stage-4--az-cli-helpers) | full | [#7](https://github.com/pedrobtz/py-dazapiz/issues/7) | [#19](https://github.com/pedrobtz/py-dazapiz/pull/19) | 2026-11-21 |
+| 5 | [REST client](#stage-5--rest-client) | quick | [#8](https://github.com/pedrobtz/py-dazapiz/issues/8) | [#20](https://github.com/pedrobtz/py-dazapiz/pull/20) | 2026-11-21 |
+| 6 | [DuckDB](#stage-6--duckdb) | quick | [#9](https://github.com/pedrobtz/py-dazapiz/issues/9) | [#21](https://github.com/pedrobtz/py-dazapiz/pull/21) | 2026-11-21 |
+| 7 | [Manual checklist](#stage-7--manual-checklist) | quick | [#10](https://github.com/pedrobtz/py-dazapiz/issues/10) | [#24](https://github.com/pedrobtz/py-dazapiz/pull/24) | 2026-11-21 |
+| 8 | [Full CI](#stage-8--full-ci) | full | [#11](https://github.com/pedrobtz/py-dazapiz/issues/11) | [#25](https://github.com/pedrobtz/py-dazapiz/pull/25) | 2026-11-21 |
+| 9 | [v0.1.0 readiness](#stage-9--v010-readiness) | full | [#12](https://github.com/pedrobtz/py-dazapiz/issues/12) | | |
+| 10 | [Review](#stage-10--review) | full | [#13](https://github.com/pedrobtz/py-dazapiz/issues/13) | | |
 
 ## Stage 0 — Package identity
 
-**Issue.** [#3](https://github.com/pedrobtz/py-dazure/issues/3), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#3](https://github.com/pedrobtz/py-dazapiz/issues/3), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `quick`.
 
@@ -84,8 +84,8 @@ pull request. Done by the first commit, `a095141`, before this roadmap.
 
 ## Stage 1 — Refresh tokens
 
-**Issue.** [#4](https://github.com/pedrobtz/py-dazure/issues/4), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#4](https://github.com/pedrobtz/py-dazapiz/issues/4), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `full — the az login reader branches on the OS (Windows refusal,
 config directory, path handling), and every later stage takes its types.`
@@ -96,7 +96,7 @@ time carrying the client ID and tenant it belongs to.
 
 **Work.**
 
-- `dazure.errors`: `DazureError` and the subclasses the design names
+- `dazapiz.errors`: `DazapizError` and the subclasses the design names
   (`RefreshTokenNotFoundError`, `UnsupportedPlatformError`, ...).
 - `RefreshTokenInfo` (redacted `repr`), `SupportsRefreshToken`,
   `AZURE_CLI_CLIENT_ID`, and the coercion of a string or
@@ -141,8 +141,8 @@ time carrying the client ID and tenant it belongs to.
 
 ## Stage 2 — Spark config
 
-**Issue.** [#5](https://github.com/pedrobtz/py-dazure/issues/5), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#5](https://github.com/pedrobtz/py-dazapiz/issues/5), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `quick`.
 
@@ -167,7 +167,7 @@ answers the package's motivating use.
 
 - Explicit arguments: the `azr` fixture, exact dict equality per case,
   in `tests/test_spark_conf.py`.
-- Defaults where `dazure` differs from `azr` (`client_secret`,
+- Defaults where `dazapiz` differs from `azr` (`client_secret`,
   `managed_identity`, `workload_identity`, a `SupportsRefreshToken`
   supplying its own IDs): the §4.4 list, in `tests/test_spark_conf.py`.
 - Refusals: `shared_key` without `storage_account`, missing client or
@@ -187,19 +187,19 @@ answers the package's motivating use.
 
 ## Stage 3 — Interactive credentials
 
-**Issue.** [#6](https://github.com/pedrobtz/py-dazure/issues/6), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#6](https://github.com/pedrobtz/py-dazapiz/issues/6), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `full — the persisted MSAL cache is built per OS (DPAPI, Keychain,
 libsecret, plain file), so import and construction must hold on each leg.`
 
-**Goal.** `dazure.DeviceCodeCredential` and
-`dazure.InteractiveBrowserCredential` expose `get_refresh_token()`, and the
+**Goal.** `dazapiz.DeviceCodeCredential` and
+`dazapiz.InteractiveBrowserCredential` expose `get_refresh_token()`, and the
 browser one signs in through a non-localhost callback page as httr2 does.
 
 **Work.**
 
-- Both subclasses with `TokenCachePersistenceOptions(name="dazure", ...)`
+- Both subclasses with `TokenCachePersistenceOptions(name="dazapiz", ...)`
   and the read-only cache lookup of §4.3.2.
 - The pasted-code flow of §4.3.3: the redirect rule, the
   `_request_token()` override, the reply parser.
@@ -235,8 +235,8 @@ browser one signs in through a non-localhost callback page as httr2 does.
 
 ## Stage 4 — az CLI helpers
 
-**Issue.** [#7](https://github.com/pedrobtz/py-dazure/issues/7), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#7](https://github.com/pedrobtz/py-dazapiz/issues/7), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `full — subprocess and the fake az differ on Windows (az.cmd,
 PATHEXT), so the Windows leg must run them.`
@@ -275,8 +275,8 @@ PATHEXT), so the Windows leg must run them.`
 
 ## Stage 5 — REST client
 
-**Issue.** [#8](https://github.com/pedrobtz/py-dazure/issues/8), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#8](https://github.com/pedrobtz/py-dazapiz/issues/8), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `quick`.
 
@@ -321,14 +321,14 @@ class chooses, retry as `azr` does, parse by content type and log in
 
 ## Stage 6 — DuckDB
 
-**Issue.** [#9](https://github.com/pedrobtz/py-dazure/issues/9), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#9](https://github.com/pedrobtz/py-dazapiz/issues/9), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `quick`. (2026-11-21: the `full-ci` label was added once to the
 pull request, to exercise the workflow change on every leg; the tier
 stays `quick`.)
 
-**Goal.** `dazure.duckdb` registers `quak`-compatible Azure secrets,
+**Goal.** `dazapiz.duckdb` registers `quak`-compatible Azure secrets,
 including one from any `TokenCredential`, and tunes the connection.
 
 **Work.**
@@ -338,7 +338,7 @@ including one from any `TokenCredential`, and tunes the connection.
   tests make no network call after the first run. (2026-11-21: the
   version is the one `uv` installs from `uv.lock`, or the lowest
   resolution; in CI a failed `INSTALL azure` fails the tests, and only
-  outside CI are they skipped. The `lowest` job also imports `dazure`
+  outside CI are they skipped. The `lowest` job also imports `dazapiz`
   without the extra.)
 
 **Tests.**
@@ -351,7 +351,7 @@ including one from any `TokenCredential`, and tunes the connection.
   registered and `expires_on` returned, in `tests/test_duckdb.py`.
 - `tune()` and `azure_settings()`: `duckdb_settings()`, in
   `tests/test_duckdb.py`.
-- `import dazure` without `duckdb` installed: the lowest-dependencies job
+- `import dazapiz` without `duckdb` installed: the lowest-dependencies job
   without the extra, in CI.
 
 **Exit criteria.**
@@ -364,8 +364,8 @@ including one from any `TokenCredential`, and tunes the connection.
 
 ## Stage 7 — Manual checklist
 
-**Issue.** [#10](https://github.com/pedrobtz/py-dazure/issues/10), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#10](https://github.com/pedrobtz/py-dazapiz/issues/10), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `quick`.
 
@@ -377,12 +377,12 @@ an environment with full Azure access.
 - `tests/manual/README.md`: the §8.2 items, the environment each needs
   (OS, app registration, storage account, service principal), and the
   record to paste into a release pull request.
-- `tests/manual/test_live_*.py`, skipped unless `DAZURE_LIVE=1`, for the
+- `tests/manual/test_live_*.py`, skipped unless `DAZAPIZ_LIVE=1`, for the
   items a script can drive; the rest are steps to follow.
 
 **Tests.**
 
-- The live tests are collected and skipped without `DAZURE_LIVE`: the
+- The live tests are collected and skipped without `DAZAPIZ_LIVE`: the
   pytest summary in CI.
 
 **Exit criteria.**
@@ -395,8 +395,8 @@ an environment with full Azure access.
 
 ## Stage 8 — Full CI
 
-**Issue.** [#11](https://github.com/pedrobtz/py-dazure/issues/11), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#11](https://github.com/pedrobtz/py-dazapiz/issues/11), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `full` (always).
 
@@ -417,8 +417,8 @@ an environment with full Azure access.
 
 ## Stage 9 — v0.1.0 readiness
 
-**Issue.** [#12](https://github.com/pedrobtz/py-dazure/issues/12), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#12](https://github.com/pedrobtz/py-dazapiz/issues/12), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `full` (always).
 
@@ -445,8 +445,8 @@ an environment with full Azure access.
 
 ## Stage 10 — Review
 
-**Issue.** [#13](https://github.com/pedrobtz/py-dazure/issues/13), sub-issue of
-[v0.1.0](https://github.com/pedrobtz/py-dazure/issues/2).
+**Issue.** [#13](https://github.com/pedrobtz/py-dazapiz/issues/13), sub-issue of
+[v0.1.0](https://github.com/pedrobtz/py-dazapiz/issues/2).
 
 **CI.** `full` (always).
 

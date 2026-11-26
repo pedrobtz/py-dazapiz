@@ -1,6 +1,6 @@
-"""Errors raised by dazure.
+"""Errors raised by dazapiz.
 
-Every error derives from `DazureError`. `azure.core.exceptions.ClientAuthenticationError`
+Every error derives from `DazapizError`. `azure.core.exceptions.ClientAuthenticationError`
 from a credential passes through unwrapped (design §5). No message carries a
 token, key or secret (design §6).
 """
@@ -16,34 +16,34 @@ __all__ = [
     "AzCliNotFoundError",
     "AzCliNotLoggedInError",
     "AzCliTimeoutError",
-    "DazureError",
+    "DazapizError",
     "RefreshTokenNotFoundError",
     "ResponseParseError",
     "UnsupportedPlatformError",
 ]
 
 
-class DazureError(Exception):
-    """Base class of every error dazure raises.
+class DazapizError(Exception):
+    """Base class of every error dazapiz raises.
 
-    Catch it to handle any dazure failure. Errors from the Azure SDK itself,
+    Catch it to handle any dazapiz failure. Errors from the Azure SDK itself,
     such as `azure.core.exceptions.ClientAuthenticationError` from a
     credential, are not wrapped and do not derive from it.
 
     Examples
     --------
     ```python
-    from dazure import DazureError, refresh_token_from_az_cli
+    from dazapiz import DazapizError, refresh_token_from_az_cli
 
     try:
         info = refresh_token_from_az_cli()
-    except DazureError as err:
+    except DazapizError as err:
         print(f"No az login token: {err}")
     ```
     """
 
 
-class RefreshTokenNotFoundError(DazureError):
+class RefreshTokenNotFoundError(DazapizError):
     """No refresh token was found where one was looked for.
 
     Raised by `refresh_token_from_az_cli()` (no profile, no default
@@ -55,7 +55,7 @@ class RefreshTokenNotFoundError(DazureError):
     """
 
 
-class UnsupportedPlatformError(DazureError):
+class UnsupportedPlatformError(DazapizError):
     """The operation is not available on this operating system.
 
     `refresh_token_from_az_cli()` raises it on Windows, where the Azure CLI
@@ -63,7 +63,7 @@ class UnsupportedPlatformError(DazureError):
     """
 
 
-class AzCliError(DazureError):
+class AzCliError(DazapizError):
     """An `az` command failed; the message carries what `az` wrote to stderr.
 
     The base class of the `az` CLI helpers' errors: `az_account_show()`,
@@ -100,7 +100,7 @@ class AzCliTimeoutError(AzCliError, TimeoutError):
     """
 
 
-class ApiError(DazureError, httpx.HTTPStatusError):
+class ApiError(DazapizError, httpx.HTTPStatusError):
     """An `ApiClient` request ended in a non-2xx response, after any retries.
 
     Also an `httpx.HTTPStatusError`, so code written for `httpx` catches it.
@@ -119,7 +119,7 @@ class ApiError(DazureError, httpx.HTTPStatusError):
     """
 
 
-class ResponseParseError(DazureError):
+class ResponseParseError(DazapizError):
     """A successful response's body could not be parsed or was rejected by `parse=`.
 
     `ApiClient.fetch()` raises it when its `parse` callable raises on a 2xx

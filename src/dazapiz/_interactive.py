@@ -15,7 +15,7 @@ from .errors import RefreshTokenNotFoundError
 
 __all__ = ["DeviceCodeCredential", "InteractiveBrowserCredential", "find_refresh_token"]
 
-CACHE_NAME = "dazure"
+CACHE_NAME = "dazapiz"
 
 # azure-identity's `_load_persistent_cache()` passes this account name to
 # `_get_persistence()`; the cache file suffixes are its `_constants`.
@@ -160,13 +160,13 @@ class DeviceCodeCredential(_RefreshTokenFromCache, azure.identity.DeviceCodeCred
     -----
     Everything but the cache default and `get_refresh_token()` is
     `azure-identity`'s. Tokens are cached in the platform store under the
-    name `"dazure"` unless `cache_persistence_options` is given, so a later
+    name `"dazapiz"` unless `cache_persistence_options` is given, so a later
     session with the same `authentication_record` signs in silently.
 
     Examples
     --------
     ```python
-    from dazure import DeviceCodeCredential, spark_storage_conf
+    from dazapiz import DeviceCodeCredential, spark_storage_conf
 
     credential = DeviceCodeCredential(tenant_id="contoso.com")
     conf = spark_storage_conf(refresh_token=credential)  # prompts once
@@ -199,7 +199,7 @@ class InteractiveBrowserCredential(
         Passed to `azure.identity.InteractiveBrowserCredential`: `tenant_id`,
         `client_id`, `redirect_uri`, `login_hint`, `authority`,
         `authentication_record` and the rest. A `redirect_uri` whose host is
-        not `localhost` or `127.0.0.1` is kept by dazure for the pasted-code
+        not `localhost` or `127.0.0.1` is kept by dazapiz for the pasted-code
         flow and not passed on.
 
     Raises
@@ -226,7 +226,7 @@ class InteractiveBrowserCredential(
     Examples
     --------
     ```python
-    from dazure import InteractiveBrowserCredential
+    from dazapiz import InteractiveBrowserCredential
 
     credential = InteractiveBrowserCredential(
         tenant_id="11111111-2222-3333-4444-555555555555",

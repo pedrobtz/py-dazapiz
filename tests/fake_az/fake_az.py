@@ -4,9 +4,9 @@ Launched by the `az` shell stub on POSIX and `az.cmd` on Windows, which the
 `fake_az` fixture (tests/conftest.py) puts first on PATH. It reads two
 environment variables:
 
-- `DAZURE_FAKE_AZ_LOG`: a JSON-lines file; each run appends `{"argv": [...]}`
+- `DAZAPIZ_FAKE_AZ_LOG`: a JSON-lines file; each run appends `{"argv": [...]}`
   with its arguments, the program name left out.
-- `DAZURE_FAKE_AZ_SCRIPT`: a JSON file mapping a command (the leading
+- `DAZAPIZ_FAKE_AZ_SCRIPT`: a JSON file mapping a command (the leading
   arguments that are not options, such as `"account show"`) to a reply, or
   to a list of replies used in turn, the last one repeating.
 
@@ -46,7 +46,7 @@ def command_of(argv: list[str]) -> str:
 
 def main() -> int:
     argv = sys.argv[1:]
-    log = Path(os.environ["DAZURE_FAKE_AZ_LOG"])
+    log = Path(os.environ["DAZAPIZ_FAKE_AZ_LOG"])
     previous = []
     if log.exists():
         previous = [json.loads(line)["argv"] for line in log.read_text("utf-8").splitlines()]
@@ -54,7 +54,7 @@ def main() -> int:
         f.write(json.dumps({"argv": argv}) + "\n")
 
     command = command_of(argv)
-    script = json.loads(Path(os.environ["DAZURE_FAKE_AZ_SCRIPT"]).read_text("utf-8"))
+    script = json.loads(Path(os.environ["DAZAPIZ_FAKE_AZ_SCRIPT"]).read_text("utf-8"))
     replies = script.get(command)
     if replies is None:
         sys.stderr.write(f"fake az: no reply scripted for {command!r}\n")

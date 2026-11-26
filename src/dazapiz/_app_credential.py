@@ -20,9 +20,9 @@ from ._interactive import DeviceCodeCredential
 
 __all__ = ["app_credential"]
 
-logger = logging.getLogger("dazure.http")
+logger = logging.getLogger("dazapiz.http")
 
-# dazure's names, and the azure-identity class names that
+# dazapiz's names, and the azure-identity class names that
 # `AZURE_TOKEN_CREDENTIALS` also takes (azr maps the same ones), lower-cased.
 _MODES = {
     "dev": "dev",
@@ -64,7 +64,7 @@ def app_credential(
     | Mode | Credential |
     | --- | --- |
     | `"prod"` | `ClientSecretCredential` from the named variables when they are set, else `WorkloadIdentityCredential()` when `$AZURE_FEDERATED_TOKEN_FILE` is set, else `ManagedIdentityCredential()` (user-assigned with `client_id=$AZURE_CLIENT_ID` when that is set) |
-    | `"dev"` | `ChainedTokenCredential(AzureCliCredential(), dazure.DeviceCodeCredential())`, the device code only in an interactive session (a TTY or a notebook kernel) |
+    | `"dev"` | `ChainedTokenCredential(AzureCliCredential(), dazapiz.DeviceCodeCredential())`, the device code only in an interactive session (a TTY or a notebook kernel) |
     | `"client_secret"`, `"workload_identity"`, `"managed_identity"`, `"azure_cli"`, `"device_code"` (or the azure-identity class name) | that credential alone |
     | automatic | the named service principal when its client ID and secret variables are set, otherwise `"dev"` |
 
@@ -95,14 +95,14 @@ def app_credential(
     Notes
     -----
     Every credential is an `azure-identity` class, built and returned as is;
-    the choice is what dazure adds. Variables are read once, now; an empty
+    the choice is what dazapiz adds. Variables are read once, now; an empty
     variable counts as unset. The mode and credential class chosen (never a
-    value) are logged on the `dazure.http` logger at `INFO`.
+    value) are logged on the `dazapiz.http` logger at `INFO`.
 
     Examples
     --------
     ```python
-    from dazure import app_credential
+    from dazapiz import app_credential
 
     credential = app_credential("APP_API_CLIENT_ID", "APP_API_SECRET")
     token = credential.get_token("api://my-api/.default")
