@@ -1161,7 +1161,9 @@ for the platform branches (`UnsupportedPlatformError` on Windows, the
 config and cache paths); the real persisted cache of §4.3.2 is checked
 by hand on each OS (§8.2). Published
 to PyPI by a release workflow with trusted publishing, as `py-dazdiff`
-does.
+does, which then makes the GitHub release for the tag with the
+version's `CHANGELOG.md` section as its notes and the wheel and sdist
+attached, as `py-dazflow`'s does (2026-11-26).
 
 Documentation site built with great-docs (Quarto) from `great-docs.yml`,
 `user_guide/` and the NumPy docstrings, deployed to GitHub Pages
