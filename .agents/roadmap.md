@@ -429,10 +429,18 @@ an environment with full Azure access.
 - Version `0.1.0`, the `CHANGELOG.md` heading, the README in
   `py-dazdiff`'s style.
 - `.github/workflows/release.yml` with trusted publishing to TestPyPI on
-  dispatch and PyPI on a `v*` tag, as `py-dazdiff`'s. Landed ahead of the rest
-  of the stage (2026-11-26) so the upload path can be tried with the
-  development version: TestPyPI never takes a version twice, so `0.1.0`
-  goes up only from the release candidate (Stage 10).
+  dispatch and PyPI on a `v*` tag, as `py-dazdiff`'s.
+
+  As built (2026-11-26), aligned with `py-dazflow`'s Stage 15: version
+  `0.1.0` and classifier Alpha; a dated 0.1.0 changelog summarising the
+  release in place of the item-by-item list; README with badges,
+  installation from PyPI and a status section; `release.yml` as
+  `py-dazflow`'s (a dispatch publishes to TestPyPI, then installs that
+  version from it and imports it without Azure; a pull request that
+  changes the workflow runs the build alone). Nothing goes to TestPyPI
+  before the merge: the first upload is a dispatch on `main` after
+  Stage 10, as in `py-dazflow`, since TestPyPI never takes a version
+  twice.
 - The maintainer runs the Stage 7 checklist on Windows, macOS and Linux
   and records it in the pull request.
 
@@ -478,4 +486,8 @@ an environment with full Azure access.
 ## Blocking open questions
 
 None. The Hadoop version note of [§12](design.md#12-sources-and-verification)
-is checked by hand in Stage 7's checklist.
+is checked by hand in Stage 7's checklist. Before the first TestPyPI dispatch the
+maintainer registers a pending publisher on test.pypi.org (project
+`dazapiz`, repository `pedrobtz/py-dazapiz`, workflow `release.yml`,
+environment `testpypi`), and before the `v0.1.0` tag the same on pypi.org
+with environment `pypi` (#14).
