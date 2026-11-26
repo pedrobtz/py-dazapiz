@@ -1,6 +1,6 @@
 [project]
 name = "dazapiz"
-version = "0.0.1.dev0"
+version = "0.1.0"
 description = "The Azure helpers azure-identity lacks: your az login carried into Spark, DuckDB and any Azure REST API."
 readme = "README.md"
 authors = [
@@ -16,7 +16,7 @@ dependencies = [
 ]
 keywords = ["azure", "azure-identity", "spark", "abfs", "duckdb", "oauth", "refresh-token"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
